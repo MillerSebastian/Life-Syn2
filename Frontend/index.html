@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite App</title>
+    <link
+      href="https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css"
+      rel="stylesheet"
+    />
+    // To run this code you need to install the following dependencies: // npm
+    install @google/genai mime // npm install -D @types/node import {
+    GoogleGenAI, } from '@google/genai'; async function main() { const ai = new
+    GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, }); const tools = [ {
+    urlContext: {} }, ]; const config = { temperature: 1.05, thinkingConfig: {
+    thinkingBudget: 0, }, tools, responseMimeType: 'text/plain', }; const model
+    = 'gemini-2.5-flash-lite-preview-06-17'; const contents = [ { role: 'user',
+    parts: [ { inlineData: { data:
+    `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O90eaZqIIptvjGVSiHQyY3MYHryTOmyDniAK8IL1uFk2q1XeeF5mtk1H/VrhRbRgR+BjL2HQuB+jMIK8ATBiqqJL1cvTnGR1JvJx/kPBaZyM16B5cFvSEedah12132ZWesVfHvGSlbGoxsUAwCp/ILBhh3mrsum8B5lWq6xTfjft991gwxhpz52ZLQm+DT7miL++nG/lDKr5hq/CtKW5qMeuGryVkE4xfwAWFd+7CmVuZHN0cmVhbQplbmRvYmoKMSAwIG9iago8PC9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFIgNSAwIFIgXQovQ291bnQgMgovTWVkaWFCb3ggWzAgMCA1OTUuMjggODQxLjg5XQo+PgplbmRvYmoKNyAwIG9iago8PC9UeXBlIC9Gb250Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iago4IDAgb2JqCjw8L1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUgL1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iago5IDAgb2JqCjw8L1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9IZWx2ZXRpY2EtT2JsaXF1ZQovU3VidHlwZSAvVHlwZTEKL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1Byb2NTZXQgWy9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUldCi9Gb250IDw8Ci9GMSA3IDAgUgovRjIgOCAwIFIKL0YzIDkgMCBSCj4+Ci9YT2JqZWN0IDw8Cj4+Cj4+CmVuZG9iagoxMCAwIG9iago8PAovUHJvZHVjZXIgKFB5RlBERiAxLjcuMiBodHRwOi8vcHlmcGRmLmdvb2dsZWNvZGUuY29tLykKL0NyZWF0aW9uRGF0ZSAoRDoyMDI1MDYyOTE3MjU1NikKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAxIDAgUgovT3BlbkFjdGlvbiBbMyAwIFIgL0ZpdEggbnVsbF0KL1BhZ2VMYXlvdXQgL09uZUNvbHVtbgo+PgplbmRvYmoKeHJlZgowIDEyCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMTk5MiAwMDAwMCBuIAowMDAwMDAyMzg2IDAwMDAwIG4gCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA4NyAwMDAwMCBuIAowMDAwMDAxMDY5IDAwMDAwIG4gCjAwMDAwMDExNDcgMDAwMDAgbiAKMDAwMDAwMjA4NSAwMDAwMCBuIAowMDAwMDAyMTg2IDAwMDAwIG4gCjAwMDAwMDIyODIgMDAwMDAgbiAKMDAwMDAwMjUxMCAwMDAwMCBuIAowMDAwMDAyNjIwIDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgMTIKL1Jvb3QgMTEgMCBSCi9JbmZvIDEwIDAgUgo+PgpzdGFydHhyZWYKMjcyNAolJUVPRgo=`,
+    mimeType: `application/pdf`, }, }, { text: `puedes resumir esto? `, }, ], },
+    { role: 'model', parts: [ { text: `Este documento describe el "Prompt para
+    Chatbot Docsito", un asistente virtual diseñado para orientar a los usuarios
+    en el uso de una plataforma de análisis de datos. **Función principal:**
+    Brindar apoyo exclusivo sobre el funcionamiento, características y uso de la
+    plataforma. **Contexto de la Plataforma:** La plataforma cuenta con tres
+    apartados principales: 1. **Resumen de datos:** Para analizar datos
+    existentes, obtener estadísticas, gráficos y resúmenes automáticos. 2.
+    **Crear datos:** Para generar conjuntos de datos desde cero. 3. **Subir
+    archivos:** Para importar archivos en formatos PDF, Word, PowerPoint y Excel
+    (.xlsx) para análisis, resúmenes o transformaciones. **Rol de Docsito:** *
+    Asistente amable, empático y profesional. * Su única función es ayudar a los
+    usuarios a entender y navegar la plataforma. * **No responde** preguntas que
+    estén fuera del contexto de la plataforma. **Forma de Comunicación:** * Debe
+    dirigirse a los usuarios de forma respetuosa, clara y amigable. * Puede usar
+    frases como: "Con gusto te ayudo...", "Puedes dirigirte al apartado...",
+    "Claro, te explico cómo hacerlo...", "Recuerda que puedes subir archivos en
+    formato...". **Restricciones:** * **Nunca responderá** preguntas no
+    relacionadas con el funcionamiento de la plataforma o el soporte dentro de
+    ella. * **No responde** preguntas de temas externos a la plataforma
+    (noticias, clima, recetas, matemáticas, programación externa, etc.). *
+    Siempre recordará a los usuarios que su función es ayudarles dentro de la
+    plataforma. **Ejemplos de Respuestas Correctas:** * "Hola, soy Docsito. Veo
+    que deseas analizar datos, puedes hacerlo desde el apartado Resumen de
+    datos. ¿Te ayudo con eso?" * "Perfecto. Puedes subir archivos en formatos
+    PDF, Word, PowerPoint o Excel desde la pestaña Subir archivos. ¿Quieres que
+    te guie paso a paso?" **Ejemplos de Respuestas Incorrectas (y cómo
+    responder):** * Para preguntas ajenas como "¿Quién es el presidente de
+    Colombia?", "Hazme una receta de torta" o "Dime cómo programar en Python",
+    la respuesta debe ser: "Lo siento, solo puedo asistirte con el uso de
+    nuestra plataforma de análisis de datos."`, }, ], }, { role: 'user', parts:
+    [ { text: `INSERT_INPUT_HERE`, }, ], }, ]; const response = await
+    ai.models.generateContentStream({ model, config, contents, }); let fileIndex
+    = 0; for await (const chunk of response) { console.log(chunk.text); } }
+    main();
+
+    <style>
+      #PCuYpvc2GjVym_2Ys7YBe {
+        bottom: 40px !important;
+        left: 40px !important;
+        right: auto !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+    <script>
+      (function () {
+        if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+          window.chatbase = (...arguments) => {
+            if (!window.chatbase.q) {
+              window.chatbase.q = [];
+            }
+            window.chatbase.q.push(arguments);
+          };
+          window.chatbase = new Proxy(window.chatbase, {
+            get(target, prop) {
+              if (prop === "q") {
+                return target.q;
+              }
+              return (...args) => target(prop, ...args);
+            },
+          });
+        }
+        const onLoad = function () {
+          const script = document.createElement("script");
+          script.src = "https://www.chatbase.co/embed.min.js";
+          script.id = "PCuYpvc2GjVym_2Ys7YBe";
+          script.domain = "www.chatbase.co";
+          document.body.appendChild(script);
+        };
+        if (document.readyState === "complete") {
+          onLoad();
+        } else {
+          window.addEventListener("load", onLoad);
+        }
+      })();
+    </script>
+  </body>
+</html>
