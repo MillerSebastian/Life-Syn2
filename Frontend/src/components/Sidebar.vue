@@ -2,8 +2,8 @@
   <div class="sidebar" :class="{ 'sidebar-collapsed': isCollapsed }">
     <div class="sidebar-header">
       <div class="logo">
-        <h2 v-if="!isCollapsed">EatherDocs</h2>
-        <span v-else>ED</span>
+        <h2 v-if="!isCollapsed">LifeSync</h2>
+        <span v-else>LS</span>
       </div>
       <button class="toggle-btn" @click="toggleSidebar">
         <i class="bx" :class="isCollapsed ? 'bx-menu' : 'bx-menu-alt-left'"></i>
@@ -48,30 +48,26 @@ const menuItems = [
     icon: "bx bx-home-alt",
   },
   {
-    name: "Archivos",
-    path: "/files",
-    icon: "bx bx-folder",
+    name: "Tareas",
+    path: "/tasks",
+    icon: "bx bx-task",
   },
   {
-    name: "Crear Archivos",
-    path: "/crear-archivos",
-    icon: "bx bx-plus-circle",
+    name: "Calendario",
+    path: "/calendar",
+    icon: "bx bx-calendar",
   },
   {
-    name: "Resume archivos",
-    path: "/resumir-archivos",
-    icon: "bx bx-bot",
+    name: "Wallet",
+    path: "/wallet",
+    icon: "bx bx-wallet",
   },
   {
-    name: "Análisis",
-    path: "/analytics",
-    icon: "bx bx-bar-chart-alt-2",
+    name: "Comidas",
+    path: "/meals",
+    icon: "bx bx-restaurant",
   },
-  {
-    name: "Configuración",
-    path: "/settings",
-    icon: "bx bx-cog",
-  },
+ 
 ];
 
 const toggleSidebar = () => {
@@ -98,7 +94,7 @@ watch(
 .sidebar {
   width: 250px;
   height: 100vh;
-  background: #2c3e50;
+  background: var(--primary);
   color: white;
   display: flex;
   flex-direction: column;
@@ -107,6 +103,7 @@ watch(
   left: 0;
   top: 0;
   z-index: 1000;
+  box-shadow: 2px 0 8px rgba(99, 102, 241, 0.2);
 }
 
 .sidebar-collapsed {
@@ -118,18 +115,21 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #34495e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--primary-dark);
 }
 
 .logo h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
+  color: white;
 }
 
 .logo span {
   font-size: 24px;
   font-weight: bold;
+  color: white;
 }
 
 .toggle-btn {
@@ -138,37 +138,45 @@ watch(
   color: white;
   font-size: 20px;
   cursor: pointer;
-  padding: 5px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
 }
 
 .toggle-btn:hover {
-  background: #34495e;
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
 }
 
 .sidebar-nav {
   flex: 1;
   padding: 20px 0;
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   padding: 15px 20px;
-  color: #bdc3c7;
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   transition: all 0.3s ease;
   gap: 15px;
+  margin: 0 10px;
+  border-radius: 8px;
+  margin-bottom: 5px;
 }
 
 .nav-item:hover {
-  background: #34495e;
+  background: rgba(255, 255, 255, 0.1);
   color: white;
+  transform: translateX(5px);
 }
 
 .nav-item.active {
-  background: #667eea;
+  background: var(--accent);
   color: white;
+  box-shadow: 0 2px 8px rgba(6, 214, 160, 0.3);
 }
 
 .nav-item i {
@@ -183,7 +191,8 @@ watch(
 
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid #34495e;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--primary-dark);
 }
 
 .logout-btn {
@@ -191,32 +200,54 @@ watch(
   display: flex;
   align-items: center;
   gap: 15px;
-  background: #e74c3c;
+  background: #ef4444;
   color: white;
   border: none;
   padding: 12px;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .logout-btn:hover {
-  background: #c0392b;
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .logout-btn i {
   font-size: 18px;
 }
 
+/* Scrollbar personalizada para el sidebar */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar {
-    width: 70px;
+    width: 100%;
+    transform: translateX(-100%);
   }
 
-  .sidebar:not(.sidebar-collapsed) {
-    width: 250px;
+  .sidebar-collapsed {
+    transform: translateX(0);
   }
 }
 </style>

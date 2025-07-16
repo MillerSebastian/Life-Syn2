@@ -80,7 +80,7 @@
       <div class="toggle-box">
         <div class="toggle-panel toggle-left">
           <h1>Hello, Welcome to</h1>
-          <h1>EatherDocs!</h1>
+          <h1>LifeSync!</h1>
           <p>Don't have an account?</p>
           <button class="btn register-btn" @click="showRegister">
             Register
@@ -100,6 +100,11 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { auth } from "../../firebase";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 
 const router = useRouter();
 const container = ref(null);
@@ -123,20 +128,27 @@ const showLogin = () => {
   container.value.classList.remove("active");
 };
 
-const handleLogin = () => {
-  // Aquí puedes agregar la lógica de autenticación real
-  console.log("Login attempt:", loginForm.value);
-
-  // Por ahora, simplemente navegamos al dashboard
-  router.push("/dashboard");
+const handleLogin = async () => {
+  try {
+    // Usamos el email como username
+    const email = loginForm.value.username;
+    const password = loginForm.value.password;
+    await signInWithEmailAndPassword(auth, email, password);
+    router.push("/dashboard");
+  } catch (error) {
+    alert("Error al iniciar sesión: " + error.message);
+  }
 };
 
-const handleRegister = () => {
-  // Aquí puedes agregar la lógica de registro real
-  console.log("Register attempt:", registerForm.value);
-
-  // Por ahora, simplemente navegamos al dashboard
-  router.push("/dashboard");
+const handleRegister = async () => {
+  try {
+    const email = registerForm.value.email;
+    const password = registerForm.value.password;
+    await createUserWithEmailAndPassword(auth, email, password);
+    router.push("/dashboard");
+  } catch (error) {
+    alert("Error al registrarse: " + error.message);
+  }
 };
 </script>
 

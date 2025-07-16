@@ -1,5 +1,7 @@
 <template>
-  <DashboardSummary />
+  <div class="dashboard-page">
+    <DashboardSummary />
+  </div>
 </template>
 
 <script setup>
@@ -7,6 +9,11 @@ import DashboardSummary from "../components/DashboardSummary.vue";
 </script>
 
 <style scoped>
+.dashboard-page {
+  padding: 0;
+  width: 100%;
+}
+
 .dashboard {
   padding: 20px;
   width: 100%;

@@ -1,6 +1,6 @@
 <template>
   <nav
-    class="navbar is-white is-shadow top-navbar"
+    class="navbar top-navbar"
     role="navigation"
     aria-label="main navigation"
     :style="navbarStyle"
@@ -23,21 +23,21 @@
     <div class="navbar-menu is-active">
       <div class="navbar-end">
         <div class="navbar-item">
-          <button class="button is-white" @click="showNotifications = true">
+          <button class="button nav-button" @click="showNotifications = true">
             <span class="icon">
               <i class="bx bx-bell"></i>
             </span>
           </button>
         </div>
         <div class="navbar-item">
-          <button class="button is-white">
+          <button class="button nav-button">
             <span class="icon">
               <i class="bx bx-moon"></i>
             </span>
           </button>
         </div>
         <div class="navbar-item">
-          <button class="button is-white">
+          <button class="button nav-button">
             <span class="icon">
               <i class="bx bx-globe"></i>
             </span>
@@ -54,7 +54,7 @@
             </figure>
           </a>
           <div class="navbar-dropdown is-right">
-            <a class="navbar-item">
+            <a class="navbar-item" @click="profile">
               <span class="icon"><i class="bx bx-user"></i></span>
               Perfil
             </a>
@@ -99,9 +99,13 @@
 </template>
 
 <script setup>
+import Profile from "@/views/Profile.vue";
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 
 const showNotifications = ref(false);
+
+const router = useRouter();
 
 const props = defineProps({
   sidebarCollapsed: {
@@ -127,51 +131,110 @@ const navbarStyle = computed(() => {
     transition: "left 0.3s, width 0.3s",
   };
 });
+
+const profile = () => {
+  router.push({ name: "profile" });
+};
 </script>
 
 <style scoped>
 .top-navbar {
-  /* El estilo principal ahora se controla por :style */
+  background: var(--background);
+  box-shadow: 0 2px 8px var(--shadow);
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
 }
-.navbar.is-shadow {
-  box-shadow: 0 2px 8px rgba(50, 115, 220, 0.07);
-  padding: 0.5rem 1.5rem;
+
+.nav-button {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
-.navbar-item .button.is-white {
-  box-shadow: none;
+
+.nav-button:hover {
+  background: var(--background-secondary);
+  color: var(--primary);
+  transform: translateY(-1px);
 }
+
 .navbar-item .icon {
   font-size: 1.3rem;
 }
+
 .image.is-32x32 {
   width: 32px;
   height: 32px;
   overflow: hidden;
   border-radius: 50%;
-  border: 2px solid #eaeaea;
+  border: 2px solid var(--border);
+  transition: all 0.3s ease;
 }
+
+.image.is-32x32:hover {
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
 .navbar-dropdown {
   min-width: 150px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--shadow-hover);
 }
+
+.navbar-item {
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.navbar-item:hover {
+  background: var(--background-secondary);
+  color: var(--primary);
+}
+
+.navbar-divider {
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+
+.input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
 @media (max-width: 1024px) {
   .top-navbar {
     left: 70px !important;
     width: calc(100% - 70px) !important;
   }
 }
+
 @media (max-width: 768px) {
   .navbar-item.is-hidden-mobile {
     display: none !important;
   }
+
   .navbar-item.is-hidden-desktop {
     display: block !important;
   }
+
   .top-navbar {
     left: 0 !important;
     width: 100% !important;
     position: static !important;
   }
 }
+
 @media (min-width: 769px) {
   .navbar-item.is-hidden-desktop {
     display: none !important;
