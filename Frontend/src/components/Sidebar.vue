@@ -22,13 +22,6 @@
         <span v-if="!isCollapsed">{{ item.name }}</span>
       </router-link>
     </nav>
-
-    <div class="sidebar-footer">
-      <button class="logout-btn" @click="logout">
-        <i class="bx bx-log-out"></i>
-        <span v-if="!isCollapsed">Cerrar Sesión</span>
-      </button>
-    </div>
   </div>
 </template>
 
@@ -110,6 +103,65 @@ watch(
   width: 70px;
 }
 
+/* Mejoras para centrar íconos y botón hamburguesa en modo colapsado */
+.sidebar.sidebar-collapsed .sidebar-header {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.sidebar.sidebar-collapsed .logo span {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.sidebar.sidebar-collapsed .toggle-btn {
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar.sidebar-collapsed .sidebar-nav {
+  padding: 8px 0;
+}
+
+.sidebar.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 12px 0;
+  gap: 0;
+  margin: 0 4px 5px 4px;
+}
+
+.sidebar.sidebar-collapsed .nav-item i {
+  margin: 0;
+  font-size: 22px;
+}
+
+.sidebar.sidebar-collapsed .nav-item span {
+  display: none;
+}
+
+.sidebar.sidebar-collapsed .sidebar-footer {
+  padding: 12px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar.sidebar-collapsed .logout-btn {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
+}
+
+.sidebar.sidebar-collapsed .logout-btn span {
+  display: none;
+}
+
 .sidebar-header {
   padding: 20px;
   display: flex;
@@ -171,6 +223,11 @@ watch(
   background: rgba(255, 255, 255, 0.1);
   color: white;
   transform: translateX(5px);
+}
+
+/* Desactivar translateX cuando la sidebar está colapsada */
+.sidebar.sidebar-collapsed .nav-item:hover {
+  transform: none;
 }
 
 .nav-item.active {
