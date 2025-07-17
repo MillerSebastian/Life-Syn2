@@ -145,7 +145,7 @@ const handleLogin = async () => {
     localStorage.setItem("uid", userCredential.user.uid);
     router.push("/dashboard");
   } catch (error) {
-    alert("Error al iniciar sesión: " + error.message);
+    error("Error al iniciar sesión");
   }
 };
 

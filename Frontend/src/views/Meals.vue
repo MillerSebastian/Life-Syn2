@@ -45,7 +45,7 @@
             </button>
           </div>
           <div class="is-flex is-align-items-center gap-2">
-            <select v-model="selectedDate" class="select">
+            <select v-model="selectedDate" class="select select-month">
               <option value="today">Hoy</option>
               <option value="tomorrow">Mañana</option>
               <option value="week">Esta Semana</option>
@@ -408,9 +408,9 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveMeal">Guardar</button>
-          <button class="btn btn-secondary" @click="showAddMealModal = false">
+          <button class="btn button is-danger has-text-white-bis" @click="showAddMealModal = false">
             Cancelar
           </button>
         </footer>
@@ -441,7 +441,7 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot" style="flex-wrap: wrap; gap: 0.5rem">
+        <footer class="modal-card-foot buttons" style="flex-wrap: wrap; gap: 0.5rem">
           <button
             class="btn btn-primary is-small mr-2 mb-2"
             :disabled="weekPlanLoading"
@@ -451,7 +451,7 @@
             <span v-else>Guardar Semana</span>
           </button>
           <button
-            class="btn btn-secondary is-small mr-2 mb-2"
+            class="btn button is-danger button-cancel has-text-white-bis"
             @click="showMealPlanModal = false"
           >
             Cancelar
@@ -988,6 +988,29 @@ watch(
 </script>
 
 <style scoped>
+
+.button-cancel{
+  position: relative;
+  bottom: 4px;
+  right: 4px;
+}
+
+.modal-card-foot{
+  display: flex;
+  flex-direction: row;
+}
+
+.select-month{
+  border-radius: 10px;
+  padding: 0em 1em;
+  border: 1px solid transparent;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.select-month>option{
+  border-radius: 10px;
+}
+
 .meals-page {
   padding: 2rem 0;
   min-height: 100vh;
