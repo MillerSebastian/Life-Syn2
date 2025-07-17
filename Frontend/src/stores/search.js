@@ -12,8 +12,13 @@ export const useSearchStore = defineStore("search", () => {
   const notes = ref([]);
   const events = ref([]);
 
+  // Bandera para evitar múltiples suscripciones
+  let isSubscribed = false;
+
   // Sincronización con Firestore
   function syncAll() {
+    if (isSubscribed) return;
+    isSubscribed = true;
     onAuthStateChanged(auth, (user) => {
       if (!user) return;
       const userId = user.uid;

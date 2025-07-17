@@ -78,8 +78,15 @@
             <figure class="image is-32x32 is-rounded">
               <img
                 class="is-rounded"
-                src="https://randomuser.me/api/portraits/men/32.jpg"
-                alt="Perfil"
+                :src="
+                  user.photo
+                    ? user.photo
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        user.name || 'U'
+                      )}&size=64`
+                "
+                :alt="`Foto de ${user.name}`"
+                @error="onPhotoError"
               />
             </figure>
           </a>
@@ -133,7 +140,9 @@ import Profile from "@/views/Profile.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "@/stores/search";
-import { auth } from "@/../firebase";
+import { auth, db } from "@/../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { reactive } from "vue";
 
 const showNotifications = ref(false);
 const router = useRouter();
@@ -295,6 +304,32 @@ const logout = () => {
   // Aquí puedes agregar la lógica de logout
   router.push("/login");
 };
+
+const user = reactive({
+  name: "",
+  photo: "",
+});
+
+async function fetchUserProfile() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+  if (userDoc.exists()) {
+    const data = userDoc.data();
+    user.name = data.name || "";
+    user.photo = data.photo || "";
+  }
+}
+
+onMounted(() => {
+  fetchUserProfile();
+});
+
+function onPhotoError(e) {
+  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    user.name || "U"
+  )}&size=64`;
+}
 </script>
 
 <style scoped>
