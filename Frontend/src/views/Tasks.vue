@@ -144,7 +144,6 @@
           <p class="modal-card-title">
             {{ editingTask ? "Editar Tarea" : "Nueva Tarea" }}
           </p>
-          <button class="delete" @click="showAddTaskModal = false"></button>
         </header>
         <section class="modal-card-body">
           <div class="field">
@@ -204,9 +203,9 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveTask">Guardar</button>
-          <button class="btn btn-secondary" @click="showAddTaskModal = false">
+          <button class="btn button is-danger has-text-white-bis" @click="showAddTaskModal = false">
             Cancelar
           </button>
         </footer>
@@ -261,9 +260,9 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveNote">Guardar</button>
-          <button class="btn btn-secondary" @click="showAddNoteModal = false">
+          <button class="btn button is-danger has-text-white-bis" @click="showAddNoteModal = false">
             Cancelar
           </button>
         </footer>

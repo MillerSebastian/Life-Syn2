@@ -137,6 +137,7 @@
 
 <script setup>
 import Profile from "@/views/Profile.vue";
+import { getAuth, signOut } from "firebase/auth";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "@/stores/search";
@@ -300,9 +301,16 @@ const profile = () => {
   router.push({ name: "profile" });
 };
 
-const logout = () => {
-  // Aquí puedes agregar la lógica de logout
-  router.push("/login");
+const logout = async () => {
+  const auth = getAuth();
+  signOut(auth).then(() => {
+    localStorage.setItem('isLoggedIn', 'false')
+    alert("Lograste cerrar sesion exitosamente")
+    router.push('/login')
+  }).catch((error) => {
+    console.log(`Error al cerrar la sesion: ${error.message}`)
+  });
+  
 };
 
 const user = reactive({

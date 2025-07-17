@@ -271,7 +271,7 @@
         </section>
         <footer class="modal-card-foot">
           <button class="btn btn-primary" @click="saveEvent">Guardar</button>
-          <button class="btn btn-secondary" @click="showAddEventModal = false">
+          <button class="button is-danger has-text-white-bis" @click="showAddEventModal = false">
             Cancelar
           </button>
         </footer>
@@ -530,6 +530,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.modal-card-foot{
+  gap: 1em;
+}
+
 .calendar-page {
   padding: 2rem 0;
   min-height: 100vh;
