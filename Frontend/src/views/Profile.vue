@@ -217,7 +217,7 @@ function onNameInput() {
 .profile-section {
   min-height: 100vh;
   height: 100vh;
-  background: linear-gradient(120deg, #f8fafc 60%, #e0e7ff 100%);
+  background: var(--background-navy);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -225,16 +225,14 @@ function onNameInput() {
 }
 .profile-box {
   border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 8px 32px var(--shadow-navy);
   padding: 3.5rem 3rem 3rem 3rem;
-  background: white;
+  background: var(--background);
   max-width: 900px;
   margin: 0 auto;
   max-height: 90vh;
   overflow: auto;
-}
-.profile-form-row {
-  margin-bottom: 0.5rem;
+  border: 2px solid var(--primary-light);
 }
 .profile-photo-wrapper {
   position: relative;
@@ -245,14 +243,14 @@ function onNameInput() {
   height: 180px;
   object-fit: cover;
   border-radius: 50%;
-  border: 4px solid #d1d5db;
-  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.13);
+  border: 4px solid var(--primary-light);
+  box-shadow: 0 4px 24px var(--shadow);
   background: #f3f4f6;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .profile-photo:hover {
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.18);
-  border-color: #6366f1;
+  box-shadow: 0 8px 32px var(--shadow-hover);
+  border-color: var(--primary);
 }
 .url-input {
   margin-top: 1rem;
@@ -262,15 +260,32 @@ function onNameInput() {
 .profile-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #6366f1;
+  color: var(--primary);
   margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
 }
 .profile-content {
   margin-bottom: 2rem;
 }
 .profile-description {
-  color: #64748b;
+  color: var(--secondary);
   font-size: 1.1rem;
+}
+.profile-form-row {
+  margin-bottom: 0.5rem;
+}
+.field label.label {
+  color: var(--primary-dark);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.field {
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.7rem;
+}
+.field:last-child {
+  border-bottom: none;
 }
 .buttons.is-centered {
   justify-content: center;

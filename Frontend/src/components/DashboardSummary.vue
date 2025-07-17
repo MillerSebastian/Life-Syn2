@@ -37,6 +37,38 @@
         </div>
       </div>
 
+      <!-- Gráficos de Actividad -->
+      <div class="columns mb-4">
+        <div class="column is-6">
+          <div class="card">
+            <div class="card-content py-3 px-3">
+              <h3 class="title is-6 mb-3">Actividad Semanal</h3>
+              <div class="dashboard-canvas-wrapper">
+                <canvas
+                  ref="lineChart"
+                  id="lineChart"
+                  style="width: 100%; height: 260px"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="card">
+            <div class="card-content py-3 px-3">
+              <h3 class="title is-6 mb-3">Distribución de Gastos</h3>
+              <div class="dashboard-canvas-wrapper">
+                <canvas
+                  ref="pieChart"
+                  id="pieChart"
+                  style="width: 100%; height: 260px"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Sección de Tareas y Calendario -->
       <div class="columns mb-4">
         <div class="column is-8">
@@ -257,31 +289,19 @@
         </div>
       </div>
 
-      <!-- Gráficos de Actividad -->
+      <!-- Gráfico Mensual de Tareas y Nutrientes (al final) -->
       <div class="columns mb-4">
-        <div class="column is-6">
+        <div class="column is-12">
           <div class="card">
             <div class="card-content py-3 px-3">
-              <h3 class="title is-6 mb-3">Actividad Semanal</h3>
+              <h3 class="title is-6 mb-3">
+                Resumen Mensual: Tareas y Nutrientes
+              </h3>
               <div class="dashboard-canvas-wrapper">
                 <canvas
-                  ref="lineChart"
-                  id="lineChart"
-                  style="width: 100%; height: 260px"
-                ></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="column is-6">
-          <div class="card">
-            <div class="card-content py-3 px-3">
-              <h3 class="title is-6 mb-3">Distribución de Gastos</h3>
-              <div class="dashboard-canvas-wrapper">
-                <canvas
-                  ref="pieChart"
-                  id="pieChart"
-                  style="width: 100%; height: 260px"
+                  ref="monthlyChart"
+                  id="monthlyChart"
+                  style="width: 100%; height: 320px"
                 ></canvas>
               </div>
             </div>
@@ -307,7 +327,7 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
-// Datos del dashboard LifeSync (calculados en tiempo real)
+// Datos del dashboard  (calculados en tiempo real)
 const summaryCards = computed(() => {
   const pendingTasks = todoTasks.value.length + progressTasks.value.length;
   const todayEvents = calendarEvents.value.length;
@@ -476,6 +496,7 @@ onMounted(() => {
 
 const pieChart = ref(null);
 const lineChart = ref(null);
+const monthlyChart = ref(null);
 
 // Funciones
 const draggedTask = ref(null);
@@ -579,8 +600,8 @@ onMounted(async () => {
   });
 
   // Calcular datos de calorías
-  const allMeals = await getDocs(collection(db, "meals"));
-  allMeals.docs.forEach((doc) => {
+  const allMealsWeekly = await getDocs(collection(db, "meals"));
+  allMealsWeekly.docs.forEach((doc) => {
     const meal = doc.data();
     const mealDate = new Date(meal.date);
     const dayIndex = mealDate.getDay();
@@ -590,14 +611,16 @@ onMounted(async () => {
   });
 
   // Gráfico de actividad semanal con datos reales
+  // Datos quemados para balance mensual
+  const balanceMensual = [1200, 1500, 1100, 1700, 1600, 1800, 1400];
   new Chart(lineChart.value, {
     type: "line",
     data: {
       labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
       datasets: [
         {
-          label: "Tareas Completadas",
-          data: weekData,
+          label: "Balance Mensual",
+          data: balanceMensual,
           fill: true,
           backgroundColor: "rgba(99, 102, 241, 0.1)",
           borderColor: "#6366f1",
@@ -623,15 +646,6 @@ onMounted(async () => {
           tension: 0.4,
           yAxisID: "y",
         },
-        {
-          label: "Calorías Consumidas",
-          data: calorieData,
-          fill: false,
-          borderColor: "#ef4444",
-          pointBackgroundColor: "#ef4444",
-          tension: 0.4,
-          yAxisID: "y2",
-        },
       ],
     },
     options: {
@@ -651,7 +665,7 @@ onMounted(async () => {
           position: "left",
           title: {
             display: true,
-            text: "Tareas y Eventos",
+            text: "Balance Mensual y Eventos",
           },
         },
         y1: {
@@ -661,18 +675,6 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Gastos ($)",
-          },
-          grid: {
-            drawOnChartArea: false,
-          },
-        },
-        y2: {
-          type: "linear",
-          display: true,
-          position: "right",
-          title: {
-            display: true,
-            text: "Calorías",
           },
           grid: {
             drawOnChartArea: false,
@@ -734,6 +736,108 @@ onMounted(async () => {
         },
       },
       cutout: "60%",
+      responsive: true,
+      maintainAspectRatio: false,
+    },
+  });
+
+  // --- NUEVO: Datos para el gráfico mensual ---
+  const DATA_COUNT = 7;
+  // Datos quemados para pruebas visuales
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul"];
+  const completedByMonth = [12, 8, 15, 10, 7, 14, 9];
+  const nutrients = {
+    calories: [2200, 2100, 2500, 2300, 2000, 2400, 2250],
+    protein: [90, 85, 100, 95, 80, 110, 88],
+    fat: [70, 65, 80, 75, 60, 85, 68],
+    carbs: [300, 280, 320, 310, 270, 330, 295],
+  };
+
+  // Crear el gráfico mensual
+  new Chart(monthlyChart.value, {
+    type: "bar",
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: "Tareas Completadas",
+          data: completedByMonth,
+          borderColor: "#6366f1",
+          backgroundColor: "rgba(99, 102, 241, 0.5)",
+          stack: "combined",
+          type: "bar",
+        },
+        {
+          label: "Calorías",
+          data: nutrients.calories,
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239, 68, 68, 0.3)",
+          type: "line",
+          yAxisID: "y1",
+          fill: false,
+        },
+        {
+          label: "Proteínas",
+          data: nutrients.protein,
+          borderColor: "#06d6a0",
+          backgroundColor: "rgba(6, 214, 160, 0.3)",
+          type: "line",
+          yAxisID: "y1",
+          fill: false,
+        },
+        {
+          label: "Grasas",
+          data: nutrients.fat,
+          borderColor: "#fbbf24",
+          backgroundColor: "rgba(251, 191, 36, 0.3)",
+          type: "line",
+          yAxisID: "y1",
+          fill: false,
+        },
+        {
+          label: "Carbohidratos",
+          data: nutrients.carbs,
+          borderColor: "#8b5cf6",
+          backgroundColor: "rgba(139, 92, 246, 0.3)",
+          type: "line",
+          yAxisID: "y1",
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+      },
+      scales: {
+        y: {
+          type: "linear",
+          display: true,
+          position: "left",
+          title: {
+            display: true,
+            text: "Tareas Completadas",
+          },
+        },
+        y1: {
+          type: "linear",
+          display: true,
+          position: "right",
+          title: {
+            display: true,
+            text: "Nutrientes",
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+        },
+      },
       responsive: true,
       maintainAspectRatio: false,
     },
