@@ -3,7 +3,7 @@
     <div class="container">
       <!-- Header del Dashboard -->
       <div class="dashboard-header mb-4">
-        <h1 class="title is-3 text-primary">LifeSync Dashboard</h1>
+        <h1 class="title is-4 text-primary">LifeSync Dashboard</h1>
         <p class="subtitle is-6 text-secondary">
           Gestiona tu tiempo, dinero y bienestar
         </p>

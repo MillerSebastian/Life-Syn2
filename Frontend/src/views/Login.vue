@@ -105,6 +105,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
+import { db } from "../../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const router = useRouter();
 const container = ref(null);
@@ -144,7 +146,21 @@ const handleRegister = async () => {
   try {
     const email = registerForm.value.email;
     const password = registerForm.value.password;
-    await createUserWithEmailAndPassword(auth, email, password);
+    const name = registerForm.value.username;
+    // Registrar usuario en Auth
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    // Crear documento en Firestore
+    await setDoc(doc(db, "users", userCredential.user.uid), {
+      name,
+      email,
+      username: "",
+      bio: "",
+      photo: "",
+    });
     router.push("/dashboard");
   } catch (error) {
     alert("Error al registrarse: " + error.message);

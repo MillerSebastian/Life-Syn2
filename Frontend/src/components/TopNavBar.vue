@@ -59,7 +59,7 @@
               Perfil
             </a>
             <hr class="navbar-divider" />
-            <a class="navbar-item">
+            <a class="navbar-item" @click="logout">
               <span class="icon"><i class="bx bx-log-out"></i></span>
               Logout
             </a>
@@ -134,6 +134,11 @@ const navbarStyle = computed(() => {
 
 const profile = () => {
   router.push({ name: "profile" });
+};
+
+const logout = () => {
+  // Aquí puedes agregar la lógica de logout
+  router.push("/login");
 };
 </script>
 
