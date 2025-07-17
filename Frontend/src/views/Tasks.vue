@@ -51,6 +51,7 @@
             <div
               v-for="task in getFilteredTasks(column.id)"
               :key="task.id"
+              :id="'task-' + task.id"
               class="task-card"
               :class="'priority-' + task.priority"
               draggable="true"
@@ -109,6 +110,7 @@
           <div
             v-for="note in notes"
             :key="note.id"
+            :id="'note-' + note.id"
             class="note-sticker"
             :style="{ backgroundColor: note.color }"
             @click="editNote(note)"
@@ -271,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
 import { db, auth } from "../../firebase";
 import {
   collection,
@@ -283,6 +285,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { useRoute } from "vue-router";
 
 // Estado de la aplicación
 const showAddTaskModal = ref(false);
@@ -339,11 +342,45 @@ onMounted(() => {
     });
   });
 
-  // Notas en tiempo real
+  // Notas en tiempo real (ahora filtradas por usuario)
   onSnapshot(collection(db, "notes"), (snapshot) => {
-    notes.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const userId = getUserId();
+    if (!userId) return;
+    notes.value = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((n) => n.userId === userId);
   });
 });
+
+const route = useRoute();
+const highlightedId = ref(null);
+
+watch(
+  () => route.query.highlight,
+  async (val) => {
+    if (val) {
+      highlightedId.value = val;
+      await nextTick();
+      // Tarea
+      let el = document.getElementById("task-" + val);
+      if (el) {
+        el.classList.add("highlighted-search");
+        setTimeout(() => {
+          el.classList.remove("highlighted-search");
+        }, 2000);
+      }
+      // Nota
+      el = document.getElementById("note-" + val);
+      if (el) {
+        el.classList.add("highlighted-search");
+        setTimeout(() => {
+          el.classList.remove("highlighted-search");
+        }, 2000);
+      }
+    }
+  },
+  { immediate: true }
+);
 
 // Guardar tarea (crear o actualizar)
 const saveTask = async () => {
@@ -419,14 +456,20 @@ const deleteNote = async (noteId) => {
 
 const saveNote = async () => {
   if (!noteForm.title.trim() || !noteForm.content.trim()) return;
+  const userId = getUserId();
+  if (!userId) return;
   if (editingNote.value) {
     // Editar nota existente
-    await updateDoc(doc(db, "notes", editingNote.value.id), { ...noteForm });
+    await updateDoc(doc(db, "notes", editingNote.value.id), {
+      ...noteForm,
+      userId,
+    });
   } else {
     // Crear nueva nota
     await addDoc(collection(db, "notes"), {
       ...noteForm,
       date: new Date().toLocaleDateString(),
+      userId,
     });
   }
   resetNoteForm();
@@ -880,5 +923,11 @@ const dropTask = async (event, newStatus) => {
     font-size: 1rem;
     padding: 0.4rem 0.5rem;
   }
+}
+
+.highlighted-search {
+  box-shadow: 0 0 0 3px var(--primary);
+  background: var(--primary-light);
+  transition: box-shadow 0.3s, background 0.3s;
 }
 </style>

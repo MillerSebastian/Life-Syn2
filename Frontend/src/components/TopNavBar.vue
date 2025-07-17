@@ -11,12 +11,42 @@
           <i class="bx bx-search"></i>
         </span>
       </div>
-      <div class="navbar-item is-hidden-mobile" style="width: 350px">
+      <div
+        class="navbar-item is-hidden-mobile"
+        style="width: 350px; position: relative"
+      >
         <div class="control has-icons-left is-expanded">
-          <input class="input" type="text" placeholder="Buscar..." />
+          <input
+            class="input"
+            type="text"
+            placeholder="Buscar..."
+            v-model="searchQuery"
+            @focus="showResults = true"
+            @input="showResults = true"
+            @blur="handleBlur"
+          />
           <span class="icon is-left">
             <i class="bx bx-search"></i>
           </span>
+        </div>
+        <div v-if="showResults && results.length" class="search-dropdown">
+          <div
+            v-for="(result, idx) in results"
+            :key="result.type + result.id + idx"
+            class="search-result-item"
+            @mousedown.prevent="goToResult(result)"
+          >
+            <span class="tag">{{ result.type }}</span>
+            <span
+              v-html="highlightMatch(result.label, result.highlight)"
+            ></span>
+            <small v-if="result.extra">
+              -
+              <span
+                v-html="highlightMatch(result.extra, result.highlight)"
+              ></span
+            ></small>
+          </div>
         </div>
       </div>
     </div>
@@ -100,12 +130,131 @@
 
 <script setup>
 import Profile from "@/views/Profile.vue";
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useSearchStore } from "@/stores/search";
+import { auth } from "@/../firebase";
 
 const showNotifications = ref(false);
-
 const router = useRouter();
+
+// Búsqueda global
+const searchStore = useSearchStore();
+const searchQuery = ref("");
+const showResults = ref(false);
+
+function handleBlur() {
+  setTimeout(() => (showResults.value = false), 200);
+}
+
+// Esperar a que el usuario esté autenticado antes de sincronizar
+watch(
+  () => auth.currentUser,
+  (user) => {
+    if (user) {
+      searchStore.syncAll();
+    }
+  },
+  { immediate: true }
+);
+
+const results = computed(() => {
+  if (!searchQuery.value.trim()) return [];
+  const q = searchQuery.value.toLowerCase();
+  const res = [];
+  // Wallet
+  searchStore.transactions.forEach((t) => {
+    if (
+      (t.title && t.title.toLowerCase().includes(q)) ||
+      (t.notes && t.notes.toLowerCase().includes(q))
+    ) {
+      res.push({
+        type: "Transacción",
+        label: t.title,
+        id: t.id,
+        route: "/wallet",
+        extra: t.notes,
+        highlight: q,
+      });
+    }
+  });
+  // Meals
+  searchStore.meals.forEach((m) => {
+    if (
+      (m.name && m.name.toLowerCase().includes(q)) ||
+      (m.description && m.description.toLowerCase().includes(q))
+    ) {
+      res.push({
+        type: "Comida",
+        label: m.name,
+        id: m.id,
+        route: "/meals",
+        extra: m.description,
+        highlight: q,
+      });
+    }
+  });
+  // Tasks
+  searchStore.tasks.forEach((t) => {
+    if (
+      (t.title && t.title.toLowerCase().includes(q)) ||
+      (t.description && t.description.toLowerCase().includes(q))
+    ) {
+      res.push({
+        type: "Tarea",
+        label: t.title,
+        id: t.id,
+        route: "/tasks",
+        extra: t.description,
+        highlight: q,
+      });
+    }
+  });
+  // Notes
+  searchStore.notes.forEach((n) => {
+    if (
+      (n.title && n.title.toLowerCase().includes(q)) ||
+      (n.content && n.content.toLowerCase().includes(q))
+    ) {
+      res.push({
+        type: "Nota",
+        label: n.title,
+        id: n.id,
+        route: "/tasks", // Notas están en la vista de tareas
+        extra: n.content,
+        highlight: q,
+        isNote: true,
+      });
+    }
+  });
+  // Events
+  searchStore.events &&
+    searchStore.events.forEach((e) => {
+      if (
+        (e.title && e.title.toLowerCase().includes(q)) ||
+        (e.description && e.description.toLowerCase().includes(q))
+      ) {
+        res.push({
+          type: "Evento",
+          label: e.title,
+          id: e.id,
+          route: "/calendar",
+          extra: e.description,
+          highlight: q,
+        });
+      }
+    });
+  return res;
+});
+
+function goToResult(result) {
+  router.push({
+    path: result.route,
+    query: { highlight: result.id, type: result.type },
+  });
+  showResults.value = false;
+  searchQuery.value = "";
+}
 
 const props = defineProps({
   sidebarCollapsed: {
@@ -113,6 +262,12 @@ const props = defineProps({
     default: false,
   },
 });
+
+function highlightMatch(text, q) {
+  if (!text || !q) return text;
+  const regex = new RegExp(`(${q})`, "gi");
+  return text.replace(regex, "<mark>$1</mark>");
+}
 
 const navbarStyle = computed(() => {
   if (window.innerWidth <= 768) {
@@ -159,11 +314,11 @@ const logout = () => {
   transition: all 0.3s ease;
 }
 
-.nav-button:hover {
+/* .nav-button:hover {
   background: var(--background-secondary);
   color: var(--primary);
   transform: translateY(-1px);
-}
+} */
 
 .navbar-item .icon {
   font-size: 1.3rem;
@@ -215,6 +370,52 @@ const logout = () => {
 .input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--shadow-hover);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.search-result-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.search-result-item:hover {
+  /* Quitar sombra negra, dejar solo fondo suave */
+  background: var(--primary-light);
+  box-shadow: none;
+  color: var(--primary-dark);
+}
+.search-result-item mark {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* Ajustar el icono de búsqueda */
+.icon.is-left {
+  top: 50%;
+  transform: translateY(-50%);
+  position: absolute;
+  left: 10px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.input {
+  padding-left: 2.5rem;
 }
 
 @media (max-width: 1024px) {

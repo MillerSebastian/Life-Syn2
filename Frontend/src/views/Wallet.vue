@@ -100,6 +100,7 @@
                 <div
                   v-for="transaction in transactions"
                   :key="transaction.id"
+                  :id="'transaction-' + transaction.id"
                   class="transaction-item"
                   :class="transaction.type"
                 >
@@ -397,6 +398,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import Chart from "chart.js/auto";
+import { useRoute } from "vue-router";
 
 // Estado de la aplicación
 const showAddTransactionModal = ref(false);
@@ -650,6 +652,27 @@ const getProgressClass = (spent, limit) => {
 const getProgressPercentage = (spent, limit) => {
   return Math.min((spent / limit) * 100, 100);
 };
+
+const route = useRoute();
+const highlightedId = ref(null);
+
+watch(
+  () => route.query.highlight,
+  async (val) => {
+    if (val) {
+      highlightedId.value = val;
+      await nextTick();
+      const el = document.getElementById("transaction-" + val);
+      if (el) {
+        el.classList.add("highlighted-search");
+        setTimeout(() => {
+          el.classList.remove("highlighted-search");
+        }, 2000);
+      }
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -1002,5 +1025,11 @@ const getProgressPercentage = (spent, limit) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.highlighted-search {
+  box-shadow: 0 0 0 3px var(--primary);
+  background: var(--primary-light);
+  transition: box-shadow 0.3s, background 0.3s;
 }
 </style>

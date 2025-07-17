@@ -79,6 +79,7 @@
                     <div
                       v-for="meal in day.meals"
                       :key="meal.id"
+                      :id="'meal-' + meal.id"
                       class="meal-item"
                       :class="meal.type"
                     >
@@ -141,6 +142,7 @@
                   <div
                     v-for="meal in dailyMeals"
                     :key="meal.id"
+                    :id="'meal-' + meal.id"
                     class="meal-item"
                     :class="meal.type"
                   >
@@ -496,6 +498,8 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
+import { useRoute } from "vue-router";
+import { nextTick } from "vue";
 
 // Estado de la aplicación
 const showAddMealModal = ref(false);
@@ -960,6 +964,27 @@ watch(selectedDate, () => {
       );
   }
 });
+
+const route = useRoute();
+const highlightedId = ref(null);
+
+watch(
+  () => route.query.highlight,
+  async (val) => {
+    if (val) {
+      highlightedId.value = val;
+      await nextTick();
+      const el = document.getElementById("meal-" + val);
+      if (el) {
+        el.classList.add("highlighted-search");
+        setTimeout(() => {
+          el.classList.remove("highlighted-search");
+        }, 2000);
+      }
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -1349,5 +1374,11 @@ watch(selectedDate, () => {
     font-size: 1rem;
     padding: 0.4rem 0.5rem;
   }
+}
+
+.highlighted-search {
+  box-shadow: 0 0 0 3px var(--primary);
+  background: var(--primary-light);
+  transition: box-shadow 0.3s, background 0.3s;
 }
 </style>
