@@ -44,7 +44,7 @@
           @drop="dropTask($event, column.id)"
         >
           <div class="column-header">
-            <h3 class="title is-5">{{ column.title }}</h3>
+            <h3 class="title is-5 has-text-white-ter">{{ column.title }}</h3>
             <span class="task-count">{{ column.tasks.length }}</span>
           </div>
           <div class="column-content">
