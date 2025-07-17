@@ -13,6 +13,11 @@ const router = createRouter({
       component: () => import("../views/Login.vue"),
     },
     {
+      path: "/register",
+      name: "register",
+      component: () => import("../views/Login.vue"), // Si tienes una vista separada, cámbiala aquí
+    },
+    {
       path: "/",
       component: () => import("../views/Layout.vue"),
       children: [
@@ -41,35 +46,32 @@ const router = createRouter({
           name: "meals",
           component: () => import("../views/Meals.vue"),
         },
-        // },
-        // {
-        //   path: "files",
-        //   name: "files",
-        //   component: () => import("../views/Files.vue"),
-        // },
-        // {
-        //   path: "analytics",
-        //   name: "analytics",
-        //   component: () => import("../views/Analytics.vue"),
-        // },
-        // {
-        //   path: "settings",
-        //   name: "settings",
-        //   component: () => import("../views/Settings.vue"),
-        // },
-        // {
-        //   path: "crear-archivos",
-        //   name: "create-files",
-        //   component: () => import("../views/CreateFiles.vue"),
-        // },
         {
           path: "profile",
           name: "profile",
           component: () => import("../views/Profile.vue"),
-        }
+        },
       ],
     },
   ],
+});
+
+// Guardián global de rutas
+router.beforeEach((to, from, next) => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  // Rutas públicas
+  const publicPages = ["/login", "/register"];
+  const authRequired = !publicPages.includes(to.path);
+
+  if (!isLoggedIn && authRequired) {
+    // No logueado, intenta acceder a ruta protegida
+    return next("/login");
+  }
+  if (isLoggedIn && publicPages.includes(to.path)) {
+    // Logueado, intenta ir a login/register
+    return next("/dashboard");
+  }
+  return next();
 });
 
 export default router;

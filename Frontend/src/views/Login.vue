@@ -135,7 +135,14 @@ const handleLogin = async () => {
     // Usamos el email como username
     const email = loginForm.value.username;
     const password = loginForm.value.password;
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    // Guardar sesión en localStorage
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("uid", userCredential.user.uid);
     router.push("/dashboard");
   } catch (error) {
     alert("Error al iniciar sesión: " + error.message);
@@ -161,11 +168,21 @@ const handleRegister = async () => {
       bio: "",
       photo: "",
     });
+    // Guardar sesión en localStorage
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("uid", userCredential.user.uid);
     router.push("/dashboard");
   } catch (error) {
     alert("Error al registrarse: " + error.message);
   }
 };
+
+function logout() {
+  localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("uid");
+  // Aquí puedes agregar la lógica de logout de Firebase si lo deseas
+  router.push("/login");
+}
 </script>
 
 <style scoped>
