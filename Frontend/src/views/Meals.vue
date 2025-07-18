@@ -615,7 +615,7 @@ onMounted(() => {
     weekMeals.value = {};
     userMeals.forEach((m) => {
       if (!weekMeals.value[m.date]) weekMeals.value[m.date] = [];
-      weekMeals.value[m.date].push(m);
+      weekMeals.value[m.date].push(m); 
     });
   });
 });
@@ -707,7 +707,10 @@ const editMeal = (meal) => {
 };
 
 const deleteMeal = async (id) => {
+  const result= await alertQuestion("¿estas seguro de eliminarlo?")
+  if(!result.isConfirmed) return;
   await deleteDoc(doc(db, "meals", id));
+  alertSuccess("eliminado exitosamente")
 };
 
 const saveMeal = async () => {
@@ -744,6 +747,7 @@ const saveMeal = async () => {
   } else {
     await addDoc(collection(db, "meals"), mealData);
   }
+  alertSuccess("guardado exitosamente")
   resetMealForm();
   showAddMealModal.value = false;
   mealImageFile.value = null;
@@ -877,7 +881,7 @@ const saveWeekPlan = async () => {
             }
           } else {
             // Crear
-            alertSuccess("semana guardada")
+
             await addDoc(collection(db, "meals"), {
               name,
               type,

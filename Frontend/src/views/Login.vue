@@ -106,7 +106,7 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { db } from "../../firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { alertError, alertSuccess } from "@/components/alert";
 
 const router = useRouter();

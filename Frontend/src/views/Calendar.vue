@@ -456,12 +456,13 @@ const saveEvent = async () => {
     duration: 60,
     location: "",
   });
-  alertSuccess("evento guardado")
+  alertSuccess("creado exitosamente")
 };
 
 const deleteEvent = async (id) => {
   const result= await alertQuestion("¿deseas eliminar el evento?");
   if(!result.isConfirmed) return;
+  alertSuccess("eliminado exitosamente")
   await deleteDoc(doc(db, "events", id));
 };
 
