@@ -271,7 +271,7 @@
         </section>
         <footer class="modal-card-foot">
           <button class="btn btn-primary" @click="saveEvent">Guardar</button>
-          <button class="btn btn-secondary" @click="showAddEventModal = false">
+          <button class="button is-danger has-text-white-bis" @click="showAddEventModal = false">
             Cancelar
           </button>
         </footer>
@@ -456,12 +456,13 @@ const saveEvent = async () => {
     duration: 60,
     location: "",
   });
-  alertSuccess("evento guardado")
+  alertSuccess("creado exitosamente")
 };
 
 const deleteEvent = async (id) => {
   const result= await alertQuestion("¿deseas eliminar el evento?");
   if(!result.isConfirmed) return;
+  alertSuccess("eliminado exitosamente")
   await deleteDoc(doc(db, "events", id));
 };
 
@@ -534,6 +535,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.modal-card-foot{
+  gap: 1em;
+}
+
 .calendar-page {
   padding: 2rem 0;
   min-height: 100vh;

@@ -78,7 +78,7 @@
             </button>
           </div>
           <div class="is-flex is-align-items-center gap-2">
-            <select v-model="selectedMonth" class="select">
+            <select v-model="selectedMonth" class="select select-month">
               <option value="current">Mes Actual</option>
               <option value="previous">Mes Anterior</option>
               <option value="next">Próximo Mes</option>
@@ -213,10 +213,6 @@
               editingTransaction ? "Editar Transacción" : "Nueva Transacción"
             }}
           </p>
-          <button
-            class="delete"
-            @click="showAddTransactionModal = false"
-          ></button>
         </header>
         <section class="modal-card-body">
           <div class="field">
@@ -333,12 +329,12 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveTransaction">
             Guardar
           </button>
           <button
-            class="btn btn-secondary"
+            class="btn button is-danger has-text-white-bis"
             @click="showAddTransactionModal = false"
           >
             Cancelar
@@ -373,9 +369,9 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveBudget">Guardar</button>
-          <button class="btn btn-secondary" @click="showBudgetModal = false">
+          <button class="btn button is-danger has-text-white-bis" @click="showBudgetModal = false">
             Cancelar
           </button>
         </footer>
@@ -480,7 +476,7 @@ const saveBudget = async () => {
     await addDoc(collection(db, "budgets"), { ...data, userId });
   }
   showBudgetModal.value = false;
-  alertSuccess("presupuesto guardado")
+  alertSuccess("guardado exitosamente")
 };
 
 // Guardar transacción (crear o actualizar)
@@ -499,14 +495,14 @@ const saveTransaction = async () => {
       amount: Number(transactionForm.amount),
       userId,
     });
-    alertSuccess("transaccion editada")
+    alertSuccess("editado exitosamente")
   } else {
     await addDoc(collection(db, "transactions"), {
       ...transactionForm,
       amount: Number(transactionForm.amount),
       userId,
     });
-    alertSuccess("transaccion agregada")
+    alertSuccess("guardado exitosamente")
   }
   resetTransactionForm();
   showAddTransactionModal.value = false;
@@ -516,7 +512,7 @@ const deleteTransaction = async (id) => {
   const result= await alertQuestion("¿deseas eliminar la transaccion?")
   if(!result.isConfirmed)return;
   await deleteDoc(doc(db, "transactions", id));
-  alertSuccess("transaccion eliminada")
+  alertSuccess("eliminado exitosamente")
 };
 
 const editTransaction = (transaction) => {
@@ -683,6 +679,23 @@ watch(
 </script>
 
 <style scoped>
+
+.modal-card-body{
+  width: 40em;
+}
+
+
+.select-month{
+  border-radius: 10px;
+  padding: 0em 1em;
+  border: 1px solid transparent;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.select-month>option{
+  border-radius: 10px;
+}
+
 .wallet-page {
   padding: 2rem 0;
   min-height: 100vh;
