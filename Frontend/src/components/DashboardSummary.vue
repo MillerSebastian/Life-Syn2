@@ -3,7 +3,7 @@
     <div class="container">
       <!-- Header del Dashboard -->
       <div class="dashboard-header mb-4">
-        <h1 class="title is-4 text-primary">LifeSync Dashboard</h1>
+        <h1 class="title is-size-2 text-primary">LifeSync Dashboard</h1>
         <p class="subtitle is-6 text-secondary">
           Gestiona tu tiempo, dinero y bienestar
         </p>
@@ -11,7 +11,7 @@
 
       <!-- Cards de resumen principales -->
       <div class="columns is-multiline mb-4">
-        <div class="column is-3" v-for="card in summaryCards" :key="card.title">
+        <div class="column" v-for="card in summaryCards" :key="card.title">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
               <div
@@ -855,6 +855,10 @@ onMounted(async () => {
 .dashboard-header {
   text-align: center;
   margin-bottom: 2rem;
+  height: 8em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .summary-card {
