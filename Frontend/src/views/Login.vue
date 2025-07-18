@@ -133,7 +133,6 @@ const showLogin = () => {
 
 const handleLogin = async () => {
   try {
-    // Usamos el email como username
     const email = loginForm.value.username;
     const password = loginForm.value.password;
     const userCredential = await signInWithEmailAndPassword(
@@ -141,10 +140,21 @@ const handleLogin = async () => {
       email,
       password
     );
-    // Guardar sesión en localStorage
+    
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", userCredential.user.uid);
-    alertSuccess(`bienvenido ${email} `)
+
+    
+    let nombre = email;
+
+      const userDocRef = doc(db, "users", userCredential.user.uid);
+
+      const userDocSnap = await import("firebase/firestore").then(({ getDoc }) => getDoc(userDocRef));
+      if (userDocSnap && userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        if (data.name) nombre = data.name;
+      }
+    alertSuccess(`Bienvenido ${nombre}`);
     router.push("/dashboard");
   } catch (error) {
     alertError("Error al iniciar sesión: ");
