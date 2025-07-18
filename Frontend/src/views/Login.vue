@@ -107,6 +107,7 @@ import {
 } from "firebase/auth";
 import { db } from "../../firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { alertError, alertSuccess } from "@/components/alert";
 
 const router = useRouter();
 const container = ref(null);
@@ -143,9 +144,10 @@ const handleLogin = async () => {
     // Guardar sesión en localStorage
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", userCredential.user.uid);
+    alertSuccess(`bienvenido ${email} `)
     router.push("/dashboard");
   } catch (error) {
-    alert("Error al iniciar sesión: " + error.message);
+    alertError("Error al iniciar sesión: ");
   }
 };
 
@@ -172,8 +174,9 @@ const handleRegister = async () => {
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", userCredential.user.uid);
     router.push("/dashboard");
+    alertSuccess(`bienvenido ${name}`)
   } catch (error) {
-    alert("Error al registrarse: " + error.message);
+    alertError("Error al registrarse");
   }
 };
 
@@ -379,6 +382,7 @@ form {
   border: 2px solid #fff;
   box-shadow: none;
 }
+
 
 @media screen and (max-width: 650px) {
   .container {
