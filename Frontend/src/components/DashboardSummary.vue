@@ -313,19 +313,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { db, auth } from "../../firebase";
 import {
   collection,
   onSnapshot,
-  doc,
+  addDoc,
   updateDoc,
-  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  where,
 } from "firebase/firestore";
-import Chart from "chart.js/auto";
 import { useRouter } from "vue-router";
 
+// Estado de la aplicación
 const router = useRouter();
+const draggedTask = ref(null);
 
 // Datos del dashboard  (calculados en tiempo real)
 const summaryCards = computed(() => {
@@ -499,8 +503,6 @@ const lineChart = ref(null);
 const monthlyChart = ref(null);
 
 // Funciones
-const draggedTask = ref(null);
-
 const dragStart = (event, task) => {
   draggedTask.value = task;
   event.target.style.opacity = "0.5";
