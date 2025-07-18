@@ -302,6 +302,8 @@ const profile = () => {
 
 const logout = () => {
   // Aquí puedes agregar la lógica de logout
+  localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("uid");
   router.push("/login");
 };
 
