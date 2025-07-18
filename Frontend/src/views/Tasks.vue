@@ -285,6 +285,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useRoute } from "vue-router";
+import { alertQuestion, alertSuccess } from "@/components/alert";
 
 // Estado de la aplicación
 const showAddTaskModal = ref(false);
@@ -404,11 +405,15 @@ const saveTask = async () => {
     progress: 0,
     status: "todo",
   });
+  alertSuccess("tarea guardada")
 };
 
 // Eliminar tarea
 const deleteTask = async (id) => {
+  const result= await alertQuestion("¿deseas eliminar la tarea?")
+  if(!result.isConfirmed) return;
   await deleteDoc(doc(db, "tasks", id));
+  alertSuccess("tarea eliminada")
 };
 
 // Editar tarea
@@ -450,6 +455,8 @@ const editNote = (note) => {
 };
 
 const deleteNote = async (noteId) => {
+  const result= await alertQuestion("¿quieres eliminar la nota?")
+  if(!result.isConfirmed) return;
   await deleteDoc(doc(db, "notes", noteId));
 };
 
@@ -470,6 +477,7 @@ const saveNote = async () => {
       date: new Date().toLocaleDateString(),
       userId,
     });
+    alertSuccess("nota creada")
   }
   resetNoteForm();
   showAddNoteModal.value = false;

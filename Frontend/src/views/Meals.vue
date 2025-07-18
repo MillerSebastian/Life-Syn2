@@ -500,6 +500,7 @@ import {
 } from "firebase/storage";
 import { useRoute } from "vue-router";
 import { nextTick } from "vue";
+import { alertQuestion, alertSuccess } from "@/components/alert";
 
 // Estado de la aplicación
 const showAddMealModal = ref(false);
@@ -876,6 +877,7 @@ const saveWeekPlan = async () => {
             }
           } else {
             // Crear
+            alertSuccess("semana guardada")
             await addDoc(collection(db, "meals"), {
               name,
               type,

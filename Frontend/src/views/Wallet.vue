@@ -395,6 +395,7 @@ import {
 } from "firebase/firestore";
 import Chart from "chart.js/auto";
 import { useRoute } from "vue-router";
+import { alertQuestion, alertSuccess } from "@/components/alert";
 
 // Estado de la aplicación
 const showAddTransactionModal = ref(false);
@@ -475,6 +476,7 @@ const saveBudget = async () => {
     await addDoc(collection(db, "budgets"), { ...data, userId });
   }
   showBudgetModal.value = false;
+  alertSuccess("presupuesto guardado")
 };
 
 // Guardar transacción (crear o actualizar)
@@ -493,19 +495,24 @@ const saveTransaction = async () => {
       amount: Number(transactionForm.amount),
       userId,
     });
+    alertSuccess("transaccion editada")
   } else {
     await addDoc(collection(db, "transactions"), {
       ...transactionForm,
       amount: Number(transactionForm.amount),
       userId,
     });
+    alertSuccess("transaccion agregada")
   }
   resetTransactionForm();
   showAddTransactionModal.value = false;
 };
 
 const deleteTransaction = async (id) => {
+  const result= await alertQuestion("¿deseas eliminar la transaccion?")
+  if(!result.isConfirmed)return;
   await deleteDoc(doc(db, "transactions", id));
+  alertSuccess("transaccion eliminada")
 };
 
 const editTransaction = (transaction) => {
