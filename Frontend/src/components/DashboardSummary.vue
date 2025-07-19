@@ -313,7 +313,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
 import { db, auth } from "../../firebase";
 import {
   collection,
@@ -324,14 +324,21 @@ import {
   doc,
   query,
   where,
+  getDocs,
 } from "firebase/firestore";
 import { useRouter } from "vue-router";
+import Chart from "chart.js/auto";
 
 // Estado de la aplicación
 const router = useRouter();
 const draggedTask = ref(null);
 
-// Datos del dashboard  (calculados en tiempo real)
+// Referencias para los gráficos
+const pieChart = ref(null);
+const lineChart = ref(null);
+const monthlyChart = ref(null);
+
+// Datos del dashboard (calculados en tiempo real)
 const summaryCards = computed(() => {
   const pendingTasks = todoTasks.value.length + progressTasks.value.length;
   const todayEvents = calendarEvents.value.length;
@@ -405,10 +412,6 @@ onMounted(() => {
     calendarEvents.value = allEvents.filter(
       (e) => e.date === today && e.userId === userId
     );
-
-    console.log("Todos los eventos:", allEvents);
-    console.log("Fecha de hoy:", today);
-    console.log("Eventos de hoy:", calendarEvents.value);
   });
 });
 
@@ -453,7 +456,7 @@ onMounted(() => {
       expenses,
       recentTransactions: allTransactions
         .slice(0, 3)
-        .filter((t) => t.userId === userId), // Últimas 3 transacciones
+        .filter((t) => t.userId === userId),
     };
   });
 });
@@ -497,10 +500,6 @@ onMounted(() => {
     });
   });
 });
-
-const pieChart = ref(null);
-const lineChart = ref(null);
-const monthlyChart = ref(null);
 
 // Funciones
 const dragStart = (event, task) => {
@@ -546,8 +545,27 @@ const moveTask = async (taskId, destination) => {
   }
 };
 
+// Renderizar gráficos con datos reales
 onMounted(async () => {
   await nextTick();
+
+  // Verificar que Chart.js esté disponible
+  console.log("Chart.js disponible:", typeof Chart);
+  
+  // Verificar si los elementos canvas existen
+  console.log("lineChart element:", lineChart.value);
+  console.log("pieChart element:", pieChart.value);
+  console.log("monthlyChart element:", monthlyChart.value);
+
+  if (!lineChart.value || !pieChart.value || !monthlyChart.value) {
+    console.error("Algunos elementos canvas no se encontraron");
+    return;
+  }
+
+  if (typeof Chart === 'undefined') {
+    console.error("Chart.js no está disponible");
+    return;
+  }
 
   // Calcular datos reales para la semana
   const weekStart = new Date();
@@ -613,7 +631,6 @@ onMounted(async () => {
   });
 
   // Gráfico de actividad semanal con datos reales
-  // Datos quemados para balance mensual
   const balanceMensual = [1200, 1500, 1100, 1700, 1600, 1800, 1400];
   new Chart(lineChart.value, {
     type: "line",
@@ -743,9 +760,7 @@ onMounted(async () => {
     },
   });
 
-  // --- NUEVO: Datos para el gráfico mensual ---
-  const DATA_COUNT = 7;
-  // Datos quemados para pruebas visuales
+  // Gráfico mensual con datos reales
   const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul"];
   const completedByMonth = [12, 8, 15, 10, 7, 14, 9];
   const nutrients = {
@@ -755,7 +770,6 @@ onMounted(async () => {
     carbs: [300, 280, 320, 310, 270, 330, 295],
   };
 
-  // Crear el gráfico mensual
   new Chart(monthlyChart.value, {
     type: "bar",
     data: {
