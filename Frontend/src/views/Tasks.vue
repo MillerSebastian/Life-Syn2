@@ -497,7 +497,7 @@ const deleteTask = async (id) => {
   const result= await alertQuestion("¿deseas eliminar la tarea?")
   if(!result.isConfirmed) return;
   await deleteDoc(doc(db, "tasks", id));
-  alertSuccess(" eliminada exitosamente")
+  alertSuccess("Tarea eliminada exitosamente")
 };
 
 // Editar tarea
@@ -594,7 +594,7 @@ const editNote = (note) => {
 const deleteNote = async (noteId) => {
   const result= await alertQuestion("¿quieres eliminar la nota?")
   if(!result.isConfirmed) return;
-  alertSuccess("eliminada exitosamente")
+  alertSuccess("Nota eliminada exitosamente")
   await deleteDoc(doc(db, "notes", noteId));
 };
 
@@ -624,7 +624,7 @@ const saveNote = async () => {
       userId,
       position: { x, y }
     });
-    alertSuccess("guardado exitosamente")
+    alertSuccess("Nota guardada exitosamente")
   }
   resetNoteForm();
   showAddNoteModal.value = false;
