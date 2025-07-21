@@ -1,51 +1,27 @@
 <template>
-  <nav
-    class="navbar top-navbar"
-    role="navigation"
-    aria-label="main navigation"
-    :style="navbarStyle"
-  >
+  <nav class="navbar top-navbar" role="navigation" aria-label="main navigation" :style="navbarStyle">
     <div class="navbar-brand">
       <div class="navbar-item is-hidden-desktop">
         <span class="icon">
           <i class="bx bx-search"></i>
         </span>
       </div>
-      <div
-        class="navbar-item is-hidden-mobile"
-        style="width: 350px; position: relative"
-      >
+      <div class="navbar-item is-hidden-mobile" style="width: 350px; position: relative">
         <div class="control has-icons-left is-expanded">
-          <input
-            class="input"
-            type="text"
-            placeholder="Buscar..."
-            v-model="searchQuery"
-            @focus="showResults = true"
-            @input="showResults = true"
-            @blur="handleBlur"
-          />
+          <input class="input" type="text" placeholder="Buscar..." v-model="searchQuery" @focus="showResults = true"
+            @input="showResults = true" @blur="handleBlur" />
           <span class="icon is-left">
             <i class="bx bx-search"></i>
           </span>
         </div>
         <div v-if="showResults && results.length" class="search-dropdown">
-          <div
-            v-for="(result, idx) in results"
-            :key="result.type + result.id + idx"
-            class="search-result-item"
-            @mousedown.prevent="goToResult(result)"
-          >
+          <div v-for="(result, idx) in results" :key="result.type + result.id + idx" class="search-result-item"
+            @mousedown.prevent="goToResult(result)">
             <span class="tag">{{ result.type }}</span>
-            <span
-              v-html="highlightMatch(result.label, result.highlight)"
-            ></span>
+            <span v-html="highlightMatch(result.label, result.highlight)"></span>
             <small v-if="result.extra">
               -
-              <span
-                v-html="highlightMatch(result.extra, result.highlight)"
-              ></span
-            ></small>
+              <span v-html="highlightMatch(result.extra, result.highlight)"></span></small>
           </div>
         </div>
       </div>
@@ -60,7 +36,7 @@
           </button>
         </div>
         <div class="navbar-item">
-          <button class="button nav-button">
+          <button class="button nav-button" @click.prevent="cambiarTema">
             <span class="icon">
               <i class="bx bx-moon"></i>
             </span>
@@ -76,18 +52,12 @@
         <div class="navbar-item has-dropdown is-hoverable">
           <a class="navbar-link">
             <figure class="image is-32x32 is-rounded">
-              <img
-                class="is-rounded"
-                :src="
-                  user.photo
-                    ? user.photo
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        user.name || 'U'
-                      )}&size=64`
-                "
-                :alt="`Foto de ${user.name}`"
-                @error="onPhotoError"
-              />
+              <img class="is-rounded" :src="user.photo
+                  ? user.photo
+                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user.name || 'U'
+                  )}&size=64`
+                " :alt="`Foto de ${user.name}`" @error="onPhotoError" />
             </figure>
           </a>
           <div class="navbar-dropdown is-right">
@@ -111,11 +81,7 @@
       <div class="modal-card">
         <header class="modal-card-head">
           <p class="modal-card-title">Notificaciones</p>
-          <button
-            class="delete"
-            aria-label="close"
-            @click="showNotifications = false"
-          ></button>
+          <button class="delete" aria-label="close" @click="showNotifications = false"></button>
         </header>
         <section class="modal-card-body">
           <div class="content has-text-centered">
@@ -146,6 +112,9 @@ import { doc, getDoc } from "firebase/firestore";
 import { reactive } from "vue";
 import { alertError, alertSuccess } from "./alert";
 
+// Boton para Modo dark y light
+const btnTheme = document.getElementById('btnTheme');
+
 const showNotifications = ref(false);
 const router = useRouter();
 
@@ -153,6 +122,15 @@ const router = useRouter();
 const searchStore = useSearchStore();
 const searchQuery = ref("");
 const showResults = ref(false);
+
+function cambiarTema() {
+  const body = document.body;
+  if (body.id === "theme-light") {
+    body.id = "theme-dark";
+  } else {
+    body.id = "theme-light";
+  }
+}
 
 function handleBlur() {
   setTimeout(() => (showResults.value = false), 200);
@@ -311,7 +289,7 @@ const logout = async () => {
   }).catch((error) => {
     console.log(`Error al cerrar la sesion: ${error.message}`)
   });
-  
+
 };
 
 const user = reactive({
@@ -355,14 +333,16 @@ function onPhotoError(e) {
   color: var(--text);
   padding: 0.5rem;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 
-/* .nav-button:hover {
-  background: var(--background-secondary);
-  color: var(--primary);
-  transform: translateY(-1px);
-} */
+.nav-button:hover,
+.navbar-item.has-dropdown.is-hoverable > .navbar-link:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 2px 8px var(--shadow-hover);
+}
 
 .navbar-item .icon {
   font-size: 1.3rem;
@@ -383,21 +363,30 @@ function onPhotoError(e) {
 }
 
 .navbar-dropdown {
-  min-width: 150px;
-  background: var(--background);
+  min-width: 170px;
+  background: var(--background-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 4px 16px var(--shadow-hover);
+  padding: 0.5rem 0;
+  transition: background 0.2s, border 0.2s;
 }
 
 .navbar-item {
   color: var(--text);
-  transition: all 0.3s ease;
+  transition: background 0.2s, color 0.2s;
 }
 
-.navbar-item:hover {
-  background: var(--background-secondary);
-  color: var(--primary);
+.navbar-dropdown .navbar-item {
+  padding: 0.7rem 1.2rem;
+  border-radius: 6px;
+  margin: 0 0.3rem;
+}
+
+.navbar-dropdown .navbar-item:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  box-shadow: 0 2px 8px var(--shadow-hover);
 }
 
 .navbar-divider {
@@ -429,17 +418,20 @@ function onPhotoError(e) {
   max-height: 300px;
   overflow-y: auto;
 }
+
 .search-result-item {
   padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .search-result-item:hover {
   /* Quitar sombra negra, dejar solo fondo suave */
   background: var(--primary-light);
   box-shadow: none;
   color: var(--primary-dark);
 }
+
 .search-result-item mark {
   background: var(--primary-light);
   color: var(--primary);
@@ -458,6 +450,7 @@ function onPhotoError(e) {
   align-items: center;
   height: 100%;
 }
+
 .input {
   padding-left: 2.5rem;
 }
@@ -489,5 +482,30 @@ function onPhotoError(e) {
   .navbar-item.is-hidden-desktop {
     display: none !important;
   }
+}
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
 }
 </style>

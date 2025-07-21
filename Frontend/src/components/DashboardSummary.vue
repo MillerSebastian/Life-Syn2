@@ -549,6 +549,22 @@ const moveTask = async (taskId, destination) => {
 onMounted(async () => {
   await nextTick();
 
+  // Función para mejorar la nitidez en pantallas retina
+  function fixCanvasDPI(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+  }
+
+  // Ajustar DPI de los canvas
+  if (lineChart.value) fixCanvasDPI(lineChart.value);
+  if (pieChart.value) fixCanvasDPI(pieChart.value);
+  if (monthlyChart.value) fixCanvasDPI(monthlyChart.value);
+
   // Verificar que Chart.js esté disponible
   console.log("Chart.js disponible:", typeof Chart);
   
@@ -674,6 +690,8 @@ onMounted(async () => {
           labels: {
             usePointStyle: true,
             padding: 20,
+            font: { size: 16 },
+            color: '#F1F1F1',
           },
         },
       },
@@ -685,6 +703,12 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Balance Mensual y Eventos",
+            color: '#F1F1F1',
+            font: { size: 16 },
+          },
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
           },
         },
         y1: {
@@ -694,9 +718,21 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Gastos ($)",
+            color: '#F1F1F1',
+            font: { size: 16 },
           },
           grid: {
             drawOnChartArea: false,
+          },
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
+          },
+        },
+        x: {
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
           },
         },
       },
@@ -751,6 +787,8 @@ onMounted(async () => {
           labels: {
             usePointStyle: true,
             padding: 20,
+            font: { size: 16 },
+            color: '#F1F1F1',
           },
         },
       },
@@ -828,6 +866,8 @@ onMounted(async () => {
           labels: {
             usePointStyle: true,
             padding: 20,
+            font: { size: 16 },
+            color: '#F1F1F1',
           },
         },
       },
@@ -839,6 +879,12 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Tareas Completadas",
+            color: '#F1F1F1',
+            font: { size: 16 },
+          },
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
           },
         },
         y1: {
@@ -848,9 +894,21 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Nutrientes",
+            color: '#F1F1F1',
+            font: { size: 16 },
           },
           grid: {
             drawOnChartArea: false,
+          },
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
+          },
+        },
+        x: {
+          ticks: {
+            color: '#F1F1F1',
+            font: { size: 14 },
           },
         },
       },

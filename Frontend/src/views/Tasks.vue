@@ -1325,4 +1325,30 @@ const dropNote = async (event) => {
   color: #16a34a;
   border: 1px solid rgba(22, 163, 74, 0.2);
 }
+
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
+}
 </style>
