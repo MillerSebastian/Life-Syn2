@@ -291,6 +291,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
+import { alertQuestion, alertSuccess } from "@/components/alert";
 
 // Estado de la aplicación
 const showAddEventModal = ref(false);
@@ -455,9 +456,13 @@ const saveEvent = async () => {
     duration: 60,
     location: "",
   });
+  alertSuccess("creado exitosamente")
 };
 
 const deleteEvent = async (id) => {
+  const result= await alertQuestion("¿deseas eliminar el evento?");
+  if(!result.isConfirmed) return;
+  alertSuccess("eliminado exitosamente")
   await deleteDoc(doc(db, "events", id));
 };
 

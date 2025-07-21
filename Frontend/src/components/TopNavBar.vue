@@ -144,6 +144,7 @@ import { useSearchStore } from "@/stores/search";
 import { auth, db } from "@/../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { reactive } from "vue";
+import { alertError, alertSuccess } from "./alert";
 
 const showNotifications = ref(false);
 const router = useRouter();
@@ -305,7 +306,7 @@ const logout = async () => {
   const auth = getAuth();
   signOut(auth).then(() => {
     localStorage.setItem('isLoggedIn', 'false')
-    alert("Lograste cerrar sesion exitosamente")
+    alertSuccess("sesion finalizada")
     router.push('/login')
   }).catch((error) => {
     console.log(`Error al cerrar la sesion: ${error.message}`)
