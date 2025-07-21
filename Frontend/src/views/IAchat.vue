@@ -839,10 +839,12 @@ body,
 .container {
   display: flex;
   margin: 0 auto;    /* centrada */
-  height: 100vh;
+  height: 93vh;
+  width: 1000%;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
   backdrop-filter: blur(10px);
+
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
 }
 .sidebar {
