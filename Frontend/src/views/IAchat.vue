@@ -834,14 +834,13 @@ body,
 .container {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  height: 100vh;
   overflow: hidden;
 }
 .container {
   display: flex;
+  margin: 0 auto;    /* centrada */
   height: 100vh;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
   overflow: hidden;
   backdrop-filter: blur(10px);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
@@ -860,11 +859,6 @@ body,
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 30px;
-}
-.logo::before {
-  content: "⚙️";
-  margin-right: 10px;
-  font-size: 24px;
 }
 .nav-menu {
   list-style: none;
