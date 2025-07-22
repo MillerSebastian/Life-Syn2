@@ -1,300 +1,145 @@
 <template>
-  <div class="container">
-    <aside class="sidebar">
-      <div class="logo"><i class="bx bx-cog"></i> LifeSync</div>
-      <ul class="nav-menu">
-        <li class="nav-item">
-          <a href="#"><i class="bx bx-chat"></i> Chats</a>
-        </li>
-        <li class="nav-item">
-          <a href="#"><i class="bx bx-search"></i> Buscar</a>
-        </li>
-        <li class="nav-item">
-          <a href="#"><i class="bx bx-task"></i> Tareas</a>
-        </li>
-        <li class="nav-item">
-          <a href="#"><i class="bx bx-cog"></i> Ajustes</a>
-        </li>
-      </ul>
-      <div class="chat-section">Tus Chats</div>
-      <ul class="chat-list">
-        <li
+  <div class="iachat-layout">
+    <!-- Sidebar de chats -->
+    <aside class="chat-sidebar" :class="{ collapsed: isSidebarCollapsed }">
+      <div class="sidebar-header">
+        <h2 v-if="!isSidebarCollapsed">Chat IA</h2>
+        <span v-else>IA</span>
+        <button class="toggle-btn" @click="toggleSidebar">
+          <i
+            class="bx"
+            :class="isSidebarCollapsed ? 'bx-menu' : 'bx-menu-alt-left'"
+          ></i>
+        </button>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn btn-accent w-100 mb-2" @click="newChat">
+          <i class="bx bx-plus mr-2"></i>
+          <span v-if="!isSidebarCollapsed">Nuevo chat</span>
+        </button>
+      </div>
+      <nav class="chat-list">
+        <div
           v-for="chat in chats"
           :key="chat.id"
           :class="['chat-item', { active: chat.id === activeChatId }]"
           @click="selectChat(chat.id)"
         >
-          <span><i class="bx bx-message-rounded"></i> {{ chat.name }}</span>
-          <span v-if="chat.messages.length" class="chat-count">{{
-            chat.messages.length
-          }}</span>
-        </li>
-      </ul>
-      <button class="new-list-btn" @click="createNewChat">
-        <i class="bx bx-plus"></i> Nuevo Chat
-      </button>
-      <div class="user-profile">
-        <div class="avatar">
-          <img
-            :src="userAvatarUrl"
-            alt="avatar"
-            style="
-              width: 100%;
-              height: 100%;
-              border-radius: 50%;
-              object-fit: cover;
-            "
-          />
+          <i class="bx bx-message-square-dots"></i>
+          <span v-if="!isSidebarCollapsed">{{ chat.title }}</span>
         </div>
-        <div class="user-info">
-          <div class="user-name">{{ userName }}</div>
-          <div class="user-email">{{ userEmail }}</div>
-        </div>
-      </div>
-      <button class="upgrade-btn">
-        <i class="bx bx-rocket"></i> Upgrade Now
-      </button>
+      </nav>
     </aside>
-    <main class="main-content">
-      <div v-if="!currentChat.messages.length && !isTyping">
-        <div class="main-logo"><i class="bx bx-bot"></i></div>
-        <h1 class="main-title">LifeSync Chat</h1>
-        <p class="main-subtitle">
-          Organiza tus tareas, conversa con la IA y mantén tu vida sincronizada.
-        </p>
-        <div class="features-grid">
-          <div class="feature-card">
-            <span class="feature-icon"><i class="bx bx-bulb"></i></span>
-            <h3 class="feature-title">Ejemplos</h3>
-            <ul class="feature-examples">
-              <li>¿Qué tareas tengo para hoy?</li>
-              <li>Crea una tarea para mañana</li>
-              <li>Muéstrame mis eventos</li>
-              <li>Motívame para terminar mis pendientes</li>
-            </ul>
-          </div>
-          <div class="feature-card">
-            <span class="feature-icon"><i class="bx bx-cog"></i></span>
-            <h3 class="feature-title">Capacidades</h3>
-            <ul class="feature-examples">
-              <li>Gestión de tareas y eventos</li>
-              <li>Respuestas personalizadas</li>
-              <li>Motivación y consejos</li>
-              <li>Recordatorios inteligentes</li>
-            </ul>
-          </div>
-          <div class="feature-card">
-            <span class="feature-icon"><i class="bx bx-error"></i></span>
-            <h3 class="feature-title">Limitaciones</h3>
-            <ul class="feature-examples">
-              <li>Puede cometer errores</li>
-              <li>No da consejos médicos</li>
-              <li>Limitado a la información de tu cuenta</li>
-              <li>Privacidad garantizada</li>
-            </ul>
+
+    <!-- Zona principal del chat -->
+    <section class="chat-main">
+      <div class="chat-header">
+        <h3>{{ activeChatTitle }}</h3>
+      </div>
+      <div class="chat-messages" ref="messagesContainer">
+        <div
+          v-for="(msg, idx) in activeChatMessages"
+          :key="idx"
+          :class="['message', msg.role]"
+        >
+          <div class="message-content">
+            <span v-if="msg.role === 'user'" class="user-label">Tú:</span>
+            <span v-if="msg.role === 'bot'" class="bot-label">IA:</span>
+            <span>{{ msg.content }}</span>
           </div>
         </div>
       </div>
-      <div v-else class="chat-area">
-        <div class="chat-messages-glass" ref="messagesContainer">
-          <transition-group name="fade" tag="div">
-            <div
-              v-for="message in currentChat.messages"
-              :key="message.id"
-              class="message-bubble-wrapper-glass"
-              :class="message.type"
-            >
-              <div class="message-bubble-glass" :class="message.type">
-                <div
-                  v-if="message.type === 'ai'"
-                  class="avatar ai-avatar-glass"
-                >
-                  <i class="bx bx-bot"></i>
-                </div>
-                <div class="bubble-content-glass" :class="message.type">
-                  <div v-html="formatMessage(message.content)"></div>
-                  <div class="bubble-time-glass">
-                    {{ formatTime(message.timestamp) }}
-                  </div>
-                </div>
-                <div
-                  v-if="message.type === 'user'"
-                  class="avatar user-avatar-glass"
-                >
-                  <img
-                    :src="userAvatarUrl"
-                    alt="avatar"
-                    class="avatar-img-glass"
-                  />
-                </div>
-              </div>
-            </div>
-          </transition-group>
-          <div v-if="isTyping" class="typing-indicator-glass">
-            <div class="avatar ai-avatar-glass">
-              <i class="bx bx-bot"></i>
-            </div>
-            <div>
-              IA está escribiendo
-              <div class="typing-dots">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="input-area">
-          <textarea
-            class="input-field"
-            v-model="newMessage"
-            @keydown.enter.exact.prevent="sendMessage()"
-            @keydown.enter.shift.exact="newMessage += '\n'"
-            placeholder="Escribe tu mensaje aquí..."
-            :disabled="isTyping"
-            rows="1"
-            :class="{ 'input-glow': isInputFocused }"
-            @focus="isInputFocused = true"
-            @blur="isInputFocused = false"
-          ></textarea>
-          <button
-            class="send-btn"
-            @click="sendMessage()"
-            :disabled="!newMessage.trim() || isTyping"
-          >
-            <i class="bx bx-send"></i>
-          </button>
-        </div>
-      </div>
-      <div class="disclaimer">
-        LifeSync puede producir información inexacta sobre personas, lugares o
-        hechos. Versión 2.0
-      </div>
-    </main>
+      <form class="chat-input" @submit.prevent="sendMessage">
+        <input
+          v-model="input"
+          type="text"
+          placeholder="Escribe tu mensaje..."
+          autocomplete="off"
+        />
+        <button
+          class="btn btn-primary"
+          type="submit"
+          :disabled="loading || !input.trim()"
+        >
+          <i class="bx bx-send"></i>
+        </button>
+      </form>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted, watch } from "vue";
-import { getCurrentUser } from "../../firebase";
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from "vue";
+import axios from "axios";
 import {
   DEEPSEEK_API_KEY,
   DEEPSEEK_API_URL,
   DEEPSEEK_MODEL,
   DEEPSEEK_MAX_TOKENS,
   DEEPSEEK_TEMPERATURE,
-} from "../config/api";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+} from "@/config/api";
+import { db, auth } from "../../firebase";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  query as fsQuery,
+  orderBy,
+} from "firebase/firestore";
 
-// --- Sidebar y chats ---
-const chats = ref([]);
-const activeChatId = ref(null);
-const editingChatId = ref(null);
-const editingChatName = ref("");
-const isInputFocused = ref(false);
+// Estado del sidebar
+const isSidebarCollapsed = ref(false);
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
 
-const defaultChatName = "Nuevo Chat";
-
-function loadChats() {
-  const saved = localStorage.getItem("ia_chats");
-  if (saved) {
-    chats.value = JSON.parse(saved);
-    if (chats.value.length > 0) {
-      activeChatId.value = chats.value[0].id;
-    }
-  } else {
-    createNewChat();
-  }
-}
-
-function saveChats() {
-  localStorage.setItem("ia_chats", JSON.stringify(chats.value));
-}
-
-function createNewChat() {
-  const newChat = {
-    id: Date.now() + Math.random(),
-    name: defaultChatName,
+// Estado de chats (dummy, luego conectar a Firestore)
+const chats = ref([
+  {
+    id: 1,
+    title: "Chat principal",
     messages: [
       {
-        id: Date.now(),
-        content:
-          "¡Hola! 👋 Soy tu asistente de LifeSync. Estoy aquí para ayudarte a organizar tus tareas, eventos y más. ¿En qué puedo ayudarte hoy? 💪",
-        type: "ai",
-        timestamp: new Date(),
+        role: "bot",
+        content: "¡Hola! Soy tu asistente IA. ¿En qué puedo ayudarte hoy?",
       },
     ],
-  };
-  chats.value.unshift(newChat);
-  activeChatId.value = newChat.id;
-  saveChats();
-}
+  },
+]);
+const activeChatId = ref(1);
+const input = ref("");
+const loading = ref(false);
 
-function selectChat(id) {
+const newChat = () => {
+  const newId = Date.now();
+  chats.value.unshift({
+    id: newId,
+    title: `Chat ${chats.value.length + 1}`,
+    messages: [
+      { role: "bot", content: "¡Nuevo chat iniciado! ¿Qué deseas hacer?" },
+    ],
+  });
+  activeChatId.value = newId;
+  nextTick(() => scrollToBottom());
+};
+
+const selectChat = (id) => {
   activeChatId.value = id;
-}
+  nextTick(() => scrollToBottom());
+};
 
-function deleteChat(id) {
-  if (confirm("¿Eliminar este chat?")) {
-    const idx = chats.value.findIndex((c) => c.id === id);
-    if (idx !== -1) {
-      chats.value.splice(idx, 1);
-      if (chats.value.length > 0) {
-        activeChatId.value = chats.value[0].id;
-      } else {
-        createNewChat();
-      }
-      saveChats();
-    }
-  }
-}
+const activeChat = computed(() =>
+  chats.value.find((c) => c.id === activeChatId.value)
+);
+const activeChatTitle = computed(() => activeChat.value?.title || "Chat");
+const activeChatMessages = computed(() => activeChat.value?.messages || []);
 
-function clearAllChats() {
-  if (confirm("¿Eliminar todo el historial de chats?")) {
-    chats.value = [];
-    createNewChat();
-    saveChats();
-  }
-}
-
-function editChatName(chat) {
-  editingChatId.value = chat.id;
-  editingChatName.value = chat.name;
-}
-
-function saveChatName(chat) {
-  if (editingChatName.value.trim()) {
-    chat.name = editingChatName.value.trim();
-    saveChats();
-  }
-  editingChatId.value = null;
-  editingChatName.value = "";
-}
-
-const currentChat = computed(() => {
-  return (
-    chats.value.find((c) => c.id === activeChatId.value) || {
-      id: null,
-      name: defaultChatName,
-      messages: [],
-    }
-  );
-});
-
-// --- Nueva función para DeepSeek CRUD ---
-const isTyping = ref(false);
-const newMessage = ref("");
 const messagesContainer = ref(null);
-
-const suggestedActions = [
-  "¿Puedes crear una tarea para mañana?",
-  "Muéstrame mis tareas pendientes",
-  "¿Cómo estoy con mis tareas?",
-  "Ayúdame a organizar mi día",
-];
-
-// Función para hacer scroll al final
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -303,950 +148,585 @@ const scrollToBottom = () => {
   });
 };
 
-// Función para formatear mensajes
-const formatMessage = (content) => {
-  return content.replace(/\n/g, "<br>");
-};
-
-// Función para formatear tiempo
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-// Función para enviar mensaje
-const sendMessage = async (content = null) => {
-  const messageContent = content || newMessage.value.trim();
-  if (!messageContent) return;
-
-  // Agregar mensaje del usuario
-  const userMessage = {
-    id: Date.now(),
-    content: messageContent,
-    type: "user",
-    timestamp: new Date(),
-  };
-  currentChat.value.messages.push(userMessage);
-  saveChats();
-  newMessage.value = "";
-  scrollToBottom();
-
-  // Indicar que la IA está escribiendo
-  isTyping.value = true;
-  scrollToBottom();
-
+// Llamada a DeepSeek
+const callDeepSeek = async (userMessage) => {
   try {
-    // Procesar con DeepSeek API
-    const response = await processWithDeepSeek(messageContent);
-
-    // Agregar respuesta de la IA
-    const aiMessage = {
-      id: Date.now() + 1,
-      content: response,
-      type: "ai",
-      timestamp: new Date(),
-    };
-    currentChat.value.messages.push(aiMessage);
-    saveChats();
-
-    // Actualizar el nombre del chat según la respuesta de la IA
-    await setChatNameFromAI(response);
+    const response = await axios.post(
+      DEEPSEEK_API_URL,
+      {
+        model: DEEPSEEK_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: `Eres un asistente para gestión de tareas. Según la instrucción del usuario, responde SIEMPRE en formato JSON así:\n\nPara crear una tarea:\n{\n  \"intencion\": \"crear_tarea\",\n  \"title\": \"...\",\n  \"description\": \"...\",\n  \"dueDate\": \"...\",\n  \"priority\": \"baja|media|alta\"\n}\n\nPara editar una tarea (incluye cambio de estado o cualquier campo):\n{\n  \"intencion\": \"editar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\",\n  \"status\": \"todo|progress|completed\", // si el usuario lo pide\n  \"priority\": \"...\", // si el usuario lo pide\n  \"description\": \"...\", // si el usuario lo pide\n  \"dueDate\": \"...\" // si el usuario lo pide\n}\n\nPara eliminar una tarea:\n{\n  \"intencion\": \"eliminar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\"\n}\n\nNo uses sinónimos en los nombres de los campos ni en la intención. Si el usuario solo quiere cambiar el estado, responde como editar_tarea con el campo status.`,
+          },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: DEEPSEEK_MAX_TOKENS,
+        temperature: DEEPSEEK_TEMPERATURE,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+      }
+    );
+    // DeepSeek responde en response.data.choices[0].message.content
+    return response.data.choices[0].message.content;
   } catch (error) {
-    console.error("Error al procesar con DeepSeek:", error);
-    const errorMessage = {
-      id: Date.now() + 1,
-      content:
-        "¡Ups! 😅 Parece que hubo un pequeño problema técnico. ¿Podrías intentar de nuevo? Si el problema persiste, puedes intentar reformular tu mensaje de una manera más simple.",
-      type: "ai",
-      timestamp: new Date(),
-    };
-    currentChat.value.messages.push(errorMessage);
-    saveChats();
-  } finally {
-    isTyping.value = false;
-    scrollToBottom();
+    console.error("Error llamando a DeepSeek:", error);
+    return "Ocurrió un error al consultar la IA.";
   }
 };
 
-// Scroll automático siempre que cambien los mensajes
-watch(
-  () => currentChat.value.messages.length,
-  () => {
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop =
-          messagesContainer.value.scrollHeight;
+// Función para crear tarea en Firestore
+const crearTareaEnFirestore = async (tarea) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    const now = new Date().toISOString();
+    const docRef = await addDoc(collection(db, "tasks"), {
+      title: tarea.title,
+      description: tarea.description || "",
+      category: tarea.category || "sin categoría",
+      completedDate: null,
+      createdAt: now,
+      updatedAt: now,
+      dueDate: tarea.dueDate || "",
+      priority: tarea.priority || "baja",
+      progress: 0,
+      status: tarea.status || "todo",
+      userId,
+    });
+    return { ok: true, id: docRef.id };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+// Función para editar tarea en Firestore
+const editarTareaEnFirestore = async (datos) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    let tareaEncontrada = null;
+    let tareaId = datos.id || null;
+    // Buscar por id si existe
+    if (tareaId) {
+      const tareaRef = doc(db, "tasks", tareaId);
+      const tareaSnap = await import("firebase/firestore").then(({ getDoc }) =>
+        getDoc(tareaRef)
+      );
+      if (tareaSnap.exists() && tareaSnap.data().userId === userId) {
+        tareaEncontrada = { ...tareaSnap.data(), id: tareaSnap.id };
+      }
+    }
+    // Si no hay id o no se encontró, buscar por coincidencia de título
+    if (!tareaEncontrada && datos.title) {
+      const tareasQuery = query(
+        collection(db, "tasks"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(tareasQuery);
+      const coincidencias = [];
+      snapshot.forEach((docSnap) => {
+        const t = docSnap.data();
+        if (
+          t.title &&
+          t.title.toLowerCase().includes(datos.title.toLowerCase())
+        ) {
+          coincidencias.push({ ...t, id: docSnap.id });
+        }
+      });
+      if (coincidencias.length === 1) {
+        tareaEncontrada = coincidencias[0];
+        tareaId = tareaEncontrada.id;
+      } else if (coincidencias.length > 1) {
+        // Si hay varias coincidencias, pedir aclaración
+        return {
+          ok: false,
+          multiple: true,
+          coincidencias: coincidencias.map(
+            (t) => `${t.title} (${t.status}) - ${t.dueDate || ""}`
+          ),
+        };
+      }
+    }
+    if (!tareaEncontrada || !tareaId) {
+      return { ok: false, error: "No se encontró la tarea a editar." };
+    }
+    // Construir el objeto de actualización solo con los campos presentes
+    const updateFields = {};
+    [
+      "title",
+      "description",
+      "dueDate",
+      "priority",
+      "status",
+      "category",
+    ].forEach((campo) => {
+      if (typeof datos[campo] !== "undefined") {
+        updateFields[campo] = datos[campo];
       }
     });
+    updateFields.updatedAt = new Date().toISOString();
+    await updateDoc(doc(db, "tasks", tareaId), updateFields);
+    return { ok: true, tarea: { ...tareaEncontrada, ...updateFields } };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
-);
+};
 
-// Cambiar el nombre del chat según la respuesta de la IA
-async function setChatNameFromAI(text) {
-  // Usa la respuesta de la IA para sugerir un nombre
-  let name = text.split(/[.!?\n]/)[0];
-  if (name.length > 30) name = name.slice(0, 30) + "...";
-  if (activeChatId.value) {
-    const chat = chats.value.find((c) => c.id === activeChatId.value);
-    if (chat) {
-      chat.name = name || "Chat IA";
-      saveChats();
+// Función para eliminar tarea en Firestore
+const eliminarTareaEnFirestore = async (datos) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    let tareaEncontrada = null;
+    let tareaId = datos.id || null;
+    // Buscar por id si existe
+    if (tareaId) {
+      const tareaRef = doc(db, "tasks", tareaId);
+      const tareaSnap = await import("firebase/firestore").then(({ getDoc }) =>
+        getDoc(tareaRef)
+      );
+      if (tareaSnap.exists() && tareaSnap.data().userId === userId) {
+        tareaEncontrada = { ...tareaSnap.data(), id: tareaSnap.id };
+      }
     }
-  }
-}
-
-// Función para procesar con DeepSeek API
-const processWithDeepSeek = async (userMessage) => {
-  const userId = getCurrentUser()?.uid;
-  if (!userId) {
-    return "Necesitas iniciar sesión para usar esta funcionalidad.";
-  }
-
-  // Obtener tareas actuales del usuario
-  const userTasks = await getUserTasks(userId);
-
-  const systemPrompt = `Eres un asistente de IA amigable y conversacional especializado en gestión de tareas. Tu nombre es "LifeSync Assistant" y eres muy útil, empático y motivador.
-
-TAREAS ACTUALES DEL USUARIO:
-${JSON.stringify(userTasks, null, 2)}
-
-TU PERSONALIDAD:
-- Eres cálido, amigable y motivador
-- Usas emojis para hacer las respuestas más vivas
-- Eres empático y entiendes las necesidades del usuario
-- Das consejos útiles y sugerencias prácticas
-- Celebras los logros y animas a continuar
-
-CAPACIDADES:
-Puedes crear, editar, eliminar, cambiar estado y listar tareas. Cuando el usuario te pida realizar alguna de estas acciones, responde de forma natural y amigable, y luego ejecuta la acción.
-
-COMANDOS ESPECIALES (solo cuando sea necesario):
-- Para CREAR tarea: CREATE_TASK:{"title":"Título","description":"Descripción","priority":"alta/media/baja","dueDate":"YYYY-MM-DD","category":"categoría"}
-- Para EDITAR por nombre: EDIT_TASK_BY_NAME:{"title":"Nombre","newTitle":"Nuevo título","description":"Nueva descripción","priority":"alta/media/baja","dueDate":"YYYY-MM-DD","category":"categoría"}
-- Para CAMBIAR ESTADO: CHANGE_STATUS:{"title":"Nombre","status":"todo/progress/completed"}
-- Para ELIMINAR por nombre: DELETE_TASK_BY_NAME:{"title":"Nombre"}
-- Para LISTAR: LIST_TASKS
-
-ESTADOS: "todo", "progress", "completed"
-PRIORIDADES: "alta", "media", "baja"
-
-IMPORTANTE: Sé natural, conversacional y amigable. Solo usa comandos cuando sea absolutamente necesario para realizar una acción específica. En la mayoría de casos, responde como un asistente humano y útil.`;
-
-  const response = await fetch(DEEPSEEK_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      max_tokens: DEEPSEEK_MAX_TOKENS,
-      temperature: DEEPSEEK_TEMPERATURE,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Error de API: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const aiResponse = data.choices[0].message.content;
-
-  // Procesar comandos especiales
-  if (aiResponse.startsWith("CREATE_TASK:")) {
-    return await handleCreateTask(aiResponse, userId);
-  } else if (aiResponse.startsWith("EDIT_TASK_BY_NAME:")) {
-    return await handleEditTaskByName(aiResponse, userId);
-  } else if (aiResponse.startsWith("CHANGE_STATUS:")) {
-    return await handleChangeStatus(aiResponse, userId);
-  } else if (aiResponse.startsWith("DELETE_TASK_BY_NAME:")) {
-    return await handleDeleteTaskByName(aiResponse, userId);
-  } else if (aiResponse.startsWith("LIST_TASKS")) {
-    return await handleListTasks(userId);
-  }
-
-  return aiResponse;
-};
-
-// Función para obtener tareas del usuario
-const getUserTasks = async (userId) => {
-  try {
-    const { collection, getDocs, query, where } = await import(
-      "firebase/firestore"
-    );
-    const { db } = await import("../../firebase");
-
-    const tasksSnapshot = await getDocs(
-      query(collection(db, "tasks"), where("userId", "==", userId))
-    );
-    return tasksSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Error al obtener tareas:", error);
-    return [];
+    // Si no hay id o no se encontró, buscar por coincidencia de título
+    if (!tareaEncontrada && datos.title) {
+      const tareasQuery = query(
+        collection(db, "tasks"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(tareasQuery);
+      const coincidencias = [];
+      snapshot.forEach((docSnap) => {
+        const t = docSnap.data();
+        if (
+          t.title &&
+          t.title.toLowerCase().includes(datos.title.toLowerCase())
+        ) {
+          coincidencias.push({ ...t, id: docSnap.id });
+        }
+      });
+      if (coincidencias.length === 1) {
+        tareaEncontrada = coincidencias[0];
+        tareaId = tareaEncontrada.id;
+      } else if (coincidencias.length > 1) {
+        // Si hay varias coincidencias, pedir aclaración
+        return {
+          ok: false,
+          multiple: true,
+          coincidencias: coincidencias.map(
+            (t) => `${t.title} (${t.status}) - ${t.dueDate || ""}`
+          ),
+        };
+      }
+    }
+    if (!tareaEncontrada || !tareaId) {
+      return { ok: false, error: "No se encontró la tarea a eliminar." };
+    }
+    await deleteDoc(doc(db, "tasks", tareaId));
+    return { ok: true, tarea: tareaEncontrada };
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
 };
 
-// Función para manejar creación de tareas
-const handleCreateTask = async (response, userId) => {
+// Guardar mensaje en Firestore (subcolección por usuario)
+const guardarMensajeEnFirestore = async (mensaje) => {
+  const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+  if (!userId) return;
   try {
-    const taskData = JSON.parse(response.replace("CREATE_TASK:", ""));
-    const { collection, addDoc } = await import("firebase/firestore");
-    const { db } = await import("../../firebase");
-
-    const newTask = {
-      ...taskData,
+    await addDoc(collection(db, "user_chats", userId, "messages"), {
       userId,
-      status: "todo",
-      progress: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    await addDoc(collection(db, "tasks"), newTask);
-
-    return `¡Perfecto! 🎉 He creado tu nueva tarea con éxito:\n\n**${taskData.title}**\n${taskData.description}\n\n📅 Fecha límite: ${taskData.dueDate}\n🎯 Prioridad: ${taskData.priority}\n📂 Categoría: ${taskData.category}\n\n¡Ya tienes una tarea más organizada! 💪 ¿Hay algo más en lo que pueda ayudarte?`;
-  } catch (error) {
-    console.error("Error al crear tarea:", error);
-    return "¡Ups! 😅 Parece que hubo un problema al crear la tarea. ¿Podrías intentar de nuevo? Si el problema persiste, puedes intentar con un nombre más simple.";
-  }
-};
-
-// Función para manejar edición de tareas por nombre
-const handleEditTaskByName = async (response, userId) => {
-  try {
-    const taskData = JSON.parse(response.replace("EDIT_TASK_BY_NAME:", ""));
-    const { doc, updateDoc, collection, getDocs, query, where } = await import(
-      "firebase/firestore"
-    );
-    const { db } = await import("../../firebase");
-
-    // Buscar la tarea por nombre
-    const tasksSnapshot = await getDocs(
-      query(
-        collection(db, "tasks"),
-        where("userId", "==", userId),
-        where("title", "==", taskData.title)
-      )
-    );
-
-    if (tasksSnapshot.empty) {
-      return `¡Hmm! 🤔 No encontré ninguna tarea con el nombre "${taskData.title}". ¿Podrías verificar el nombre exacto? También puedes decirme "mostrar mis tareas" para ver todas las que tienes.`;
-    }
-
-    const taskDoc = tasksSnapshot.docs[0];
-    const taskId = taskDoc.id;
-
-    // Actualizar la tarea
-    await updateDoc(doc(db, "tasks", taskId), {
-      title: taskData.newTitle || taskData.title,
-      description: taskData.description,
-      priority: taskData.priority,
-      dueDate: taskData.dueDate,
-      category: taskData.category,
-      updatedAt: new Date().toISOString(),
+      role: mensaje.role,
+      content: mensaje.content,
+      timestamp: new Date().toISOString(),
     });
-
-    return `¡Excelente! ✨ He actualizado tu tarea "${
-      taskData.title
-    }" con éxito:\n\n**${taskData.newTitle || taskData.title}**\n${
-      taskData.description
-    }\n\n📅 Fecha límite: ${taskData.dueDate}\n🎯 Prioridad: ${
-      taskData.priority
-    }\n📂 Categoría: ${
-      taskData.category
-    }\n\n¡Los cambios se han guardado perfectamente! 🎯 ¿Necesitas ajustar algo más?`;
-  } catch (error) {
-    console.error("Error al editar tarea:", error);
-    return "¡Ups! 😅 Parece que hubo un problema al editar la tarea. ¿Podrías verificar el nombre y intentar de nuevo?";
+  } catch (e) {
+    console.error("Error guardando mensaje en Firestore:", e);
   }
 };
 
-// Función para cambiar estado de tareas por nombre
-const handleChangeStatus = async (response, userId) => {
+const sendMessage = async () => {
+  if (!input.value.trim()) return;
+  const msg = { role: "user", content: input.value };
+  activeChat.value.messages.push(msg);
+  await guardarMensajeEnFirestore(msg);
+  const userInput = input.value;
+  input.value = "";
+  loading.value = true;
+  scrollToBottom();
+  // Llamada real a DeepSeek
+  const iaResponse = await callDeepSeek(userInput);
+  let parsed;
   try {
-    const taskData = JSON.parse(response.replace("CHANGE_STATUS:", ""));
-    const { doc, updateDoc, collection, getDocs, query, where } = await import(
-      "firebase/firestore"
-    );
-    const { db } = await import("../../firebase");
-
-    // Buscar la tarea por nombre
-    const tasksSnapshot = await getDocs(
-      query(
-        collection(db, "tasks"),
-        where("userId", "==", userId),
-        where("title", "==", taskData.title)
-      )
-    );
-
-    if (tasksSnapshot.empty) {
-      return `¡Hmm! 🤔 No encontré ninguna tarea con el nombre "${taskData.title}". ¿Podrías verificar el nombre exacto? También puedes decirme "mostrar mis tareas" para ver todas las que tienes.`;
-    }
-
-    const taskDoc = tasksSnapshot.docs[0];
-    const taskId = taskDoc.id;
-
-    // Validar estado
-    const validStatuses = ["todo", "progress", "completed"];
-    if (!validStatuses.includes(taskData.status)) {
-      return `¡Ups! 😅 El estado "${
-        taskData.status
-      }" no es válido. Los estados disponibles son: ${validStatuses.join(
-        ", "
-      )}. ¿Podrías intentar con uno de estos?`;
-    }
-
-    // Actualizar el estado
-    const updateData = {
-      status: taskData.status,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Si se marca como completada, agregar fecha de completado
-    if (taskData.status === "completed") {
-      updateData.completedDate = new Date().toISOString();
-    } else {
-      updateData.completedDate = null;
-    }
-
-    await updateDoc(doc(db, "tasks", taskId), updateData);
-
-    const statusEmoji =
-      taskData.status === "completed"
-        ? "✅"
-        : taskData.status === "progress"
-        ? "🔄"
-        : "⏳";
-    const statusText =
-      taskData.status === "completed"
-        ? "Completada"
-        : taskData.status === "progress"
-        ? "En Progreso"
-        : "Por Hacer";
-
-    return `¡Perfecto! 🎯 He movido tu tarea "${taskData.title}" al estado: ${statusEmoji} ${statusText}\n\n¡Excelente progreso! 💪 ¿Hay algo más en lo que pueda ayudarte?`;
-  } catch (error) {
-    console.error("Error al cambiar estado:", error);
-    return "¡Ups! 😅 Parece que hubo un problema al cambiar el estado. ¿Podrías verificar el nombre de la tarea e intentar de nuevo?";
-  }
-};
-
-// Función para eliminar tareas por nombre
-const handleDeleteTaskByName = async (response, userId) => {
-  try {
-    const taskData = JSON.parse(response.replace("DELETE_TASK_BY_NAME:", ""));
-    const { doc, deleteDoc, collection, getDocs, query, where } = await import(
-      "firebase/firestore"
-    );
-    const { db } = await import("../../firebase");
-
-    // Buscar la tarea por nombre
-    const tasksSnapshot = await getDocs(
-      query(
-        collection(db, "tasks"),
-        where("userId", "==", userId),
-        where("title", "==", taskData.title)
-      )
-    );
-
-    if (tasksSnapshot.empty) {
-      return `¡Hmm! 🤔 No encontré ninguna tarea con el nombre "${taskData.title}". ¿Podrías verificar el nombre exacto? También puedes decirme "mostrar mis tareas" para ver todas las que tienes.`;
-    }
-
-    const taskDoc = tasksSnapshot.docs[0];
-    const taskId = taskDoc.id;
-
-    // Eliminar la tarea
-    await deleteDoc(doc(db, "tasks", taskId));
-
-    return `¡Listo! 🗑️ He eliminado la tarea "${taskData.title}" de tu lista.\n\n¡Tu lista está más organizada ahora! 📝 ¿Necesitas ayuda con algo más?`;
-  } catch (error) {
-    console.error("Error al eliminar tarea:", error);
-    return "¡Ups! 😅 Parece que hubo un problema al eliminar la tarea. ¿Podrías verificar el nombre e intentar de nuevo?";
-  }
-};
-
-// Función para manejar eliminación de tareas
-const handleDeleteTask = async (response, userId) => {
-  try {
-    const taskData = JSON.parse(response.replace("DELETE_TASK:", ""));
-    const { doc, deleteDoc } = await import("firebase/firestore");
-    const { db } = await import("../../firebase");
-
-    await deleteDoc(doc(db, "tasks", taskData.id));
-
-    return `✅ Tarea eliminada exitosamente.`;
-  } catch (error) {
-    console.error("Error al eliminar tarea:", error);
-    return "❌ Error al eliminar la tarea. Por favor, verifica el ID de la tarea.";
-  }
-};
-
-// Función para listar tareas
-const handleListTasks = async (userId) => {
-  try {
-    const tasks = await getUserTasks(userId);
-
-    if (tasks.length === 0) {
-      return "¡Hola! 👋 Veo que aún no tienes tareas creadas. ¡Es un excelente momento para empezar a organizarte! 💪\n\n¿Te gustaría que te ayude a crear tu primera tarea? Puedes decirme algo como 'Crear una tarea para revisar emails' o cualquier cosa que necesites hacer. ¡Juntos podemos hacer que tu día sea más productivo! 🚀";
-    }
-
-    let response = "¡Aquí tienes tu lista de tareas! 📋\n\n";
-
-    tasks.forEach((task, index) => {
-      const status =
-        task.status === "completed"
-          ? "✅"
-          : task.status === "progress"
-          ? "🔄"
-          : "⏳";
-      const priority =
-        task.priority === "alta"
-          ? "🔴"
-          : task.priority === "media"
-          ? "🟡"
-          : "🟢";
-
-      response += `${index + 1}. ${status} **${task.title}** ${priority}\n`;
-      response += `   📝 ${task.description}\n`;
-      response += `   📅 ${task.dueDate || "Sin fecha límite"}\n`;
-      response += `   📂 ${task.category || "Sin categoría"}\n`;
-      response += `   🆔 ID: ${task.id}\n\n`;
-    });
-
-    return response;
-  } catch (error) {
-    console.error("Error al listar tareas:", error);
-    return "❌ Error al obtener las tareas. Por favor, intenta de nuevo.";
-  }
-};
-
-// Funciones de ejemplo para botones rápidos
-const createTaskExample = () => {
-  sendMessage(
-    "Crear una tarea llamada 'Revisar emails' con prioridad alta para mañana"
-  );
-};
-
-const createEventExample = () => {
-  sendMessage(
-    "Crear un evento para mañana a las 3pm llamado 'Reunión de equipo'"
-  );
-};
-
-const createNoteExample = () => {
-  sendMessage(
-    "Crear una nota con el título 'Ideas del proyecto' y contenido 'Implementar nuevas funcionalidades'"
-  );
-};
-
-const createMealExample = () => {
-  sendMessage(
-    "Crear una comida para mañana al mediodía llamada 'Ensalada César' con 350 calorías"
-  );
-};
-
-const createTransactionExample = () => {
-  sendMessage(
-    "Crear una transacción de gasto de $50 para 'Compras del supermercado'"
-  );
-};
-
-// Funciones adicionales para probar edición y cambio de estado
-const editTaskExample = () => {
-  sendMessage(
-    "Editar la tarea 'Revisar emails' con nueva descripción 'Revisar emails importantes del día' y prioridad media"
-  );
-};
-
-const changeStatusExample = () => {
-  sendMessage("Mover la tarea 'Revisar emails' a estado completado");
-};
-
-const deleteTaskExample = () => {
-  sendMessage("Eliminar la tarea 'Revisar emails'");
-};
-
-// --- Sidebar y chats ---
-
-// Obtener datos del usuario desde Firebase Auth y Firestore
-const userName = ref("");
-const userPhoto = ref("");
-
-async function fetchUserProfile() {
-  const currentUser = getCurrentUser();
-  if (!currentUser) return;
-  userName.value = currentUser.displayName || "Usuario";
-  userPhoto.value = currentUser.photoURL || "";
-  // Intentar obtener la foto personalizada de la colección users
-  try {
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      if (data.photo) userPhoto.value = data.photo;
-      if (data.name) userName.value = data.name;
-    }
-  } catch (e) {}
-}
-
-onMounted(() => {
-  fetchUserProfile();
-  loadChats();
-  nextTick(() => {
+    parsed = JSON.parse(iaResponse.replace(/^```json|```$/g, "").trim());
+  } catch (e) {
+    const botMsg = { role: "bot", content: iaResponse };
+    activeChat.value.messages.push(botMsg);
+    await guardarMensajeEnFirestore(botMsg);
+    loading.value = false;
     scrollToBottom();
-  });
-});
-
-watch(
-  () => activeChatId.value,
-  () => {
-    nextTick(() => {
-      scrollToBottom();
-    });
+    return;
   }
-);
+  // Log para depuración
+  console.log("Respuesta IA parseada:", parsed);
+  let botMsg = null;
+  if (parsed.intencion === "crear_tarea") {
+    // Validar que haya título
+    if (
+      !parsed.title ||
+      typeof parsed.title !== "string" ||
+      !parsed.title.trim()
+    ) {
+      activeChat.value.messages.push({
+        role: "bot",
+        content: "¿Cuál es el título de la tarea que quieres crear?",
+      });
+      loading.value = false;
+      scrollToBottom();
+      return;
+    }
+    // Asegurar valores por defecto para los campos opcionales
+    const tarea = {
+      title: parsed.title,
+      description: parsed.description || "",
+      category: parsed.category || "sin categoría",
+      completedDate: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      dueDate: parsed.dueDate || "",
+      priority: parsed.priority || "baja",
+      progress: 0,
+      status: parsed.status || "todo",
+    };
+    const resultado = await crearTareaEnFirestore(tarea);
+    if (resultado.ok) {
+      botMsg = {
+        role: "bot",
+        content: parsed.respuesta || `✅ Tarea creada: ${parsed.title}`,
+      };
+      activeChat.value.messages.push(botMsg);
+      await guardarMensajeEnFirestore(botMsg);
+    } else {
+      activeChat.value.messages.push({
+        role: "bot",
+        content: `❌ Error al crear la tarea: ${resultado.error}`,
+      });
+    }
+  } else if (parsed.intencion === "editar_tarea") {
+    const resultado = await editarTareaEnFirestore(parsed);
+    if (resultado.ok) {
+      botMsg = {
+        role: "bot",
+        content:
+          parsed.respuesta || `✅ Tarea editada: ${resultado.tarea.title}`,
+      };
+    } else if (resultado.multiple) {
+      botMsg = {
+        role: "bot",
+        content: `Se encontraron varias tareas con ese nombre. Por favor, especifica a cuál te refieres:\n- ${resultado.coincidencias.join(
+          "\n- "
+        )}`,
+      };
+    } else {
+      botMsg = {
+        role: "bot",
+        content: `❌ Error al editar la tarea: ${resultado.error}`,
+      };
+    }
+    activeChat.value.messages.push(botMsg);
+    await guardarMensajeEnFirestore(botMsg);
+  } else if (parsed.intencion === "eliminar_tarea") {
+    const resultado = await eliminarTareaEnFirestore(parsed);
+    if (resultado.ok) {
+      botMsg = {
+        role: "bot",
+        content:
+          parsed.respuesta || `🗑️ Tarea eliminada: ${resultado.tarea.title}`,
+      };
+    } else if (resultado.multiple) {
+      botMsg = {
+        role: "bot",
+        content: `Se encontraron varias tareas con ese nombre. Por favor, especifica a cuál te refieres:\n- ${resultado.coincidencias.join(
+          "\n- "
+        )}`,
+      };
+    } else {
+      botMsg = {
+        role: "bot",
+        content: `❌ Error al eliminar la tarea: ${resultado.error}`,
+      };
+    }
+    activeChat.value.messages.push(botMsg);
+    await guardarMensajeEnFirestore(botMsg);
+  } else {
+    botMsg = { role: "bot", content: parsed.respuesta || iaResponse };
+    activeChat.value.messages.push(botMsg);
+    await guardarMensajeEnFirestore(botMsg);
+  }
+  loading.value = false;
+  scrollToBottom();
+};
 
-// Computed para el avatar del usuario
-const userAvatarUrl = computed(() => {
-  if (userPhoto.value) return userPhoto.value;
-  // Si no hay foto, usar ui-avatars
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    userName.value || "U"
-  )}&size=128&background=4f46e5&color=fff&rounded=true`;
+// Bloquear scroll global solo en la vista de chat
+onMounted(async () => {
+  const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+  if (!userId) return;
+  const mensajesRef = collection(db, "user_chats", userId, "messages");
+  const mensajesQuery = fsQuery(mensajesRef, orderBy("timestamp"));
+  const snapshot = await getDocs(mensajesQuery);
+  const mensajes = [];
+  snapshot.forEach((doc) => {
+    mensajes.push(doc.data());
+  });
+  // Si usas chats múltiples, puedes adaptar esto para el chat activo
+  if (activeChat.value) {
+    activeChat.value.messages = mensajes;
+  }
+  const main = document.querySelector(".main-content");
+  if (main) main.classList.add("no-scroll-main");
+});
+onUnmounted(() => {
+  const main = document.querySelector(".main-content");
+  if (main) main.classList.remove("no-scroll-main");
 });
 </script>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-body,
-.container {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: hidden;
-}
-.container {
+.iachat-layout {
   display: flex;
-  margin: 0 auto;    /* centrada */
-  height: 93vh;
-  width: 1000%;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  min-height: 100vh;
+  background: var(--background-secondary);
 }
-.sidebar {
-  width: 280px;
-  background: linear-gradient(180deg, #6b46c1 0%, #553c9a 100%);
-  padding: 20px;
+
+.chat-sidebar {
+  width: 300px;
+  background: var(--primary);
+  color: white;
   display: flex;
   flex-direction: column;
+  transition: width 0.3s;
+  min-width: 70px;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: none;
+  border-radius: 0;
+  padding-top: 160px; /* Altura del TopNavBar */
+  box-sizing: border-box;
+  position: relative;
 }
-.logo {
+.chat-sidebar.collapsed {
+  width: 70px;
+}
+.sidebar-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  padding-top: 100px;
+  background: var(--primary-dark);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 2;
+}
+.toggle-btn {
+  background: none;
+  border: none;
   color: white;
   font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 30px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.3s;
 }
-.nav-menu {
-  list-style: none;
-  margin-bottom: 30px;
-}
-.nav-item {
-  margin-bottom: 15px;
-}
-.nav-item a {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-.nav-item a:hover {
+.toggle-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: white;
 }
-.nav-item a::before {
-  margin-right: 12px;
-  font-size: 18px;
-}
-
-.chat-section {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
-  margin-bottom: 15px;
-  margin-top: 20px;
+.sidebar-actions {
+  padding: 16px 20px 0 20px;
 }
 .chat-list {
   flex: 1;
-  list-style: none;
+  padding: 10px 0;
+  overflow-y: auto;
 }
 .chat-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 8px 0;
-  font-size: 14px;
-  cursor: pointer;
+  gap: 15px;
+  padding: 14px 20px;
   border-radius: 8px;
+  cursor: pointer;
   transition: background 0.2s, color 0.2s;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 10px 5px 10px;
 }
 .chat-item.active,
 .chat-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-.chat-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--accent);
   color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
 }
-.new-list-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  margin-top: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.new-list-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-.user-profile {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  padding: 15px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-.avatar {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(45deg, #ff6b6b, #feca57);
-  border-radius: 50%;
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  overflow: hidden;
-}
-.user-info {
-  flex: 1;
-}
-.user-name {
-  color: white;
-  font-weight: 500;
-  font-size: 14px;
-}
-.user-email {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-}
-.upgrade-btn {
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  margin-top: 10px;
-  cursor: pointer;
-  font-weight: 500;
-  width: 100%;
-  transition: all 0.3s ease;
-}
-.upgrade-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-.main-content {
-  flex: 1;
-  background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-}
-.main-logo {
-  font-size: 48px;
-  margin-bottom: 10px;
-}
-.main-title {
-  color: white;
-  font-size: 48px;
-  font-weight: 300;
-  margin-bottom: 20px;
-}
-.main-subtitle {
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  max-width: 500px;
-  line-height: 1.6;
-  margin-bottom: 50px;
-}
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
-  margin-bottom: 50px;
-  width: 100%;
-  max-width: 900px;
-}
-.feature-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 30px;
-  text-align: center;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.feature-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.15);
-}
-.feature-icon {
-  font-size: 40px;
-  margin-bottom: 15px;
-  display: block;
-}
-.feature-title {
-  color: white;
+.chat-item i {
   font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 15px;
 }
-.feature-examples {
-  list-style: none;
-  text-align: left;
-}
-.feature-examples li {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  margin-bottom: 8px;
-  padding-left: 15px;
-  position: relative;
-}
-.feature-examples li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: #667eea;
-}
-.chat-area {
+
+/* Zona principal del chat */
+.chat-main {
   flex: 1;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  position: relative;
+  min-width: 0;
+  height: 100vh;
+  padding-top: 88px;
+  background: var(--background-primary);
 }
-.chat-messages-glass {
+.chat-header {
+  padding: 24px 32px 12px 32px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background);
+}
+.chat-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+.chat-messages {
   flex: 1;
-  width: 100%;
   overflow-y: auto;
-  padding-bottom: 120px;
-  margin-bottom: 10px;
-  min-height: 0;
-  max-height: 100%;
-}
-.message-bubble-wrapper-glass {
+  padding: 32px 32px 16px 32px;
   display: flex;
-  margin-bottom: 1.3rem;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--background-primary);
 }
-.message-bubble-wrapper-glass.user {
-  justify-content: flex-end;
-  align-items: flex-start;
-}
-.message-bubble-wrapper-glass.ai {
-  justify-content: flex-start;
-  align-items: flex-start;
-}
-.message-bubble-glass {
+.message {
   display: flex;
   align-items: flex-start;
-  max-width: 70%;
+  gap: 10px;
 }
-.message-bubble-glass.user {
+
+.message.user {
   flex-direction: row-reverse;
+  justify-content: flex-end;
 }
-.avatar {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
-  max-width: 40px;
-  max-height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  margin: 0 1rem 0 0;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
-  overflow: hidden;
-  flex-shrink: 0;
-  flex-grow: 0;
-  align-self: flex-start;
-}
-.user-avatar-glass {
-  background: linear-gradient(45deg, #ff6b6b, #feca57);
-  color: #fff;
-  margin: 0 0 0 1rem;
-}
-.ai-avatar-glass {
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: #fff;
-  margin: 0 1rem 0 0;
-}
-.avatar-img-glass {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
-}
-.bubble-content-glass {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  padding: 1.1rem 1.4rem;
-  border-radius: 18px 18px 5px 18px;
-  font-size: 1.08rem;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
-  min-width: 60px;
-  max-width: 100%;
-  word-break: break-word;
-  position: relative;
-  border: 1.5px solid #ede9fe;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: background 0.2s;
-}
-.message-bubble-glass.ai .bubble-content-glass {
-  background: rgba(102, 126, 234, 0.18);
-  color: #fff;
-  border-radius: 18px 18px 18px 5px;
-  border: 1.5px solid #a78bfa;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
-}
-.message-bubble-glass.user .bubble-content-glass {
-  background: rgba(139, 92, 246, 0.18);
-  color: #fff;
-  border-radius: 18px 18px 5px 18px;
-  border: 1.5px solid #ede9fe;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
-}
-.bubble-time-glass {
-  font-size: 0.8rem;
-  color: #a0aec0;
-  margin-top: 0.3rem;
+
+.message.user .message-content {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  align-self: flex-end;
+  margin-left: 40px;
+  margin-right: 0;
   text-align: right;
 }
-.input-area {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 80px);
-  max-width: 600px;
+
+.message.bot {
+  justify-content: flex-start;
+}
+
+.message.bot .message-content {
+  background: var(--background-secondary);
+  color: var(--text-secondary);
+  align-self: flex-start;
+  margin-right: 40px;
+  margin-left: 0;
+  text-align: left;
+}
+.message-content {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 1rem;
+  max-width: 70vw;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
+  word-break: break-word;
+}
+.user-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--primary-dark);
+}
+.bot-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--accent);
+}
+.chat-input {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 50px;
-  padding: 15px 25px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 18px 32px;
+  border-top: 1px solid var(--border-color);
+  background: var(--background);
+  gap: 12px;
 }
-.input-field {
+.chat-input input {
   flex: 1;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 16px;
-  outline: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  transition: border 0.2s;
 }
-.input-field::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+.chat-input input:focus {
+  border-color: var(--primary);
 }
-.send-btn {
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: white;
-  cursor: pointer;
+.chat-input button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
 }
-.send-btn:hover {
-  transform: scale(1.1);
+.w-100 {
+  width: 100%;
 }
-.disclaimer {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 12px;
-  text-align: center;
+.mb-2 {
+  margin-bottom: 0.75rem;
 }
-@media (max-width: 1024px) {
-  .container {
-    flex-direction: column;
-    border-radius: 0;
-  }
-  .sidebar {
-    width: 100vw;
-    flex-direction: row;
-    align-items: flex-start;
-    padding: 10px 5px;
-    min-width: 0;
-    border-radius: 0;
-  }
-  .main-content {
-    padding: 10px;
-  }
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .input-area {
-    width: 95vw;
-    max-width: 98vw;
-    left: 2.5vw;
-    transform: none;
-  }
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+/* --- Sobrescribir Layout solo para esta vista --- */
+/* (Elimina el bloque :global(.main-content) para no afectar otras vistas) */
+.iachat-layout {
+  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  overflow: hidden; /* Bloquea el scroll general solo en el chat */
+  display: flex;
+}
+.chat-main,
+.chat-sidebar {
+  height: 100vh;
+  max-height: none;
+  border-radius: 0;
+}
+.chat-main {
+  border-radius: 0;
+}
+</style>
+
+<style>
+.no-scroll-main.main-content {
+  min-height: 100vh !important;
+  padding-top: 0 !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: hidden !important;
 }
 </style>
