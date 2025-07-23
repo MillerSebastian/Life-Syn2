@@ -60,7 +60,11 @@ const menuItems = [
     path: "/meals",
     icon: "bx bx-restaurant",
   },
- 
+  {
+    path: "chatIA",
+    name: "chatIA",
+    icon: "bx bx-chat",
+  },
 ];
 
 const toggleSidebar = () => {

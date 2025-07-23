@@ -35,7 +35,6 @@ const handleSidebarToggle = (collapsed) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 .main-content {
@@ -43,6 +42,7 @@ const handleSidebarToggle = (collapsed) => {
   margin-left: 250px;
   background: var(--background-secondary);
   min-height: 100vh;
+  min-width: 0;
   transition: margin-left 0.3s ease;
   padding-top: 72px;
 }
