@@ -29,6 +29,20 @@
           <span v-if="!isSidebarCollapsed">{{ chat.title }}</span>
         </div>
       </nav>
+      <!-- Perfil de usuario -->
+      <div class="user-profile">
+        <div class="avatar">
+          <img :src="userPhotoURL" alt="avatar" />
+        </div>
+        <div class="user-info">
+          <div class="user-name">{{ userName }}</div>
+          <div class="user-email">{{ userEmail }}</div>
+        </div>
+      </div>
+      <!-- Botón Upgrade Now al fondo de la sidebar -->
+      <div class="sidebar-upgrade-container">
+        <button class="upgrade-btn">Upgrade Now</button>
+      </div>
     </aside>
 
     <!-- Zona principal del chat -->
@@ -158,7 +172,9 @@ const callDeepSeek = async (userMessage) => {
         messages: [
           {
             role: "system",
-            content: `Eres un asistente para gestión de tareas. Según la instrucción del usuario, responde SIEMPRE en formato JSON así:\n\nPara crear una tarea:\n{\n  \"intencion\": \"crear_tarea\",\n  \"title\": \"...\",\n  \"description\": \"...\",\n  \"dueDate\": \"...\",\n  \"priority\": \"baja|media|alta\"\n}\n\nPara editar una tarea (incluye cambio de estado o cualquier campo):\n{\n  \"intencion\": \"editar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\",\n  \"status\": \"todo|progress|completed\", // si el usuario lo pide\n  \"priority\": \"...\", // si el usuario lo pide\n  \"description\": \"...\", // si el usuario lo pide\n  \"dueDate\": \"...\" // si el usuario lo pide\n}\n\nPara eliminar una tarea:\n{\n  \"intencion\": \"eliminar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\"\n}\n\nNo uses sinónimos en los nombres de los campos ni en la intención. Si el usuario solo quiere cambiar el estado, responde como editar_tarea con el campo status.`,
+            content: `Eres un asistente para gestión de tareas. Según la instrucción del usuario, responde SIEMPRE en formato JSON así:\n\nPara crear una tarea:\n{\n  \"intencion\": \"crear_tarea\",\n  \"title\": \"...\",\n  \"description\": \"...\",\n  \"dueDate\": \"...\",\n  \"priority\": \"baja|media|alta\"\n}\n\nPara editar una tarea (incluye cambio de estado o cualquier campo):\n{\n  \"intencion\": \"editar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\",\n  \"status\": \"todo|progress|completed\", // si el usuario lo pide\n  \"priority\": \"...\", // si el usuario lo pide\n  \"description\": \"...\", // si el usuario lo pide\n  \"dueDate\": \"...\" // si el usuario lo pide\n}\n\nPara eliminar una tarea:\n{\n  \"intencion\": \"eliminar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\"\n}\n\nNo uses sinónimos en los nombres de los campos ni en la intención. Si el usuario solo quiere cambiar el estado, responde como editar_tarea con el campo status.
+            // 
+            // Eres un asistente virtual amigable y útil. Responde de manera natural, conversacional y clara a las preguntas o instrucciones del usuario. Puedes ayudar con tareas, responder dudas y conversar libremente. No es necesario responder en formato JSON ni seguir una estructura rígida toma en cuenta. `,
           },
           { role: "user", content: userMessage },
         ],
@@ -336,6 +352,185 @@ const eliminarTareaEnFirestore = async (datos) => {
   }
 };
 
+// Función para obtener tareas en Firestore
+const obtenerTareasEnFirestore = async () => {
+  const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+  if (!userId) throw new Error("No se encontró el usuario autenticado.");
+  const tareasQuery = query(
+    collection(db, "tasks"),
+    where("userId", "==", userId)
+  );
+  const snapshot = await getDocs(tareasQuery);
+  const tareas = [];
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    tareas.push({
+      id: docSnap.id,
+      title: data.title,
+      status: data.status,
+      dueDate: data.dueDate,
+      priority: data.priority,
+      description: data.description,
+      category: data.category,
+    });
+  });
+  return tareas;
+};
+
+//Crear evento
+const crearEventoEnFirestore = async (evento) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    const now = new Date().toISOString();
+    const docRef = await addDoc(collection(db, "events"), {
+      title: evento.title,
+      date: evento.date,
+      description: evento.description || "",
+      duration: evento.duration,
+      location: evento.location || "sin ubicación",
+      time: evento.time,
+      type: evento.type || "personal",
+      userId,
+    });
+    return { ok: true, id: docRef.id };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+// Editar evento
+const editarEventoEnFirestore = async (datos) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    let eventoEncontrado = null;
+    let eventoId = datos.id || null;
+    // Buscar por id si existe
+    if (eventoId) {
+      const eventoRef = doc(db, "events", eventoId);
+      const eventoSnap = await import("firebase/firestore").then(({ getDoc }) =>
+        getDoc(eventoRef)
+      );
+      if (eventoSnap.exists() && eventoSnap.data().userId === userId) {
+        eventoEncontrado = { ...eventoSnap.data(), id: eventoSnap.id };
+      }
+    }
+    // Si no hay id o no se encontró, buscar por coincidencia de título
+    if (!eventoEncontrado && datos.title) {
+      const eventosQuery = query(
+        collection(db, "events"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(eventosQuery);
+      const coincidencias = [];
+      snapshot.forEach((docSnap) => {
+        const t = docSnap.data();
+        if (
+          t.title &&
+          t.title.toLowerCase().includes(datos.title.toLowerCase())
+        ) {
+          coincidencias.push({ ...t, id: docSnap.id });
+        }
+      });
+      if (coincidencias.length === 1) {
+        eventoEncontrado = coincidencias[0];
+        eventoId = eventoEncontrado.id;
+      } else if (coincidencias.length > 1) {
+        // Si hay varias coincidencias, pedir aclaración
+        return {
+          ok: false,
+          multiple: true,
+          coincidencias: coincidencias.map(
+            (t) => `${t.title} (${t.location}) - ${t.date || ""}`
+          ),
+        };
+      }
+    }
+    if (!eventoEncontrado || !eventoId) {
+      return { ok: false, error: "No se encontró el evento a editar." };
+    }
+    // Construir el objeto de actualización solo con los campos presentes
+    const updateFields = {};
+    [
+      "title",
+      "date",
+      "description",
+      "duration",
+      "location",
+      "time",
+      "type",
+    ].forEach((campo) => {
+      if (typeof datos[campo] !== "undefined") {
+        updateFields[campo] = datos[campo];
+      }
+    });
+    updateFields.updatedAt = new Date().toISOString();
+    await updateDoc(doc(db, "events", eventoId), updateFields);
+    return { ok: true, evento: { ...eventoEncontrado, ...updateFields } };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
+// Eliminar evento
+const eliminarEventoEnFirestore = async (datos) => {
+  try {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) throw new Error("No se encontró el usuario autenticado.");
+    let eventoEncontrado = null;
+    let eventoId = datos.id || null;
+    // Buscar por id si existe
+    if (eventoId) {
+      const eventoRef = doc(db, "events", eventoId);
+      const eventoSnap = await import("firebase/firestore").then(({ getDoc }) =>
+        getDoc(eventoRef)
+      );
+      if (eventoSnap.exists() && eventoSnap.data().userId === userId) {
+        eventoEncontrado = { ...eventoSnap.data(), id: eventoSnap.id };
+      }
+    }
+    // Si no hay id o no se encontró, buscar por coincidencia de título
+    if (!eventoEncontrado && datos.title) {
+      const eventosQuery = query(
+        collection(db, "events"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(eventosQuery);
+      const coincidencias = [];
+      snapshot.forEach((docSnap) => {
+        const t = docSnap.data();
+        if (
+          t.title &&
+          t.title.toLowerCase().includes(datos.title.toLowerCase())
+        ) {
+          coincidencias.push({ ...t, id: docSnap.id });
+        }
+      });
+      if (coincidencias.length === 1) {
+        eventoEncontrado = coincidencias[0];
+        eventoId = eventoEncontrado.id;
+      } else if (coincidencias.length > 1) {
+        // Si hay varias coincidencias, pedir aclaración
+        return {
+          ok: false,
+          multiple: true,
+          coincidencias: coincidencias.map(
+            (t) => `${t.title} (${t.location}) - ${t.date || ""}`
+          ),
+        };
+      }
+    }
+    if (!eventoEncontrado || !eventoId) {
+      return { ok: false, error: "No se encontró la tarea a eliminar." };
+    }
+    await deleteDoc(doc(db, "events", eventoId));
+    return { ok: true, evento: eventoEncontrado };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+};
+
 // Guardar mensaje en Firestore (subcolección por usuario)
 const guardarMensajeEnFirestore = async (mensaje) => {
   const userId = auth.currentUser?.uid || localStorage.getItem("uid");
@@ -351,7 +546,6 @@ const guardarMensajeEnFirestore = async (mensaje) => {
     console.error("Error guardando mensaje en Firestore:", e);
   }
 };
-
 const sendMessage = async () => {
   if (!input.value.trim()) return;
   const msg = { role: "user", content: input.value };
@@ -465,6 +659,21 @@ const sendMessage = async () => {
     }
     activeChat.value.messages.push(botMsg);
     await guardarMensajeEnFirestore(botMsg);
+  } else if (parsed.intencion === "listar_tareas") {
+    // Listar tareas del usuario
+    const tareas = await obtenerTareasEnFirestore();
+    if (tareas.length === 0) {
+      botMsg = { role: "bot", content: "No tienes tareas registradas." };
+    } else {
+      botMsg = {
+        role: "bot",
+        content: `Tus tareas:\n- ${tareas
+          .map((t) => `${t.title} (${t.status}) - ${t.dueDate || ""}`)
+          .join("\n- ")}`,
+      };
+    }
+    activeChat.value.messages.push(botMsg);
+    await guardarMensajeEnFirestore(botMsg);
   } else {
     botMsg = { role: "bot", content: parsed.respuesta || iaResponse };
     activeChat.value.messages.push(botMsg);
@@ -474,21 +683,35 @@ const sendMessage = async () => {
   scrollToBottom();
 };
 
+const user = computed(() => auth.currentUser || {});
+const userName = computed(() => user.value.displayName || "Usuario");
+const userEmail = computed(() => user.value.email || "correo@ejemplo.com");
+const userPhotoURL = computed(() => {
+  if (user.value.photoURL) return user.value.photoURL;
+  // Si no hay foto, usar el API de avatars con el nombre
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    userName.value
+  )}&size=128&background=6b46c1&color=fff`;
+});
+
 // Bloquear scroll global solo en la vista de chat
-onMounted(async () => {
-  const userId = auth.currentUser?.uid || localStorage.getItem("uid");
-  if (!userId) return;
-  const mensajesRef = collection(db, "user_chats", userId, "messages");
-  const mensajesQuery = fsQuery(mensajesRef, orderBy("timestamp"));
-  const snapshot = await getDocs(mensajesQuery);
-  const mensajes = [];
-  snapshot.forEach((doc) => {
-    mensajes.push(doc.data());
-  });
-  // Si usas chats múltiples, puedes adaptar esto para el chat activo
-  if (activeChat.value) {
-    activeChat.value.messages = mensajes;
-  }
+onMounted(() => {
+  const cargarMensajes = async () => {
+    const userId = auth.currentUser?.uid || localStorage.getItem("uid");
+    if (!userId) return;
+    const mensajesRef = collection(db, "user_chats", userId, "messages");
+    const mensajesQuery = fsQuery(mensajesRef, orderBy("timestamp"));
+    const snapshot = await getDocs(mensajesQuery);
+    const mensajes = [];
+    snapshot.forEach((doc) => {
+      mensajes.push(doc.data());
+    });
+    // Si usas chats múltiples, puedes adaptar esto para el chat activo
+    if (activeChat.value) {
+      activeChat.value.messages = mensajes;
+    }
+  };
+  cargarMensajes();
   const main = document.querySelector(".main-content");
   if (main) main.classList.add("no-scroll-main");
 });
@@ -499,15 +722,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* --- Modernización visual inspirada en Chatrock --- */
 .iachat-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--background-secondary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  height: 100vh;
 }
 
 .chat-sidebar {
-  width: 300px;
-  background: var(--primary);
+  width: 280px;
+  background: linear-gradient(180deg, #6b46c1 0%, #553c9a 100%);
   color: white;
   display: flex;
   flex-direction: column;
@@ -516,8 +747,9 @@ onUnmounted(() => {
   max-width: 100vw;
   height: 100vh;
   max-height: none;
-  border-radius: 0;
-  padding-top: 160px; /* Altura del TopNavBar */
+  border-radius: 0 20px 20px 0;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08);
+  padding-top: 160px;
   box-sizing: border-box;
   position: relative;
 }
@@ -530,7 +762,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 20px;
   padding-top: 100px;
-  background: var(--primary-dark);
+  background: var(--primary-dark, #553c9a);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: absolute;
   top: 0;
@@ -554,10 +786,26 @@ onUnmounted(() => {
 .sidebar-actions {
   padding: 16px 20px 0 20px;
 }
+.btn.btn-accent,
+.new-list-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn.btn-accent:hover,
+.new-list-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 .chat-list {
   flex: 1;
   padding: 10px 0;
   overflow-y: auto;
+  background: none;
 }
 .chat-item {
   display: flex;
@@ -567,12 +815,12 @@ onUnmounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.8);
   margin: 0 10px 5px 10px;
 }
 .chat-item.active,
 .chat-item:hover {
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 .chat-item i {
@@ -587,106 +835,130 @@ onUnmounted(() => {
   min-width: 0;
   height: 100vh;
   padding-top: 88px;
-  background: var(--background-primary);
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
+  border-radius: 20px 0 0 20px;
+  box-shadow: none;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
 }
 .chat-header {
   padding: 24px 32px 12px 32px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--background);
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--background, transparent);
 }
 .chat-header h3 {
   margin: 0;
-  font-size: 1.3rem;
-  color: var(--primary);
-  font-weight: 600;
+  font-size: 2rem;
+  color: white;
+  font-weight: 300;
+  margin-bottom: 20px;
 }
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 32px 16px 32px;
+  padding: 32px 0 16px 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  background: var(--background-primary);
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
 }
 .message {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
-
 .message.user {
   flex-direction: row-reverse;
   justify-content: flex-end;
 }
-
 .message.user .message-content {
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
   align-self: flex-end;
   margin-left: 40px;
   margin-right: 0;
   text-align: right;
 }
-
 .message.bot {
   justify-content: flex-start;
 }
-
 .message.bot .message-content {
-  background: var(--background-secondary);
-  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
   align-self: flex-start;
   margin-right: 40px;
   margin-left: 0;
   text-align: left;
 }
 .message-content {
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-size: 1rem;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 1.1rem;
   max-width: 70vw;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
   word-break: break-word;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  margin-bottom: 10px;
 }
 .user-label {
   font-weight: 600;
   margin-right: 6px;
-  color: var(--primary-dark);
+  color: var(--primary-dark, #553c9a);
 }
 .bot-label {
   font-weight: 600;
   margin-right: 6px;
-  color: var(--accent);
+  color: var(--accent, #667eea);
 }
 .chat-input {
   display: flex;
   align-items: center;
-  padding: 18px 32px;
-  border-top: 1px solid var(--border-color);
-  background: var(--background);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  padding: 15px 25px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+  max-width: 600px;
+  width: 100%;
+  position: relative;
   gap: 12px;
 }
 .chat-input input {
   flex: 1;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  outline: none;
   padding: 12px 18px;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
-  font-size: 1rem;
-  background: var(--background-primary);
-  color: var(--text-primary);
-  transition: border 0.2s;
 }
-.chat-input input:focus {
-  border-color: var(--primary);
+.chat-input input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 .chat-input button {
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s;
+  font-size: 1.1rem;
+  padding: 0;
+}
+.chat-input button:hover {
+  transform: scale(1.1);
 }
 .w-100 {
   width: 100%;
@@ -698,8 +970,7 @@ onUnmounted(() => {
   margin-right: 0.5rem;
 }
 
-/* --- Sobrescribir Layout solo para esta vista --- */
-/* (Elimina el bloque :global(.main-content) para no afectar otras vistas) */
+/* --- Mantener el bloqueo de scroll global solo en la vista de chat --- */
 .iachat-layout {
   min-height: 100vh;
   height: 100vh;
@@ -717,6 +988,70 @@ onUnmounted(() => {
 }
 .chat-main {
   border-radius: 0;
+}
+
+.sidebar-upgrade-container {
+  margin-top: auto;
+  padding: 24px 20px 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.upgrade-btn {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  width: 100%;
+  transition: all 0.3s;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.user-profile {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  border-radius: 50%;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  overflow: hidden;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.user-info {
+  flex: 1;
+}
+.user-name {
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+}
+.user-email {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
 }
 </style>
 
