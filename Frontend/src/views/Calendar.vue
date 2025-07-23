@@ -1049,4 +1049,81 @@ onMounted(() => {
     padding: 0.4rem 0.5rem;
   }
 }
+
+/* ===== MODO OSCURO PARA CALENDARIO ===== */
+#theme-dark .calendar-page,
+#theme-dark .month-view,
+#theme-dark .week-view,
+#theme-dark .day-view {
+  background: var(--background);
+  color: var(--text);
+}
+
+#theme-dark .calendar-header,
+#theme-dark .week-header {
+  background: var(--primary-dark);
+  color: #F1F1F1;
+}
+
+#theme-dark .calendar-day {
+  background: #23262F !important;
+  color: var(--text);
+  border: 1px solid #26334d;
+  transition: background 0.2s;
+}
+
+#theme-dark .calendar-day.other-month {
+  background: #23262F !important;
+  color: #6c7383;
+  opacity: 0.7;
+}
+
+#theme-dark .calendar-day.today {
+  background: #4F8CFF !important;
+  color: #fff !important;
+}
+
+#theme-dark .calendar-day.selected {
+  background: #3b4a6b !important;
+  color: #fff !important;
+}
+
+#theme-dark .calendar-day.has-events {
+  box-shadow: 0 0 0 2px #4F8CFF33;
+}
+
+#theme-dark .calendar-day:hover {
+  background: #2c3140 !important;
+}
+
+#theme-dark .more-events {
+  color: var(--primary);
+}
+
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
+}
+
 </style>

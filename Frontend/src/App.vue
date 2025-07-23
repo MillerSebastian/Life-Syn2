@@ -14,7 +14,9 @@ import { RouterLink, RouterView } from "vue-router";
 <style>
 @import url("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-
+/** 
+CSS para Theme Light
+*/
 :root {
   /* ===== PALETA AZUL MARINO ===== */
   --navy-deep: #0f172a;
@@ -59,77 +61,81 @@ import { RouterLink, RouterView } from "vue-router";
   --shadow-navy: rgba(15, 23, 42, 0.15);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/**
+CSS Para Theme Dark
+*/
+/* Para el body con id="theme-dark" */
+#theme-dark {
+  --background: #181A20;
+  --background-secondary: #23262F;
+  --text: #F1F1F1;
+  --text-secondary: #85C1E9;
+  --primary: #4F8CFF;
+  --primary-dark: #1A4D99;
+  --primary-light: #A3C8FF;
+  --success: #4ADE80;
+  --warning: #FACC15;
+  --error: #F87171;
+  --border: #26334d; /* Borde sutil, azul oscuro */
+  --card-border: #4F8CFF; /* Borde azul para resaltar cards */
+  --shadow: rgba(0,0,0,0.4);
+  --shadow-hover: rgba(0,0,0,0.6);
+  
+  /* Cards en modo dark */
+  .input{
+    background-color:#1A2332;
+  }
+  .input::placeholder{
+    color: #4A90E2;
+  }
+  .input[type="text"]{
+    color: white;
+  }
+  .icon{
+    color: #4A90E2;
+  }
+  .subtitle{
+    color: #85C1E9;
+  }
+  .card {
+    background: rgba(35, 38, 47, 0.97); /* Fondo sólido, casi opaco */
+    border: 1.5px solid var(--card-border);
+    box-shadow: 0 2px 12px var(--shadow);
+    color: var(--text);
+  }
+  .card-header {
+    background: rgba(44, 62, 80, 0.98);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .card-content {
+    background: transparent;
+  }
+
+  .card-header{
+    background:#2C3E50;
+  }
+
+  .title{
+    color: #4A90E2;
+  }
+
+  .task-boards>div{
+    background-color: #0F1419;
+  }
+
+  .card-content{
+    background-color: #1A2332;
+  }
 }
 
-body {
-  font-family: "Inter", sans-serif;
-  background: var(--background-secondary);
-  color: var(--text);
-  line-height: 1.6;
-}
-
-#app {
-  width: 100%;
-  min-height: 100vh;
-}
-
-/* Estilos para las páginas de login */
-.login-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-dark) 100%
-  );
-}
-
-/* Utilidades de color */
-.text-primary {
-  color: var(--primary) !important;
-}
-.text-secondary {
-  color: var(--secondary) !important;
-}
-.text-accent {
-  color: var(--accent) !important;
-}
-.text-warning {
-  color: var(--warning) !important;
-}
-.text-background {
-  color: var(--background) !important;
-}
-
-.bg-primary {
-  background-color: var(--primary) !important;
-}
-.bg-secondary {
-  background-color: var(--secondary) !important;
-}
-.bg-accent {
-  background-color: var(--accent) !important;
-}
-.bg-warning {
-  background-color: var(--warning) !important;
-}
-.bg-background {
-  background-color: var(--background) !important;
-}
-
-/* Estilos de componentes comunes */
+/* Asegurar que las cards en modo claro sigan usando variables */
 .card {
   background: var(--background);
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
+  color: var(--text);
 }
 
 .card:hover {

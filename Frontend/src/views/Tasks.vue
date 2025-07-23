@@ -181,9 +181,9 @@
       <!-- Stickers de Notas -->
       <div class="notes-section mt-5" @click="showAddNoteModal = true" style="cursor:pointer;" @dragover.prevent @drop="dropNote($event)">
         <template v-if="notes.length === 0">
-          <h3 class="notes-add">
-            Agregar Nota
-          </h3>
+          <div class="notes-add">
+            Agregar notas
+          </div>
         </template>
         <template v-else>
           <div class="notes-grid">
@@ -1102,6 +1102,32 @@ const dropNote = async (event) => {
   border: 1px solid var(--border);
   position: relative;
   min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-add {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2px;
+  opacity: 0.25;
+  text-transform: uppercase;
+  transition: opacity 0.3s, color 0.3s;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.notes-add:hover {
+  color: var(--accent);
+  opacity: 0.5;
 }
 
 .notes-grid {
@@ -1200,14 +1226,19 @@ const dropNote = async (event) => {
   border-radius: 12px;
   overflow: hidden;
 }
-
 .modal-card-head {
   background: var(--primary);
   color: white;
 }
-
 .modal-card-title {
   color: white;
+}
+
+/* Eliminar estilos locales de placeholder para inputs y textareas en modales en modo dark */
+.modal-card input::placeholder,
+.modal-card textarea::placeholder {
+  color: inherit !important;
+  opacity: 1 !important;
 }
 
 /* Color Picker */
@@ -1324,5 +1355,31 @@ const dropNote = async (event) => {
   background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
   color: #16a34a;
   border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
 }
 </style>
