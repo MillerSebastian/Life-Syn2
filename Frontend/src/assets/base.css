@@ -92,6 +92,56 @@ input, textarea, select {
   background: var(--primary-dark);
 }
 
+/* === Estilos globales para todos los modales (idénticos a Tasks.vue) === */
+.modal-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.modal-card-head {
+  background: var(--primary);
+  color: white;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.modal-card-title {
+  color: white;
+}
+.modal-card-body {
+  background: #fff;
+  color: var(--text-primary);
+}
+.modal-card-foot {
+  background: #f8fafc;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
+}
+
 /* Inputs y placeholders en modales modo dark */
 #theme-dark .modal-card input,
 #theme-dark .modal-card textarea,
