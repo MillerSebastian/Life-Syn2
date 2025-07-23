@@ -424,23 +424,29 @@ const upcomingEvents = computed(() => {
 
 // Funciones
 const previousPeriod = () => {
+  // Crear una nueva instancia para forzar el refresco y evitar mutaciones directas
+  const newDate = new Date(currentDate.value);
   if (viewMode.value === "month") {
-    currentDate.value.setMonth(currentDate.value.getMonth() - 1);
+    newDate.setMonth(newDate.getMonth() - 1);
   } else if (viewMode.value === "week") {
-    currentDate.value.setDate(currentDate.value.getDate() - 7);
+    newDate.setDate(newDate.getDate() - 7);
   } else {
-    currentDate.value.setDate(currentDate.value.getDate() - 1);
+    newDate.setDate(newDate.getDate() - 1);
   }
+  currentDate.value = newDate;
 };
 
 const nextPeriod = () => {
+  // Crear una nueva instancia para forzar el refresco y evitar mutaciones directas
+  const newDate = new Date(currentDate.value);
   if (viewMode.value === "month") {
-    currentDate.value.setMonth(currentDate.value.getMonth() + 1);
+    newDate.setMonth(newDate.getMonth() + 1);
   } else if (viewMode.value === "week") {
-    currentDate.value.setDate(currentDate.value.getDate() + 7);
+    newDate.setDate(newDate.getDate() + 7);
   } else {
-    currentDate.value.setDate(currentDate.value.getDate() + 1);
+    newDate.setDate(newDate.getDate() + 1);
   }
+  currentDate.value = newDate;
 };
 
 // Corregir selectDate para mostrar el día anterior
