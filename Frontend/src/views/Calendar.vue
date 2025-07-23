@@ -85,7 +85,13 @@
                   :title="event.title"
                 ></div>
                 <div v-if="date.events.length > 3" class="more-events">
-                  +{{ date.events.length - 3 }}
+                  +{{ date.events.length - 3 }} más
+                </div>
+              </div>
+              <div class="month-event-list">
+                <div v-for="event in date.events.slice(0, 3)" :key="event.id" class="month-event-item">
+                  <span class="month-event-time">{{ event.time }}</span>
+                  <span class="month-event-title">{{ event.title }}</span>
                 </div>
               </div>
             </div>
@@ -109,16 +115,12 @@
             </div>
             <div class="week-events">
               <div v-for="day in weekDays" :key="day" class="day-events-column">
-                <div
-                  v-for="event in getDayEvents(day)"
-                  :key="event.id"
-                  class="week-event"
-                  :class="'type-' + event.type"
-                  :style="getEventStyle(event)"
-                  @click="selectEvent(event)"
-                >
-                  <div class="event-time">{{ event.time }}</div>
-                  <div class="event-title">{{ event.title }}</div>
+                <div v-for="hour in 24" :key="hour" class="week-hour-slot">
+                  <div v-for="event in getDayEvents(day).filter(e => parseInt(e.time.split(':')[0]) === hour)" :key="event.id" class="week-event" :class="'type-' + event.type">
+                    <div class="event-time">{{ event.time }}</div>
+                    <div class="event-title">{{ event.title }}</div>
+                    <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -131,18 +133,13 @@
             <div v-for="hour in 24" :key="hour" class="timeline-hour">
               <div class="hour-label">{{ formatHour(hour) }}</div>
               <div class="hour-events">
-                <div
-                  v-for="event in getHourEvents(hour)"
-                  :key="event.id"
-                  class="timeline-event"
-                  :class="'type-' + event.type"
-                  @click="selectEvent(event)"
-                >
+                <div v-for="event in getHourEvents(hour)" :key="event.id" class="timeline-event" :class="'type-' + event.type">
                   <div class="event-time">{{ event.time }}</div>
                   <div class="event-content">
                     <div class="event-title">{{ event.title }}</div>
                     <div class="event-description">{{ event.description }}</div>
                   </div>
+                  <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
                 </div>
               </div>
             </div>
@@ -380,7 +377,7 @@ const calendarDates = computed(() => {
   let startDate = new Date(firstDay);
   let dayOfWeek = firstDay.getDay();
   // getDay(): 0=Domingo, 1=Lunes, ..., 6=Sábado
-  // Si es domingo, retroceder 6 días; si no, retroceder (dayOfWeek-1) días
+  // Si es domingo, retroceder 6 días; si no, retroceder (dayOfWeek - 1) días
   if (dayOfWeek === 0) {
     startDate.setDate(startDate.getDate() - 6);
   } else {
@@ -393,14 +390,15 @@ const calendarDates = computed(() => {
   for (let i = 0; i < 42; i++) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + i);
+    const dateISO = date.toISOString().split("T")[0];
 
     const dayEvents = events.value.filter((event) => {
-      const eventDate = new Date(event.date);
-      return eventDate.toDateString() === date.toDateString();
+      const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+      return eventDateISO === dateISO;
     });
 
     dates.push({
-      date: date.toISOString().split("T")[0],
+      date: dateISO,
       dayNumber: date.getDate(),
       isCurrentMonth: date.getMonth() === month,
       isToday: date.toDateString() === today.toDateString(),
@@ -516,10 +514,10 @@ const getEndOfWeek = (date) => {
   return start;
 };
 
+// Corregir getDayDate para usar la semana de currentDate
 const getDayDate = (day) => {
-  const today = new Date();
   const dayIndex = weekDays.indexOf(day);
-  const startOfWeek = getStartOfWeek(today);
+  const startOfWeek = getStartOfWeek(currentDate.value);
   startOfWeek.setDate(startOfWeek.getDate() + dayIndex);
   return startOfWeek.getDate();
 };
@@ -530,13 +528,19 @@ const getDayEvents = (day) => {
   startOfWeek.setDate(startOfWeek.getDate() + dayIndex);
   const dayDate = startOfWeek.toISOString().split("T")[0];
 
-  return events.value.filter((event) => event.date === dayDate);
+  return events.value.filter((event) => {
+    const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+    return eventDateISO === dayDate;
+  });
 };
 
 const getHourEvents = (hour) => {
+  // Asegurar coincidencia exacta de fecha (zona local)
   const dayDate = currentDate.value.toISOString().split("T")[0];
   return events.value.filter((event) => {
-    if (event.date !== dayDate) return false;
+    // Comparar usando la fecha local del evento
+    const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+    if (eventDateISO !== dayDate) return false;
     const eventHour = parseInt(event.time.split(":")[0]);
     return eventHour === hour;
   });
@@ -704,12 +708,14 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* Vista semanal */
+/* Vista semanal mejorada */
 .week-view {
   background: var(--background);
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
 }
 
 .week-header {
@@ -717,41 +723,42 @@ onMounted(() => {
   grid-template-columns: 80px repeat(7, 1fr);
   background: var(--primary);
   color: white;
-}
-
-.time-column {
-  padding: 1rem;
+  border-bottom: 2px solid var(--border);
 }
 
 .day-column {
-  padding: 1rem;
+  padding: 1rem 0.5rem;
   text-align: center;
+  border-right: 2px solid var(--border);
 }
-
-.day-header {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.day-date {
-  font-size: 0.875rem;
-  opacity: 0.9;
+.day-column:last-child {
+  border-right: none;
 }
 
 .week-grid {
   display: grid;
   grid-template-columns: 80px repeat(7, 1fr);
-  height: 600px;
+  height: 720px;
+  min-height: 720px;
+  max-height: 720px;
+  overflow-y: visible;
   position: relative;
 }
 
 .time-slots {
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
+  background: #f8f9fa;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 100%;
+  z-index: 3;
 }
 
 .time-slot {
-  height: 60px;
-  padding: 0.5rem;
+  height: 30px;
+  padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   color: var(--secondary);
   border-bottom: 1px solid var(--border);
@@ -762,44 +769,63 @@ onMounted(() => {
 .week-events {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  position: relative;
+  position: absolute;
+  left: 80px;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 720px;
+  max-height: 720px;
+  overflow-y: visible;
+  z-index: 2;
 }
 
 .day-events-column {
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
   position: relative;
+  min-height: 720px;
+}
+.day-events-column:last-child {
+  border-right: none;
+}
+
+.week-hour-slot {
+  min-height: 30px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  /* Mantener el fondo y el borde aunque haya eventos */
+  background: transparent;
+  z-index: 1;
 }
 
 .week-event {
-  position: absolute;
-  left: 2px;
-  right: 2px;
+  position: relative;
+  margin: 2px 0;
+  left: 0;
+  right: 0;
   background: var(--primary);
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  border-left: 4px solid #6366f1;
+  transition: box-shadow 0.2s;
+  z-index: 2;
+  /* Asegura que el evento no sobrescriba el borde de la celda */
+  width: 98%;
+  max-width: 100%;
+  min-width: 0;
+  align-self: flex-start;
 }
-
-.week-event.type-trabajo {
-  background: #6366f1;
-}
-.week-event.type-personal {
-  background: #06d6a0;
-}
-.week-event.type-salud {
-  background: #ef4444;
-}
-.week-event.type-social {
-  background: #fbbf24;
-}
-.week-event.type-ejercicio {
-  background: #8b5cf6;
-}
-.week-event.type-reunion {
-  background: #64748b;
+.week-event:hover {
+  box-shadow: 0 4px 16px rgba(99,102,241,0.18);
 }
 
 .event-time {
@@ -812,83 +838,79 @@ onMounted(() => {
   line-height: 1.2;
 }
 
-/* Vista diaria */
+/* Vista diaria mejorada */
 .day-view {
   background: var(--background);
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow);
   overflow: hidden;
+  padding-bottom: 1rem;
 }
 
 .day-timeline {
-  height: 600px;
+  height: 720px;
+  min-height: 720px;
+  max-height: 720px;
   overflow-y: auto;
+  background: #f8f9fa;
 }
 
 .timeline-hour {
   display: grid;
   grid-template-columns: 80px 1fr;
-  min-height: 60px;
+  min-height: 30px;
   border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  background: white;
 }
 
 .hour-label {
-  padding: 0.5rem;
-  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
   color: var(--secondary);
   font-weight: 600;
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  background: #f8f9fa;
+}
+
+.hour-label.current {
+  background: #e0e7ff;
+  color: #4338ca;
+  border-left: 4px solid #6366f1;
 }
 
 .hour-events {
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   position: relative;
 }
 
 .timeline-event {
   background: var(--primary);
   color: white;
-  padding: 0.75rem;
+  padding: 0.5rem 1rem;
   border-radius: 8px;
   margin-bottom: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  font-size: 0.95rem;
 }
-
 .timeline-event:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.timeline-event.type-trabajo {
-  background: #6366f1;
-}
-.timeline-event.type-personal {
-  background: #06d6a0;
-}
-.timeline-event.type-salud {
-  background: #ef4444;
-}
-.timeline-event.type-social {
-  background: #fbbf24;
-}
-.timeline-event.type-ejercicio {
-  background: #8b5cf6;
-}
-.timeline-event.type-reunion {
-  background: #64748b;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.15);
 }
 
 .event-content {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .event-description {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   opacity: 0.9;
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
 }
 
 /* Panel lateral */
@@ -1157,4 +1179,52 @@ onMounted(() => {
   background: rgba(24, 26, 32, 0.85) !important;
 }
 
+.week-hour-slot {
+  min-height: 30px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.delete-event-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-left: 0.5em;
+  transition: color 0.2s;
+}
+.delete-event-btn:hover {
+  color: #b91c1c;
+}
+
+/* --- CSS para la lista de eventos en la vista mensual --- */
+.month-event-list {
+  margin-top: 0.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.month-event-item {
+  font-size: 0.75em;
+  color: var(--primary);
+  background: #f3f4f6;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-bottom: 1px;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.month-event-time {
+  font-weight: 600;
+  color: #6366f1;
+}
+.month-event-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
