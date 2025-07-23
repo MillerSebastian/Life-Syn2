@@ -545,9 +545,22 @@ const moveTask = async (taskId, destination) => {
   }
 };
 
-// Renderizar gráficos con datos reales
-onMounted(async () => {
-  await nextTick();
+// Guardar instancias de los gráficos para poder destruirlos
+let lineChartInstance = null;
+let pieChartInstance = null;
+let monthlyChartInstance = null;
+
+function getTextColor() {
+  // Lógica correcta: blanco en modo dark, negro en modo light
+  const isDark = document.body.id === 'theme-dark';
+  return isDark ? '#F1F1F1' : '#0f172a';
+}
+
+async function renderCharts() {
+  // Destruir instancias previas si existen
+  if (lineChartInstance) lineChartInstance.destroy();
+  if (pieChartInstance) pieChartInstance.destroy();
+  if (monthlyChartInstance) monthlyChartInstance.destroy();
 
   // Función para mejorar la nitidez en pantallas retina
   function fixCanvasDPI(canvas) {
@@ -646,9 +659,12 @@ onMounted(async () => {
     }
   });
 
+  // Obtener color de texto actualizado
+  const textColor = getTextColor();
+
   // Gráfico de actividad semanal con datos reales
   const balanceMensual = [1200, 1500, 1100, 1700, 1600, 1800, 1400];
-  new Chart(lineChart.value, {
+  lineChartInstance = new Chart(lineChart.value, {
     type: "line",
     data: {
       labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
@@ -691,7 +707,7 @@ onMounted(async () => {
             usePointStyle: true,
             padding: 20,
             font: { size: 16 },
-            color: '#F1F1F1',
+            color: textColor,
           },
         },
       },
@@ -703,11 +719,11 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Balance Mensual y Eventos",
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 16 },
           },
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
@@ -718,20 +734,20 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Gastos ($)",
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 16 },
           },
           grid: {
             drawOnChartArea: false,
           },
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
         x: {
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
@@ -761,7 +777,7 @@ onMounted(async () => {
   const categoryLabels = Object.keys(expenseCategories);
   const categoryData = Object.values(expenseCategories);
 
-  new Chart(pieChart.value, {
+  pieChartInstance = new Chart(pieChart.value, {
     type: "doughnut",
     data: {
       labels: categoryLabels.length > 0 ? categoryLabels : ["Sin datos"],
@@ -788,7 +804,7 @@ onMounted(async () => {
             usePointStyle: true,
             padding: 20,
             font: { size: 16 },
-            color: '#F1F1F1',
+            color: textColor,
           },
         },
       },
@@ -808,7 +824,7 @@ onMounted(async () => {
     carbs: [300, 280, 320, 310, 270, 330, 295],
   };
 
-  new Chart(monthlyChart.value, {
+  monthlyChartInstance = new Chart(monthlyChart.value, {
     type: "bar",
     data: {
       labels: months,
@@ -867,7 +883,7 @@ onMounted(async () => {
             usePointStyle: true,
             padding: 20,
             font: { size: 16 },
-            color: '#F1F1F1',
+            color: textColor,
           },
         },
       },
@@ -879,11 +895,11 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Tareas Completadas",
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 16 },
           },
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
@@ -894,20 +910,20 @@ onMounted(async () => {
           title: {
             display: true,
             text: "Nutrientes",
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 16 },
           },
           grid: {
             drawOnChartArea: false,
           },
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
         x: {
           ticks: {
-            color: '#F1F1F1',
+            color: textColor,
             font: { size: 14 },
           },
         },
@@ -916,6 +932,52 @@ onMounted(async () => {
       maintainAspectRatio: false,
     },
   });
+}
+
+// Renderizar gráficos al montar
+onMounted(async () => {
+  await nextTick();
+  // Función para mejorar la nitidez en pantallas retina
+  function fixCanvasDPI(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+  }
+
+  // Ajustar DPI de los canvas
+  if (lineChart.value) fixCanvasDPI(lineChart.value);
+  if (pieChart.value) fixCanvasDPI(pieChart.value);
+  if (monthlyChart.value) fixCanvasDPI(monthlyChart.value);
+
+  // Verificar que Chart.js esté disponible
+  console.log("Chart.js disponible:", typeof Chart);
+  
+  // Verificar si los elementos canvas existen
+  console.log("lineChart element:", lineChart.value);
+  console.log("pieChart element:", pieChart.value);
+  console.log("monthlyChart element:", monthlyChart.value);
+
+  if (!lineChart.value || !pieChart.value || !monthlyChart.value) {
+    console.error("Algunos elementos canvas no se encontraron");
+    return;
+  }
+
+  if (typeof Chart === 'undefined') {
+    console.error("Chart.js no está disponible");
+    return;
+  }
+
+  await renderCharts();
+
+  // Observer para detectar cambio de modo
+  const observer = new MutationObserver(() => {
+    renderCharts();
+  });
+  observer.observe(document.body, { attributes: true, attributeFilter: ['id'] });
 });
 </script>
 

@@ -181,9 +181,9 @@
       <!-- Stickers de Notas -->
       <div class="notes-section mt-5" @click="showAddNoteModal = true" style="cursor:pointer;" @dragover.prevent @drop="dropNote($event)">
         <template v-if="notes.length === 0">
-          <h3 class="notes-add">
-            Agregar Nota
-          </h3>
+          <div class="notes-add">
+            Agregar notas
+          </div>
         </template>
         <template v-else>
           <div class="notes-grid">
@@ -1102,6 +1102,32 @@ const dropNote = async (event) => {
   border: 1px solid var(--border);
   position: relative;
   min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-add {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2px;
+  opacity: 0.25;
+  text-transform: uppercase;
+  transition: opacity 0.3s, color 0.3s;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.notes-add:hover {
+  color: var(--accent);
+  opacity: 0.5;
 }
 
 .notes-grid {
@@ -1200,14 +1226,19 @@ const dropNote = async (event) => {
   border-radius: 12px;
   overflow: hidden;
 }
-
 .modal-card-head {
   background: var(--primary);
   color: white;
 }
-
 .modal-card-title {
   color: white;
+}
+
+/* Eliminar estilos locales de placeholder para inputs y textareas en modales en modo dark */
+.modal-card input::placeholder,
+.modal-card textarea::placeholder {
+  color: inherit !important;
+  opacity: 1 !important;
 }
 
 /* Color Picker */

@@ -91,3 +91,48 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
 }
+
+/* Inputs y placeholders en modales modo dark */
+#theme-dark .modal-card input,
+#theme-dark .modal-card textarea,
+#theme-dark .modal-card select {
+  background: #1a2332;
+  color: #F1F1F1;
+  border: 1.5px solid #4a90e2;
+}
+#theme-dark .modal-card input::placeholder,
+#theme-dark .modal-card textarea::placeholder {
+  color: #4a90e2;
+  opacity: 1;
+}
+#theme-dark .modal-card select {
+  color: #F1F1F1;
+}
+#theme-dark .modal-card input:focus,
+#theme-dark .modal-card textarea:focus,
+#theme-dark .modal-card select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.15);
+}
+
+#theme-dark .modal-card label.label {
+  color: #fff !important;
+}
+#theme-dark .modal-card-title {
+  color: #fff !important;
+}
+
+/* Border radius uniforme para todos los modales */
+.modal-card {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+.modal-card-head {
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+}
+.modal-card-foot {
+  border-bottom-left-radius: 16px !important;
+  border-bottom-right-radius: 16px !important;
+}
