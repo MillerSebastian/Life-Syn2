@@ -47,9 +47,7 @@
 
     <!-- Zona principal del chat -->
     <section class="chat-main">
-      <div class="chat-header">
-        <h3>{{ activeChatTitle }}</h3>
-      </div>
+      <div class="chat-header"></div>
       <div class="chat-messages" ref="messagesContainer">
         <div
           v-for="(msg, idx) in activeChatMessages"
