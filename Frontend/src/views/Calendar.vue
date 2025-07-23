@@ -22,21 +22,21 @@
               <button
                 class="btn btn-sm"
                 :class="viewMode === 'month' ? 'btn-primary' : 'btn-secondary'"
-                @click="viewMode = 'month'"
+                @click="setViewMode('month')"
               >
                 Mes
               </button>
               <button
                 class="btn btn-sm"
                 :class="viewMode === 'week' ? 'btn-primary' : 'btn-secondary'"
-                @click="viewMode = 'week'"
+                @click="setViewMode('week')"
               >
                 Semana
               </button>
               <button
                 class="btn btn-sm"
                 :class="viewMode === 'day' ? 'btn-primary' : 'btn-secondary'"
-                @click="viewMode = 'day'"
+                @click="setViewMode('day')"
               >
                 Día
               </button>
@@ -299,6 +299,22 @@ const editingEvent = ref(null);
 const viewMode = ref("month");
 const currentDate = ref(new Date());
 
+// Sincronizar la fecha al cambiar de vista
+function setViewMode(mode) {
+  if (viewMode.value === mode) return;
+  if (mode === "month") {
+    // Mantener el mes de la fecha actual
+    // No es necesario ajustar currentDate
+  } else if (mode === "week") {
+    // Ajustar currentDate al inicio de la semana
+    const startOfWeek = getStartOfWeek(currentDate.value);
+    currentDate.value = new Date(startOfWeek);
+  } else if (mode === "day") {
+    // No es necesario ajustar currentDate
+  }
+  viewMode.value = mode;
+}
+
 // Formulario de evento
 const eventForm = reactive({
   title: "",
@@ -360,9 +376,16 @@ const calendarDates = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const startDate = new Date(firstDay);
-  startDate.setDate(startDate.getDate() - firstDay.getDay() + 1);
+  // Ajustar para que el calendario siempre inicie en lunes
+  let startDate = new Date(firstDay);
+  let dayOfWeek = firstDay.getDay();
+  // getDay(): 0=Domingo, 1=Lunes, ..., 6=Sábado
+  // Si es domingo, retroceder 6 días; si no, retroceder (dayOfWeek-1) días
+  if (dayOfWeek === 0) {
+    startDate.setDate(startDate.getDate() - 6);
+  } else {
+    startDate.setDate(startDate.getDate() - (dayOfWeek - 1));
+  }
 
   const dates = [];
   const today = new Date();
@@ -420,10 +443,12 @@ const nextPeriod = () => {
   }
 };
 
+// Corregir selectDate para mostrar el día anterior
 const selectDate = (date) => {
   if (date.isCurrentMonth) {
     viewMode.value = "day";
-    currentDate.value = new Date(date.date);
+    // Forzar la fecha seleccionada a la zona local para evitar desfases
+    currentDate.value = new Date(date.date + 'T00:00:00');
   }
 };
 
