@@ -1,38 +1,66 @@
 <template>
-  <nav class="navbar top-navbar" role="navigation" aria-label="main navigation" :style="navbarStyle">
+  <nav
+    class="navbar top-navbar"
+    :class="{ 'notification-flash': flashActive }"
+    role="navigation"
+    aria-label="main navigation"
+    :style="navbarStyle"
+  >
     <div class="navbar-brand">
       <div class="navbar-item is-hidden-desktop">
         <span class="icon">
           <i class="bx bx-search"></i>
         </span>
       </div>
-      <div class="navbar-item is-hidden-mobile" style="width: 350px; position: relative">
+      <div
+        class="navbar-item is-hidden-mobile"
+        style="width: 350px; position: relative"
+      >
         <div class="control has-icons-left is-expanded">
-          <input class="input" type="text" placeholder="Buscar..." v-model="searchQuery" @focus="showResults = true"
-            @input="showResults = true" @blur="handleBlur" />
+          <input
+            class="input"
+            type="text"
+            placeholder="Buscar..."
+            v-model="searchQuery"
+            @focus="showResults = true"
+            @input="showResults = true"
+            @blur="handleBlur"
+          />
           <span class="icon is-left">
             <i class="bx bx-search"></i>
           </span>
         </div>
         <div v-if="showResults && results.length" class="search-dropdown">
-          <div v-for="(result, idx) in results" :key="result.type + result.id + idx" class="search-result-item"
-            @mousedown.prevent="goToResult(result)">
+          <div
+            v-for="(result, idx) in results"
+            :key="result.type + result.id + idx"
+            class="search-result-item"
+            @mousedown.prevent="goToResult(result)"
+          >
             <span class="tag">{{ result.type }}</span>
-            <span v-html="highlightMatch(result.label, result.highlight)"></span>
+            <span
+              v-html="highlightMatch(result.label, result.highlight)"
+            ></span>
             <small v-if="result.extra">
               -
-              <span v-html="highlightMatch(result.extra, result.highlight)"></span></small>
+              <span
+                v-html="highlightMatch(result.extra, result.highlight)"
+              ></span
+            ></small>
           </div>
         </div>
       </div>
     </div>
     <div class="navbar-menu is-active">
       <div class="navbar-end">
-        <div class="navbar-item">
-          <button class="button nav-button" @click="showNotifications = true">
+        <div class="navbar-item" style="position: relative">
+          <button class="button nav-button" @click="openNotifications">
             <span class="icon">
               <i class="bx bx-bell"></i>
             </span>
+            <span v-if="notificationCount > 0" class="notification-badge">{{
+              notificationCount
+            }}</span>
           </button>
         </div>
         <div class="navbar-item">
@@ -52,12 +80,18 @@
         <div class="navbar-item has-dropdown is-hoverable">
           <a class="navbar-link">
             <figure class="image is-32x32 is-rounded">
-              <img class="is-rounded" :src="user.photo
-                  ? user.photo
-                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user.name || 'U'
-                  )}&size=64`
-                " :alt="`Foto de ${user.name}`" @error="onPhotoError" />
+              <img
+                class="is-rounded"
+                :src="
+                  user.photo
+                    ? user.photo
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        user.name || 'U'
+                      )}&size=64`
+                "
+                :alt="`Foto de ${user.name}`"
+                @error="onPhotoError"
+              />
             </figure>
           </a>
           <div class="navbar-dropdown is-right">
@@ -81,14 +115,74 @@
       <div class="modal-card">
         <header class="modal-card-head">
           <p class="modal-card-title">Notificaciones</p>
-          <button class="delete" aria-label="close" @click="showNotifications = false"></button>
+          <button
+            class="delete"
+            aria-label="close"
+            @click="showNotifications = false"
+          ></button>
         </header>
         <section class="modal-card-body">
-          <div class="content has-text-centered">
+          <div
+            v-if="
+              eventNotifications.length === 0 &&
+              completedTaskNotifications.length === 0
+            "
+            class="content has-text-centered"
+          >
             <span class="icon is-large mb-2">
               <i class="bx bx-bell is-size-2"></i>
             </span>
             <p>No hay notificaciones nuevas.</p>
+          </div>
+          <div v-else>
+            <div
+              v-for="(notif, idx) in eventNotifications"
+              :key="notif.id"
+              class="notification"
+              :class="notif.color || 'is-link is-light'"
+            >
+              <button
+                class="delete"
+                @click="dismissNotification(notif.id)"
+              ></button>
+              <strong>¡Recuerda tu evento de mañana!</strong><br />
+              <b>{{ notif.title }}</b> —
+              {{ notif.description || "Sin descripción" }}<br />
+              <span
+                ><b>Fecha:</b> {{ notif.date }} <b>Hora:</b>
+                {{ notif.time }}</span
+              >
+            </div>
+            <div
+              v-for="(notif, idx) in completedTaskNotifications"
+              :key="notif.id"
+              class="notification"
+              :class="notif.color || 'is-warning is-light'"
+            >
+              <button
+                class="delete"
+                @click="dismissCompletedTaskNotification(notif.id)"
+              ></button>
+              <strong v-if="notif.type === 'tarea'">¡Tarea completada!</strong>
+              <strong v-else-if="notif.type === 'proxima'"
+                >¡Tarea próxima a vencer!</strong
+              >
+              <strong v-else-if="notif.type === 'vencida'"
+                >¡Tarea vencida!</strong
+              >
+              <strong v-else-if="notif.type === 'reabierta'"
+                >¡Tarea reabierta!</strong
+              >
+              <br />
+              <b>{{ notif.title }}</b>
+              <span v-if="notif.description"> — {{ notif.description }}</span
+              ><br />
+              <span v-if="notif.message">{{ notif.message }}</span>
+              <span v-else-if="notif.type === 'tarea'"
+                >Recuerda que puedes borrar esta tarea si ya no la
+                necesitas.</span
+              >
+            </div>
           </div>
         </section>
         <footer class="modal-card-foot is-justify-content-flex-end">
@@ -108,12 +202,22 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "@/stores/search";
 import { auth, db } from "@/../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  deleteDoc,
+} from "firebase/firestore";
 import { reactive } from "vue";
 import { alertError, alertSuccess } from "./alert";
 
 // Boton para Modo dark y light
-const btnTheme = document.getElementById('btnTheme');
+const btnTheme = document.getElementById("btnTheme");
 
 const showNotifications = ref(false);
 const router = useRouter();
@@ -282,14 +386,15 @@ const profile = () => {
 
 const logout = async () => {
   const auth = getAuth();
-  signOut(auth).then(() => {
-    localStorage.setItem('isLoggedIn', 'false')
-    alertSuccess("sesion finalizada")
-    router.push('/login')
-  }).catch((error) => {
-    console.log(`Error al cerrar la sesion: ${error.message}`)
-  });
-
+  signOut(auth)
+    .then(() => {
+      localStorage.setItem("isLoggedIn", "false");
+      alertSuccess("sesion finalizada");
+      router.push("/login");
+    })
+    .catch((error) => {
+      console.log(`Error al cerrar la sesion: ${error.message}`);
+    });
 };
 
 const user = reactive({
@@ -308,14 +413,73 @@ async function fetchUserProfile() {
   }
 }
 
+const notifications = ref([]);
+
+// Escuchar notificaciones en tiempo real para el usuario
+function listenNotifications() {
+  watch(
+    () => auth.currentUser,
+    (user) => {
+      if (!user) return;
+      const q = query(
+        collection(db, "notifications"),
+        where("userId", "==", user.uid)
+      );
+      if (notifications._unsubscribe) notifications._unsubscribe();
+      notifications._unsubscribe = onSnapshot(q, (snapshot) => {
+        notifications.value = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      });
+    },
+    { immediate: true }
+  );
+}
+
 onMounted(() => {
   fetchUserProfile();
+  listenNotifications();
 });
 
-function onPhotoError(e) {
-  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    user.name || "U"
-  )}&size=64`;
+const eventNotifications = computed(() =>
+  notifications.value.filter((n) => n.type === "evento")
+);
+const completedTaskNotifications = computed(() =>
+  notifications.value.filter((n) => n.type === "tarea")
+);
+
+async function dismissNotification(id) {
+  await deleteDoc(doc(db, "notifications", id));
+}
+async function dismissCompletedTaskNotification(id) {
+  await deleteDoc(doc(db, "notifications", id));
+}
+
+const notificationCount = computed(
+  () =>
+    eventNotifications.value.length + completedTaskNotifications.value.length
+);
+
+const lastNotificationCount = ref(0);
+const flashActive = ref(false);
+
+watch(
+  notificationCount,
+  (newVal, oldVal) => {
+    if (newVal > oldVal && !showNotifications.value) {
+      flashActive.value = true;
+      setTimeout(() => {
+        flashActive.value = false;
+      }, 700);
+    }
+    lastNotificationCount.value = newVal;
+  },
+  { immediate: true }
+);
+
+function openNotifications() {
+  showNotifications.value = true;
 }
 </script>
 
@@ -325,6 +489,24 @@ function onPhotoError(e) {
   box-shadow: 0 2px 8px var(--shadow);
   padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s, background 0.3s;
+}
+.top-navbar.notification-flash {
+  animation: flash-yellow 0.7s;
+}
+@keyframes flash-yellow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 221, 51, 0.7);
+    background: var(--background);
+  }
+  30% {
+    box-shadow: 0 0 24px 12px rgba(255, 221, 51, 0.7);
+    background: #fffbe6;
+  }
+  100% {
+    box-shadow: 0 2px 8px var(--shadow);
+    background: var(--background);
+  }
 }
 
 .nav-button {
@@ -484,28 +666,43 @@ function onPhotoError(e) {
   }
 }
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
+}
+.notification-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #ff3860;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  z-index: 10;
+  min-width: 22px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 </style>

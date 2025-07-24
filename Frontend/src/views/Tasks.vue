@@ -14,7 +14,9 @@
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.total }}</p>
                   <p class="subtitle is-6 text-secondary">Total Tareas</p>
@@ -26,11 +28,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.todo }}</p>
                   <p class="subtitle is-6 text-secondary">Pendientes</p>
@@ -42,11 +46,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.progress }}</p>
                   <p class="subtitle is-6 text-secondary">En Progreso</p>
@@ -58,11 +64,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.completed }}</p>
                   <p class="subtitle is-6 text-secondary">Completadas</p>
@@ -91,7 +99,10 @@
           </div>
           <div class="is-flex is-align-items-center gap-2">
             <span class="text-secondary">Filtrar por:</span>
-            <select v-model="filterPriority" class="select is-small select-month">
+            <select
+              v-model="filterPriority"
+              class="select is-small select-month"
+            >
               <option value="">Todas las prioridades</option>
               <option value="alta">Alta</option>
               <option value="media">Media</option>
@@ -170,7 +181,9 @@
                       :style="{ width: getTaskProgress(task) + '%' }"
                     ></div>
                   </div>
-                  <span class="progress-text">{{ getTaskProgress(task) }}%</span>
+                  <span class="progress-text"
+                    >{{ getTaskProgress(task) }}%</span
+                  >
                 </div>
               </div>
             </div>
@@ -179,11 +192,15 @@
       </div>
 
       <!-- Stickers de Notas -->
-      <div class="notes-section mt-5" @click="showAddNoteModal = true" style="cursor:pointer;" @dragover.prevent @drop="dropNote($event)">
+      <div
+        class="notes-section mt-5"
+        @click="showAddNoteModal = true"
+        style="cursor: pointer"
+        @dragover.prevent
+        @drop="dropNote($event)"
+      >
         <template v-if="notes.length === 0">
-          <div class="notes-add">
-            Agregar notas
-          </div>
+          <div class="notes-add">Agregar notas</div>
         </template>
         <template v-else>
           <div class="notes-grid">
@@ -192,11 +209,11 @@
               :key="note.id"
               :id="'note-' + note.id"
               class="note-sticker draggable"
-              :style="{ 
+              :style="{
                 backgroundColor: note.color,
                 position: note.position ? 'absolute' : 'relative',
                 left: note.position ? note.position.x + 'px' : 'auto',
-                top: note.position ? note.position.y + 'px' : 'auto'
+                top: note.position ? note.position.y + 'px' : 'auto',
               }"
               draggable="true"
               @click.stop="editNote(note)"
@@ -288,7 +305,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveTask">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showAddTaskModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showAddTaskModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -345,7 +365,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveNote">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showAddNoteModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showAddNoteModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -366,6 +389,8 @@ import {
   doc,
   query,
   where,
+  getDocs,
+  setDoc,
 } from "firebase/firestore";
 import { useRoute } from "vue-router";
 import { alertQuestion, alertSuccess } from "@/components/alert";
@@ -409,13 +434,15 @@ const notes = ref([]);
 // Escuchar tareas en tiempo real
 const getUserId = () => auth.currentUser?.uid;
 
+const previousTaskStatus = reactive({});
+
 onMounted(() => {
-  onSnapshot(collection(db, "tasks"), (snapshot) => {
+  onSnapshot(collection(db, "tasks"), async (snapshot) => {
     const userId = getUserId();
     if (!userId) return;
-    const allTasks = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    const allTasks = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     }));
     const userTasks = allTasks.filter((t) => t.userId === userId);
     // Limpiar columnas
@@ -425,6 +452,93 @@ onMounted(() => {
       const col = kanbanColumns.value.find((c) => c.id === task.status);
       if (col) col.tasks.push(task);
     });
+    // --- Notificaciones automáticas ---
+    const now = new Date();
+    for (const task of userTasks) {
+      // 1. Próxima a vencer (24h antes del dueDate)
+      if (task.dueDate && task.status !== "completed") {
+        const due = new Date(task.dueDate + "T00:00:00");
+        const diff = due.getTime() - now.getTime();
+        const hours = diff / (1000 * 60 * 60);
+        const notifId = `${task.id}-proxima`;
+        if (hours > 0 && hours <= 24) {
+          await setDoc(doc(db, "notifications", notifId), {
+            userId,
+            type: "proxima",
+            taskId: task.id,
+            title: task.title,
+            description: task.description,
+            date: task.dueDate,
+            color: "is-info",
+            message: `¡Tienes una tarea próxima a vencer! '${task.title}' vence el ${task.dueDate}.`,
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          await deleteDoc(doc(db, "notifications", notifId));
+        }
+      }
+      // 2. Vencida
+      if (task.dueDate && task.status !== "completed") {
+        const due = new Date(task.dueDate + "T00:00:00");
+        if (now > due) {
+          const notifId = `${task.id}-vencida`;
+          await setDoc(doc(db, "notifications", notifId), {
+            userId,
+            type: "vencida",
+            taskId: task.id,
+            title: task.title,
+            description: task.description,
+            date: task.dueDate,
+            color: "is-danger",
+            message: `¡Tienes una tarea vencida! '${task.title}' debía completarse el ${task.dueDate}.`,
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          await deleteDoc(doc(db, "notifications", `${task.id}-vencida`));
+        }
+      }
+      // 3. Reabierta (detecta cambio de completed a otro estado usando lastStatus)
+      if (task.lastStatus === "completed" && task.status !== "completed") {
+        const notifId = `${task.id}-reabierta`;
+        await setDoc(doc(db, "notifications", notifId), {
+          userId,
+          type: "reabierta",
+          taskId: task.id,
+          title: task.title,
+          description: task.description,
+          color: "is-success",
+          message: `La tarea '${task.title}' ha sido reabierta.`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (task.status === "completed") {
+        await deleteDoc(doc(db, "notifications", `${task.id}-reabierta`));
+      }
+      // Actualizar lastStatus en la tarea si cambió
+      if (task.lastStatus !== task.status) {
+        await updateDoc(doc(db, "tasks", task.id), { lastStatus: task.status });
+      }
+      // 4. Completada (mantener la lógica actual)
+      if (task.status === "completed" && task.notified !== true) {
+        await setDoc(doc(db, "notifications", task.id), {
+          userId,
+          type: "tarea",
+          taskId: task.id,
+          title: task.title,
+          description: task.description,
+          date: new Date().toLocaleDateString(),
+          color: "is-warning",
+          message: `¡Tarea completada! '${task.title}'`,
+          createdAt: new Date().toISOString(),
+        });
+        await updateDoc(doc(db, "tasks", task.id), { notified: true });
+      }
+      if (task.status !== "completed" && task.notified === true) {
+        await deleteDoc(doc(db, "notifications", task.id));
+        await updateDoc(doc(db, "tasks", task.id), { notified: false });
+      }
+    }
+    // --- Fin notificaciones automáticas ---
   });
 
   // Notas en tiempo real (ahora filtradas por usuario)
@@ -494,10 +608,10 @@ const saveTask = async () => {
 
 // Eliminar tarea
 const deleteTask = async (id) => {
-  const result= await alertQuestion("¿deseas eliminar la tarea?")
-  if(!result.isConfirmed) return;
+  const result = await alertQuestion("¿deseas eliminar la tarea?");
+  if (!result.isConfirmed) return;
   await deleteDoc(doc(db, "tasks", id));
-  alertSuccess("Tarea eliminada exitosamente")
+  alertSuccess("Tarea eliminada exitosamente");
 };
 
 // Editar tarea
@@ -529,11 +643,11 @@ const getFilteredTasks = (columnId) => {
 // Calcular progreso automático según el estado
 const getTaskProgress = (task) => {
   switch (task.status) {
-    case 'todo':
+    case "todo":
       return 0;
-    case 'progress':
+    case "progress":
       return 50;
-    case 'completed':
+    case "completed":
       return 100;
     default:
       return 0;
@@ -543,39 +657,39 @@ const getTaskProgress = (task) => {
 // Obtener estado en texto
 const getTaskStatus = (task) => {
   switch (task.status) {
-    case 'todo':
-      return 'Pendiente';
-    case 'progress':
-      return 'En Progreso';
-    case 'completed':
-      return 'Completada';
+    case "todo":
+      return "Pendiente";
+    case "progress":
+      return "En Progreso";
+    case "completed":
+      return "Completada";
     default:
-      return 'Pendiente';
+      return "Pendiente";
   }
 };
 
 // Obtener clase CSS del estado
 const getTaskStatusClass = (task) => {
   switch (task.status) {
-    case 'todo':
-      return 'status-pendiente';
-    case 'progress':
-      return 'status-progreso';
-    case 'completed':
-      return 'status-completada';
+    case "todo":
+      return "status-pendiente";
+    case "progress":
+      return "status-progreso";
+    case "completed":
+      return "status-completada";
     default:
-      return 'status-pendiente';
+      return "status-pendiente";
   }
 };
 
 // Calcular conteos de tareas por estado
 const taskCounts = computed(() => {
-  const allTasks = kanbanColumns.value.flatMap(col => col.tasks);
+  const allTasks = kanbanColumns.value.flatMap((col) => col.tasks);
   return {
     total: allTasks.length,
-    todo: allTasks.filter(task => task.status === 'todo').length,
-    progress: allTasks.filter(task => task.status === 'progress').length,
-    completed: allTasks.filter(task => task.status === 'completed').length
+    todo: allTasks.filter((task) => task.status === "todo").length,
+    progress: allTasks.filter((task) => task.status === "progress").length,
+    completed: allTasks.filter((task) => task.status === "completed").length,
   };
 });
 
@@ -592,9 +706,9 @@ const editNote = (note) => {
 };
 
 const deleteNote = async (noteId) => {
-  const result= await alertQuestion("¿quieres eliminar la nota?")
-  if(!result.isConfirmed) return;
-  alertSuccess("Nota eliminada exitosamente")
+  const result = await alertQuestion("¿quieres eliminar la nota?");
+  if (!result.isConfirmed) return;
+  alertSuccess("Nota eliminada exitosamente");
   await deleteDoc(doc(db, "notes", noteId));
 };
 
@@ -614,17 +728,17 @@ const saveNote = async () => {
     const containerHeight = 300; // Alto aproximado del contenedor
     const noteWidth = 200;
     const noteHeight = 150;
-    
+
     const x = (containerWidth - noteWidth) / 2;
     const y = (containerHeight - noteHeight) / 2;
-    
+
     await addDoc(collection(db, "notes"), {
       ...noteForm,
       date: new Date().toLocaleDateString(),
       userId,
-      position: { x, y }
+      position: { x, y },
     });
-    alertSuccess("Nota guardada exitosamente")
+    alertSuccess("Nota guardada exitosamente");
   }
   resetNoteForm();
   showAddNoteModal.value = false;
@@ -656,8 +770,28 @@ const dropTask = async (event, newStatus) => {
   if (!draggedTask.value) return;
 
   try {
+    const userId = getUserId();
+    if (!userId) return;
     await updateDoc(doc(db, "tasks", draggedTask.value.id), {
       status: newStatus,
+      completedDate:
+        newStatus === "completed" ? new Date().toLocaleDateString() : null,
+      userId,
+    });
+  } catch (error) {
+    console.error("Error al mover la tarea:", error);
+  }
+};
+
+const moveTask = async (taskId, destination) => {
+  try {
+    const userId = getUserId();
+    if (!userId) return;
+    await updateDoc(doc(db, "tasks", taskId), {
+      status: destination,
+      completedDate:
+        destination === "completed" ? new Date().toLocaleDateString() : null,
+      userId,
     });
   } catch (error) {
     console.error("Error al mover la tarea:", error);
@@ -686,7 +820,7 @@ const dropNote = async (event) => {
   // Obtener las dimensiones del contenedor de notas
   const notesContainer = event.currentTarget;
   const rect = notesContainer.getBoundingClientRect();
-  
+
   // Calcular la posición exacta del mouse relativa al contenedor
   const mouseX = event.clientX - rect.left;
   const mouseY = event.clientY - rect.top;
@@ -694,19 +828,25 @@ const dropNote = async (event) => {
   // Dimensiones de la nota
   const noteWidth = 200;
   const noteHeight = 150;
-  
+
   // Dimensiones del contenedor
   const containerWidth = rect.width;
   const containerHeight = rect.height;
 
   // Ajustar la posición para que la nota no se salga del contenedor
   // Centrar la nota en la posición del mouse
-  const adjustedX = Math.max(0, Math.min(mouseX - noteWidth / 2, containerWidth - noteWidth));
-  const adjustedY = Math.max(0, Math.min(mouseY - noteHeight / 2, containerHeight - noteHeight));
+  const adjustedX = Math.max(
+    0,
+    Math.min(mouseX - noteWidth / 2, containerWidth - noteWidth)
+  );
+  const adjustedY = Math.max(
+    0,
+    Math.min(mouseY - noteHeight / 2, containerHeight - noteHeight)
+  );
 
   try {
     await updateDoc(doc(db, "notes", draggedNote.value.id), {
-      position: { x: adjustedX, y: adjustedY }
+      position: { x: adjustedX, y: adjustedY },
     });
   } catch (error) {
     console.error("Error al mover la nota:", error);
@@ -715,14 +855,15 @@ const dropNote = async (event) => {
 </script>
 
 <style scoped>
-.select-month{
+.select-month {
   border-radius: 10px;
   padding: 0em 1em;
   border: 1px solid transparent;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.notes-add{
+.notes-add {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1358,26 +1499,26 @@ const dropNote = async (event) => {
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
