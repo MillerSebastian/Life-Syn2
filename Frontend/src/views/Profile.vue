@@ -109,13 +109,6 @@
                 >
                   Cancelar
                 </button>
-                <button
-                  type="button"
-                  class="button is-danger is-light is-medium ml-2"
-                  @click="logout"
-                >
-                  <i class="bx bx-log-out"></i> Cerrar sesión
-                </button>
               </div>
             </form>
           </div>
@@ -128,7 +121,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { auth, db } from "../../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 const user = reactive({
   name: "",
@@ -164,7 +157,12 @@ async function fetchUserProfile() {
 }
 
 onMounted(() => {
-  fetchUserProfile();
+   const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    if (firebaseUser) {
+      fetchUserProfile();
+    }
+    unsubscribe(); 
+  });
 });
 
 async function saveProfile() {
@@ -192,7 +190,7 @@ function cancelEdit() {
 }
 
 function logout() {
-  alert("Sesión cerrada (simulado)");
+  
 }
 
 function onPhotoError(e) {
@@ -211,6 +209,7 @@ function onNameInput() {
     user.photo = "";
   }
 }
+
 </script>
 
 <style scoped>
