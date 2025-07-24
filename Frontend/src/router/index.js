@@ -51,6 +51,11 @@ const router = createRouter({
           name: "profile",
           component: () => import("../views/Profile.vue"),
         },
+        {
+          path: "chatIA",
+          name: "chatIA",
+          component: () => import("../views/IAchat.vue"),
+        },
       ],
     },
   ],

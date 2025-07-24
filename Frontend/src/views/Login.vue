@@ -122,8 +122,10 @@ const githubProvider = new GithubAuthProvider();
 const resetEmail = ref("");
 const modalContent = ref("");
 
+
 // Hacerlo accesible al template
 defineExpose({ modalContent });
+
 
 const sendResetEmail = async () => {
   if (!resetEmail.value) {
