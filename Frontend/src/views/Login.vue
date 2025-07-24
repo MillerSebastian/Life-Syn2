@@ -31,6 +31,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -72,6 +73,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -119,6 +121,11 @@ const githubProvider = new GithubAuthProvider();
 
 const resetEmail = ref("");
 const modalContent = ref("");
+
+
+// Hacerlo accesible al template
+defineExpose({ modalContent });
+
 
 const sendResetEmail = async () => {
   if (!resetEmail.value) {
@@ -261,18 +268,19 @@ const handleRegister = async () => {
 };
 
 function logout() {
-  localStorage.removeItem("isLoggedIn");
-  localStorage.removeItem("uid");
-  // Aquí puedes agregar la lógica de logout de Firebase si lo deseas
-  router.push("/login");
 }
 const loginWithGoogle = async () => {
   try {
     console.log("Google clicked");
     const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    await registerUserIfNotExists(user)
     console.log("Login exitoso con Google", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
+    localStorage.setItem("displayName", user.displayName || "");
+    localStorage.setItem("email", user.email || "");
+    localStorage.setItem("photoURL", user.photoURL || "");
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
@@ -284,9 +292,14 @@ const loginWithGoogle = async () => {
 const loginWithFacebook = async () => {
   try {
     const result = await signInWithPopup(auth, facebookProvider);
+    const user = result.user;
+    await registerUserIfNotExists(user)
     console.log("Login exitoso con Facebook", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
+    localStorage.setItem("displayName", user.displayName || "");
+    localStorage.setItem("email", user.email || "");
+    localStorage.setItem("photoURL", user.photoURL || "");
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
@@ -298,9 +311,14 @@ const loginWithFacebook = async () => {
 const loginWithGitHub = async () => {
   try {
     const result = await signInWithPopup(auth, githubProvider);
+    const user = result.user;
+    await registerUserIfNotExists(user)
     console.log("Login exitoso con GitHub", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
+    localStorage.setItem("displayName", user.displayName || "");
+    localStorage.setItem("email", user.email || "");
+    localStorage.setItem("photoURL", user.photoURL || "");
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
@@ -308,9 +326,31 @@ const loginWithGitHub = async () => {
     alertError("Error al iniciar sesión con GitHub");
   }
 };
-</script>
+async function registerUserIfNotExists(user) {
+  const userRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userRef);
 
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      name: user.displayName || "Sin nombre",
+      email: user.email || "Sin correo",
+      bio: "",
+      photo: user.photoURL || "",
+      provider: user.providerData[0]?.providerId || "manual",
+      createdAt: new Date(),
+    });
+    console.log(" Usuario registrado en Firestore");
+  } else {
+     const oldData = snap.data();
+    if (oldData.name === "Sin nombre" && user.displayName && user.displayName !== "Sin nombre") {
+      await setDoc(userRef, { ...oldData, name: user.displayName }, { merge: true });
+      console.log(" Nombre actualizado en Firestore");
+    }
+  }
+}
+</script>
 <style scoped>
+
 @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css");
 

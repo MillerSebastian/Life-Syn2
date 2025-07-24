@@ -110,13 +110,6 @@
                 >
                   Cancelar
                 </button>
-                <button
-                  type="button"
-                  class="button is-danger is-light is-medium ml-2"
-                  @click="logout"
-                >
-                  <i class="bx bx-log-out"></i> Cerrar sesión
-                </button>
               </div>
             </form>
           </div>
@@ -173,7 +166,12 @@ async function fetchUserProfile() {
 }
 
 onMounted(() => {
-  fetchUserProfile();
+   const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    if (firebaseUser) {
+      fetchUserProfile();
+    }
+    unsubscribe(); 
+  });
 });
 
 watch(() => route.params.uid, fetchUserProfile);
@@ -204,7 +202,7 @@ function cancelEdit() {
 }
 
 function logout() {
-  alert("Sesión cerrada (simulado)");
+  
 }
 
 function onPhotoError(e) {
