@@ -577,7 +577,8 @@ onMounted(() => {
 
 .calendar-page {
   padding: 2rem 0;
-  min-height: 100vh;
+  overflow: scroll;
+  height: 95vh;
   background: var(--background-secondary);
 }
 
