@@ -363,15 +363,31 @@ async function registerUserIfNotExists(user) {
   list-style: none;
 }
 
+.login-page {
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+
 .container {
   position: relative;
   width: 850px;
   height: 550px;
   background: #fff;
-  margin: 20px;
   border-radius: 30px;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .container h1 {
@@ -611,7 +627,9 @@ form {
 
 @media screen and (max-width: 650px) {
   .container {
-    height: calc(100vh - 40px);
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
   }
 
   .form-box {
