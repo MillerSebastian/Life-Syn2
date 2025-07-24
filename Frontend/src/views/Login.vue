@@ -31,6 +31,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -72,6 +73,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -117,67 +119,70 @@ const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
 const githubProvider = new GithubAuthProvider();
 
-// const resetEmail = ref("");
-// const modalContent = ref("");
+const resetEmail = ref("");
+const modalContent = ref("");
 
-// const sendResetEmail = async () => {
-//   if (!resetEmail.value) {
-//     alertError("Por favor, ingresa tu correo.");
-//     return;
-//   }
-//   try {
-//     await sendPasswordResetEmail(auth, resetEmail.value);
-//     alertSuccess("Correo de recuperación enviado.");
-//     showModal.value = false;
-//     resetEmail.value = "";
-//   } catch (error) {
-//     console.error("Error al enviar el correo:", error);
-//     alertError("Hubo un error. Verifica el correo o intenta más tarde.");
-//   }
-// };
+// Hacerlo accesible al template
+defineExpose({ modalContent });
 
-// const openForgotModal = () => {
-//   console.log('Abriendo modal de recuperación');
-//   modalContent.value = `
-//     <div style="z-index:9999999; background:rgba(0,0,0,0.8); position:fixed; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center;">
-//       <div style="background:#fff; border:5px solid #f00; color:#000; z-index:10000001; padding:2rem; border-radius:10px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.3); text-align:center;">
-//         <h3>Recuperar contraseña</h3>
-//         <div style='color:red; font-weight:bold;'></div>
-//         <div style='margin-top:1rem; margin-bottom:0.5rem;'>
-//           <input id='resetEmailInput' type='email' placeholder='Correo electrónico' autocomplete='email' style='border: 4px solid green; background: #fff200; color: #222; font-size:22px; padding:20px; width:100%;' />
-//         </div>
-//         <div style='margin-top:1rem; display:flex; justify-content:space-around;'>
-//           <button id='enviarBtn' style='background:#00c853; color:#fff; font-size:20px; border:3px solid #222; padding:8px 16px;'>Enviar</button>
-//           <button id='cancelarBtn' style='background:#d50000; color:#fff; font-size:20px; border:3px solid #222; padding:8px 16px;'>Cancelar</button>
-//         </div>
-//       </div>
-//     </div>
-//   `;
-//   setTimeout(() => {
-//     document.getElementById('cancelarBtn').onclick = () => {
-//       modalContent.value = "";
-//     };
-//     document.getElementById('enviarBtn').onclick = () => {
-//       const email = document.getElementById('resetEmailInput').value;
-//       sendResetEmailDirect(email);
-//     };
-//   }, 0);
-// };
+const sendResetEmail = async () => {
+  if (!resetEmail.value) {
+    alertError("Por favor, ingresa tu correo.");
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, resetEmail.value);
+    alertSuccess("Correo de recuperación enviado.");
+    showModal.value = false;
+    resetEmail.value = "";
+  } catch (error) {
+    console.error("Error al enviar el correo:", error);
+    alertError("Hubo un error. Verifica el correo o intenta más tarde.");
+  }
+};
 
-// const sendResetEmailDirect = async (email) => {
-//   if (!email) {
-//     alertError("Por favor, ingresa tu correo.");
-//     return;
-//   }
-//   try {
-//     await sendPasswordResetEmail(auth, email);
-//     alertSuccess("Correo de recuperación enviado.");
-//     modalContent.value = "";
-//   } catch (error) {
-//     console.error("Error al enviar el correo:", error);
-//     alertError("Hubo un error. Verifica el correo o intenta más tarde.");
-//   }
-// };
+const openForgotModal = () => {
+  console.log('Abriendo modal de recuperación');
+  modalContent.value = `
+    <div style="z-index:9999999; background:rgba(0,0,0,0.8); position:fixed; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#fff; border:5px solid #f00; color:#000; z-index:10000001; padding:2rem; border-radius:10px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.3); text-align:center;">
+        <h3>Recuperar contraseña</h3>
+        <div style='color:red; font-weight:bold;'></div>
+        <div style='margin-top:1rem; margin-bottom:0.5rem;'>
+          <input id='resetEmailInput' type='email' placeholder='Correo electrónico' autocomplete='email' style='border: 4px solid green; background: #fff200; color: #222; font-size:22px; padding:20px; width:100%;' />
+        </div>
+        <div style='margin-top:1rem; display:flex; justify-content:space-around;'>
+          <button id='enviarBtn' style='background:#00c853; color:#fff; font-size:20px; border:3px solid #222; padding:8px 16px;'>Enviar</button>
+          <button id='cancelarBtn' style='background:#d50000; color:#fff; font-size:20px; border:3px solid #222; padding:8px 16px;'>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  setTimeout(() => {
+    document.getElementById('cancelarBtn').onclick = () => {
+      modalContent.value = "";
+    };
+    document.getElementById('enviarBtn').onclick = () => {
+      const email = document.getElementById('resetEmailInput').value;
+      sendResetEmailDirect(email);
+    };
+  }, 0);
+};
+
+const sendResetEmailDirect = async (email) => {
+  if (!email) {
+    alertError("Por favor, ingresa tu correo.");
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alertSuccess("Correo de recuperación enviado.");
+    modalContent.value = "";
+  } catch (error) {
+    console.error("Error al enviar el correo:", error);
+    alertError("Hubo un error. Verifica el correo o intenta más tarde.");
+  }
+};
 
 const router = useRouter();
 const container = ref(null);
