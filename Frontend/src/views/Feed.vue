@@ -1,132 +1,76 @@
 <template>
-  <div class="feed-page feed-full">
-    <NavbarFeed @go-back="goBackToApp" :user="user" />
-    <div class="feed-header">
-      <form class="new-post-form" @submit.prevent="addPost">
-        <div class="new-post-top">
-          <img class="avatar" :src="user.avatar" alt="avatar" />
-          <textarea v-model="newPostContent" placeholder="¿Qué quieres compartir?" rows="3" required></textarea>
-        </div>
-        <div class="new-post-actions">
-          <label class="image-upload-btn">
-            <input type="file" accept="image/*" @change="onImageChange" style="display:none" />
-            <i class="bx bx-image"></i> Imagen
-          </label>
-          <div v-if="newPostImageUrl" class="image-preview">
-            <img :src="newPostImageUrl" alt="preview" />
-            <button type="button" class="remove-img-btn" @click="newPostImage = null; newPostImageUrl = ''">&times;</button>
+  <div class="feed-layout">
+    <SidebarFeed
+      :user="user"
+      :isSidebarCollapsed="isSidebarCollapsed"
+      :activeSection="activeSection"
+      @toggle-sidebar="toggleSidebar"
+      @update:activeSection="val => activeSection = val"
+    />
+    <!--
+    <div class="feed-main">
+      <NavbarFeed @go-back="goBackToApp" :user="user" />
+      <div class="feed-header">
+        <form class="new-post-form" @submit.prevent="addPost">
+          <div class="new-post-top">
+            <img class="avatar" :src="user.avatar" alt="avatar" />
+            <textarea v-model="newPostContent" placeholder="¿Qué quieres compartir?" rows="3" required></textarea>
           </div>
-          <button class="btn btn-primary" type="submit">Publicar</button>
-        </div>
-      </form>
-    </div>
-    <transition-group name="fade-list" tag="div" class="feed-list">
-      <div v-for="post in posts" :key="post.id" class="feed-post">
-        <div class="post-header">
-          <img class="avatar" :src="post.user.avatar" alt="avatar" />
-          <div class="post-user-info">
-            <span class="post-user">{{ post.user.name }}</span>
-            <span class="post-date">{{ post.date || '' }}</span>
-          </div>
-          <div v-if="post.user.uid === user.uid" class="post-actions-right">
-            <button class="btn-icon" @click="startEditPost(post)"><i class="bx bx-edit"></i></button>
-            <button class="btn-icon" @click="deletePost(post.id)"><i class="bx bx-trash"></i></button>
-          </div>
-        </div>
-        <div class="post-content" @click="openModal(post)">
-          <template v-if="editingPostId === post.id">
-            <textarea v-model="editPostContent" rows="3" class="edit-textarea"></textarea>
-            <div class="edit-actions">
-              <button class="btn btn-primary" @click.stop="saveEditPost(post)">Guardar</button>
-              <button class="btn btn-accent" @click.stop="cancelEditPost">Cancelar</button>
+          <div class="new-post-actions">
+            <label class="image-upload-btn">
+              <input type="file" accept="image/*" @change="onImageChange" style="display:none" />
+              <i class="bx bx-image"></i> Imagen
+            </label>
+            <div v-if="newPostImageUrl" class="image-preview">
+              <img :src="newPostImageUrl" alt="preview" />
+              <button type="button" class="remove-img-btn" @click="newPostImage = null; newPostImageUrl = ''">&times;</button>
             </div>
-          </template>
-          <template v-else>
-            <p>{{ post.content }}</p>
-            <img v-if="post.image" :src="post.image" class="post-img" alt="imagen de publicación" />
-          </template>
-        </div>
-        <div class="post-actions">
-          <button v-for="reaction in reactions" :key="reaction.type" class="reaction-btn"
-            :class="{ selected: post.userReaction === reaction.type, bounce: bounceReactionId === post.id + '-' + reaction.type }"
-            @click="reactWithBounce(post.id, reaction.type)">
-            <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
-            <span v-if="post.reactions[reaction.type]">{{ post.reactions[reaction.type] }}</span>
-          </button>
-        </div>
-        <transition-group name="fade-list" tag="div" class="post-comments">
-          <div v-for="comment in post.comments" :key="comment.id" class="comment">
-            <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" />
-            <div class="comment-body">
-              <template v-if="editingCommentId === comment.id">
-                <input v-model="editCommentContent" class="edit-comment-input" />
-                <div class="edit-actions">
-                  <button class="btn btn-primary" @click.stop="saveEditComment(post, comment)">Guardar</button>
-                  <button class="btn btn-accent" @click.stop="cancelEditComment">Cancelar</button>
-                </div>
-              </template>
-              <template v-else>
-                <span class="comment-user">{{ comment.user }}</span>
-                <span class="comment-text">{{ comment.text }}</span>
-                <span v-if="comment.uid === user.uid" class="comment-actions">
-                  <button class="btn-icon" @click.stop="startEditComment(comment)"><i class="bx bx-edit"></i></button>
-                  <button class="btn-icon" @click.stop="deleteComment(post, comment)"><i class="bx bx-trash"></i></button>
-                </span>
-              </template>
-            </div>
+            <button class="btn btn-primary" type="submit">Publicar</button>
           </div>
-        </transition-group>
-        <form class="add-comment-form" @submit.prevent="addComment(post.id)">
-          <input v-model="commentInputs[post.id]" placeholder="Agrega un comentario..." />
-          <button type="submit" class="btn btn-accent">Comentar</button>
         </form>
       </div>
-    </transition-group>
-    <!-- Modal -->
-    <transition name="fade-modal">
-      <div v-if="modalPost" class="modal-feed" @click.self="closeModal">
-        <div class="modal-feed-content">
-          <button class="modal-close" @click="closeModal">&times;</button>
+      <transition-group name="fade-list" tag="div" class="feed-list">
+        <div v-for="post in posts" :key="post.id" class="feed-post">
           <div class="post-header">
-            <img class="avatar" :src="modalPost.user.avatar" alt="avatar" />
+            <img class="avatar" :src="post.user.avatar" alt="avatar" />
             <div class="post-user-info">
-              <span class="post-user">{{ modalPost.user.name }}</span>
-              <span class="post-date">{{ modalPost.date || '' }}</span>
+              <span class="post-user">{{ post.user.name }}</span>
+              <span class="post-date">{{ post.date || '' }}</span>
             </div>
-            <div v-if="modalPost.user.uid === user.uid" class="post-actions-right">
-              <button class="btn-icon" @click="startEditPost(modalPost, true)"><i class="bx bx-edit"></i></button>
-              <button class="btn-icon" @click="deletePost(modalPost.id, true)"><i class="bx bx-trash"></i></button>
+            <div v-if="post.user.uid === user.uid" class="post-actions-right">
+              <button class="btn-icon" @click="startEditPost(post)"><i class="bx bx-edit"></i></button>
+              <button class="btn-icon" @click="deletePost(post.id)"><i class="bx bx-trash"></i></button>
             </div>
           </div>
-          <div class="post-content">
-            <template v-if="editingPostId === modalPost.id">
+          <div class="post-content" @click="openModal(post)">
+            <template v-if="editingPostId === post.id">
               <textarea v-model="editPostContent" rows="3" class="edit-textarea"></textarea>
               <div class="edit-actions">
-                <button class="btn btn-primary" @click.stop="saveEditPost(modalPost, true)">Guardar</button>
+                <button class="btn btn-primary" @click.stop="saveEditPost(post)">Guardar</button>
                 <button class="btn btn-accent" @click.stop="cancelEditPost">Cancelar</button>
               </div>
             </template>
             <template v-else>
-              <p>{{ modalPost.content }}</p>
-              <img v-if="modalPost.image" :src="modalPost.image" class="post-img" alt="imagen de publicación" />
+              <p>{{ post.content }}</p>
+              <img v-if="post.image" :src="post.image" class="post-img" alt="imagen de publicación" />
             </template>
           </div>
           <div class="post-actions">
             <button v-for="reaction in reactions" :key="reaction.type" class="reaction-btn"
-              :class="{ selected: modalPost.userReaction === reaction.type, bounce: bounceReactionId === modalPost.id + '-' + reaction.type }"
-              @click="reactWithBounce(modalPost.id, reaction.type, true)">
+              :class="{ selected: post.userReaction === reaction.type, bounce: bounceReactionId === post.id + '-' + reaction.type }"
+              @click="reactWithBounce(post.id, reaction.type)">
               <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
-              <span v-if="modalPost.reactions[reaction.type]">{{ modalPost.reactions[reaction.type] }}</span>
+              <span v-if="post.reactions[reaction.type]">{{ post.reactions[reaction.type] }}</span>
             </button>
           </div>
           <transition-group name="fade-list" tag="div" class="post-comments">
-            <div v-for="comment in modalPost.comments" :key="comment.id" class="comment">
+            <div v-for="comment in post.comments" :key="comment.id" class="comment">
               <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" />
               <div class="comment-body">
                 <template v-if="editingCommentId === comment.id">
                   <input v-model="editCommentContent" class="edit-comment-input" />
                   <div class="edit-actions">
-                    <button class="btn btn-primary" @click.stop="saveEditComment(modalPost, comment, true)">Guardar</button>
+                    <button class="btn btn-primary" @click.stop="saveEditComment(post, comment)">Guardar</button>
                     <button class="btn btn-accent" @click.stop="cancelEditComment">Cancelar</button>
                   </div>
                 </template>
@@ -135,25 +79,95 @@
                   <span class="comment-text">{{ comment.text }}</span>
                   <span v-if="comment.uid === user.uid" class="comment-actions">
                     <button class="btn-icon" @click.stop="startEditComment(comment)"><i class="bx bx-edit"></i></button>
-                    <button class="btn-icon" @click.stop="deleteComment(modalPost, comment, true)"><i class="bx bx-trash"></i></button>
+                    <button class="btn-icon" @click.stop="deleteComment(post, comment)"><i class="bx bx-trash"></i></button>
                   </span>
                 </template>
               </div>
             </div>
           </transition-group>
-          <form class="add-comment-form" @submit.prevent="addComment(modalPost.id, true)">
-            <input v-model="commentInputs[modalPost.id]" placeholder="Agrega un comentario..." />
+          <form class="add-comment-form" @submit.prevent="addComment(post.id)">
+            <input v-model="commentInputs[post.id]" placeholder="Agrega un comentario..." />
             <button type="submit" class="btn btn-accent">Comentar</button>
           </form>
         </div>
-      </div>
-    </transition>
+      </transition-group>
+      <transition name="fade-modal">
+        <div v-if="modalPost" class="modal-feed" @click.self="closeModal">
+          <div class="modal-feed-content">
+            <button class="modal-close" @click="closeModal">&times;</button>
+            <div class="post-header">
+              <img class="avatar" :src="modalPost.user.avatar" alt="avatar" />
+              <div class="post-user-info">
+                <span class="post-user">{{ modalPost.user.name }}</span>
+                <span class="post-date">{{ modalPost.date || '' }}</span>
+              </div>
+              <div v-if="modalPost.user.uid === user.uid" class="post-actions-right">
+                <button class="btn-icon" @click="startEditPost(modalPost, true)"><i class="bx bx-edit"></i></button>
+                <button class="btn-icon" @click="deletePost(modalPost.id, true)"><i class="bx bx-trash"></i></button>
+              </div>
+            </div>
+            <div class="post-content">
+              <template v-if="editingPostId === modalPost.id">
+                <textarea v-model="editPostContent" rows="3" class="edit-textarea"></textarea>
+                <div class="edit-actions">
+                  <button class="btn btn-primary" @click.stop="saveEditPost(modalPost, true)">Guardar</button>
+                  <button class="btn btn-accent" @click.stop="cancelEditPost">Cancelar</button>
+                </div>
+              </template>
+              <template v-else>
+                <p>{{ modalPost.content }}</p>
+                <img v-if="modalPost.image" :src="modalPost.image" class="post-img" alt="imagen de publicación" />
+              </template>
+            </div>
+            <div class="post-actions">
+              <button v-for="reaction in reactions" :key="reaction.type" class="reaction-btn"
+                :class="{ selected: modalPost.userReaction === reaction.type, bounce: bounceReactionId === modalPost.id + '-' + reaction.type }"
+                @click="reactWithBounce(modalPost.id, reaction.type, true)">
+                <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
+                <span v-if="modalPost.reactions[reaction.type]">{{ modalPost.reactions[reaction.type] }}</span>
+              </button>
+            </div>
+            <transition-group name="fade-list" tag="div" class="post-comments">
+              <div v-for="comment in modalPost.comments" :key="comment.id" class="comment">
+                <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" />
+                <div class="comment-body">
+                  <template v-if="editingCommentId === comment.id">
+                    <input v-model="editCommentContent" class="edit-comment-input" />
+                    <div class="edit-actions">
+                      <button class="btn btn-primary" @click.stop="saveEditComment(modalPost, comment, true)">Guardar</button>
+                      <button class="btn btn-accent" @click.stop="cancelEditComment">Cancelar</button>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="comment-user">{{ comment.user }}</span>
+                    <span class="comment-text">{{ comment.text }}</span>
+                    <span v-if="comment.uid === user.uid" class="comment-actions">
+                      <button class="btn-icon" @click.stop="startEditComment(comment)"><i class="bx bx-edit"></i></button>
+                      <button class="btn-icon" @click.stop="deleteComment(modalPost, comment, true)"><i class="bx bx-trash"></i></button>
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </transition-group>
+            <form class="add-comment-form" @submit.prevent="addComment(modalPost.id, true)">
+              <input v-model="commentInputs[modalPost.id]" placeholder="Agrega un comentario..." />
+              <button type="submit" class="btn btn-accent">Comentar</button>
+            </form>
+          </div>
+        </div>
+      </transition>
+    </div>
+  -->
+
+
+
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue';
 import NavbarFeed from '../components/NavbarFeed.vue';
+import SidebarFeed from '../components/SidebarFeed.vue';
 import { useRouter } from 'vue-router';
 import { auth, db, storage } from '../../firebase';
 import {
@@ -185,6 +199,11 @@ const editPostContent = ref('');
 const editingCommentId = ref(null);
 const editCommentContent = ref('');
 const bounceReactionId = ref('');
+const isSidebarCollapsed = ref(false);
+const activeSection = ref('feed');
+function toggleSidebar() {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+}
 
 const reactions = [
   { type: 'like', emoji: '👍', label: 'Me gusta' },
@@ -450,6 +469,31 @@ export default {
 </script>
 
 <style scoped>
+html, body {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+.feed-layout {
+  height: 92vh;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+}
+.feed-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 92vh;
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
+  box-shadow: none;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 88px 40px 40px 40px;
+  margin: 0;
+  overflow: hidden !important;
+}
 .feed-full {
   min-height: 100vh;
   width: 100vw;
@@ -829,6 +873,72 @@ export default {
   font-size: 1rem !important;
   min-width: 220px !important;
   padding: 1rem 2.5rem 1rem 1rem !important;
+}
+#theme-dark .feed-layout {
+  background: linear-gradient(135deg, #181A20 0%, #23262F 100%) !important;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+#theme-dark .feed-main {
+  background: linear-gradient(135deg, #23262F 0%, #181A20 100%) !important;
+  border-radius: 20px 0 0 20px;
+  color: #F1F1F1;
+  box-shadow: none;
+  padding: 88px 40px 40px 40px;
+  overflow: hidden !important;
+}
+/* === INPUTS Y BOTONES ESTILO IACHAT === */
+.new-post-form textarea,
+.add-comment-form input {
+  background: rgba(255,255,255,0.1);
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 15px 25px;
+  color: #23262F;
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+.new-post-form textarea::placeholder,
+.add-comment-form input::placeholder {
+  color: rgba(99,102,241,0.5);
+}
+.new-post-actions .btn,
+.add-comment-form .btn {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+.new-post-actions .btn:hover,
+.add-comment-form .btn:hover {
+  transform: scale(1.1);
+}
+#theme-dark .new-post-form textarea,
+#theme-dark .add-comment-form input {
+  background: rgba(79, 140, 255, 0.08) !important;
+  color: #F1F1F1 !important;
+  border: 1px solid #26334d !important;
+}
+#theme-dark .new-post-form textarea::placeholder,
+#theme-dark .add-comment-form input::placeholder {
+  color: #85C1E9 !important;
+}
+#theme-dark .new-post-actions .btn,
+#theme-dark .add-comment-form .btn {
+  background: linear-gradient(45deg, #4F8CFF, #06d6a0) !important;
+  color: #181A20 !important;
+}
+#theme-dark .new-post-actions .btn:hover,
+#theme-dark .add-comment-form .btn:hover {
+  background: linear-gradient(45deg, #06d6a0, #4F8CFF) !important;
+  color: #fff !important;
 }
 @media (max-width: 600px) {
   .feed-header, .feed-list, .modal-feed-content {
