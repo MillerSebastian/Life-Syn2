@@ -3,7 +3,7 @@
     <!-- Sidebar de chats -->
     <aside class="chat-sidebar" :class="{ collapsed: isSidebarCollapsed }">
       <div class="sidebar-header">
-        <h2 v-if="!isSidebarCollapsed">Chat IA</h2>
+        <h1 v-if="!isSidebarCollapsed">Lisy</h1>
         <span v-else>IA</span>
         <button class="toggle-btn" @click="toggleSidebar">
           <i
@@ -32,7 +32,11 @@
       <!-- Perfil de usuario -->
       <div class="user-profile">
         <div class="avatar">
-          <img :src="userPhotoURL" alt="avatar" />
+          <img
+            :src="userPhotoURL"
+            :alt="`Foto de ${userName}`"
+            @error="onPhotoError"
+          />
         </div>
         <div class="user-info">
           <div class="user-name">{{ userName }}</div>
@@ -102,12 +106,14 @@ import {
   deleteDoc,
   query as fsQuery,
   orderBy,
+  getDoc,
 } from "firebase/firestore";
 
 // Estado del sidebar
 const isSidebarCollapsed = ref(false);
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
+  // No modificar el scroll global aquí
 };
 
 // Estado de chats (dummy, luego conectar a Firestore)
@@ -172,7 +178,7 @@ const callDeepSeek = async (userMessage) => {
             role: "system",
             content: `Eres un asistente para gestión de tareas. Según la instrucción del usuario, responde SIEMPRE en formato JSON así:\n\nPara crear una tarea:\n{\n  \"intencion\": \"crear_tarea\",\n  \"title\": \"...\",\n  \"description\": \"...\",\n  \"dueDate\": \"...\",\n  \"priority\": \"baja|media|alta\"\n}\n\nPara editar una tarea (incluye cambio de estado o cualquier campo):\n{\n  \"intencion\": \"editar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\",\n  \"status\": \"todo|progress|completed\", // si el usuario lo pide\n  \"priority\": \"...\", // si el usuario lo pide\n  \"description\": \"...\", // si el usuario lo pide\n  \"dueDate\": \"...\" // si el usuario lo pide\n}\n\nPara eliminar una tarea:\n{\n  \"intencion\": \"eliminar_tarea\",\n  \"title\": \"nombre o parte del nombre de la tarea\"\n}\n\nNo uses sinónimos en los nombres de los campos ni en la intención. Si el usuario solo quiere cambiar el estado, responde como editar_tarea con el campo status.
             // 
-            // Eres un asistente virtual amigable y útil. Responde de manera natural, conversacional y clara a las preguntas o instrucciones del usuario. Puedes ayudar con tareas, responder dudas y conversar libremente. No es necesario responder en formato JSON ni seguir una estructura rígida toma en cuenta. `,
+            // Eres un asistente llamda Lisy virtual amigable y útil. Responde de manera natural, conversacional y clara a las preguntas o instrucciones del usuario. Puedes ayudar con tareas, responder dudas y conversar libremente. No es necesario responder en formato JSON ni seguir una estructura rígida toma en cuenta. `,
           },
           { role: "user", content: userMessage },
         ],
@@ -681,19 +687,29 @@ const sendMessage = async () => {
   scrollToBottom();
 };
 
-const user = computed(() => auth.currentUser || {});
-const userName = computed(() => user.value.displayName || "Usuario");
-const userEmail = computed(() => user.value.email || "correo@ejemplo.com");
-const userPhotoURL = computed(() => {
-  if (user.value.photoURL) return user.value.photoURL;
-  // Si no hay foto, usar el API de avatars con el nombre
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    userName.value
-  )}&size=128&background=6b46c1&color=fff`;
+// --- Lógica de usuario igual que TopNavBar.vue/Profile.vue ---
+const user = reactive({
+  name: "",
+  email: "",
+  photo: "",
 });
 
-// Bloquear scroll global solo en la vista de chat
+async function fetchUserProfile() {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+  const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+  if (userDoc.exists()) {
+    const data = userDoc.data();
+    user.name = data.name || "";
+    user.email = data.email || "";
+    user.photo = data.photo || "";
+  }
+}
+
+let observer = null;
+
 onMounted(() => {
+  fetchUserProfile();
   const cargarMensajes = async () => {
     const userId = auth.currentUser?.uid || localStorage.getItem("uid");
     if (!userId) return;
@@ -712,7 +728,42 @@ onMounted(() => {
   cargarMensajes();
   const main = document.querySelector(".main-content");
   if (main) main.classList.add("no-scroll-main");
+
+  // Observa cambios en el atributo class de main-content
+  observer = new MutationObserver(() => {
+    const main = document.querySelector(".main-content");
+    if (main && !main.classList.contains("no-scroll-main")) {
+      main.classList.add("no-scroll-main");
+    }
+  });
+  if (main) {
+    observer.observe(main, { attributes: true, attributeFilter: ["class"] });
+  }
 });
+
+onUnmounted(() => {
+  const main = document.querySelector(".main-content");
+  if (main) main.classList.remove("no-scroll-main");
+  if (observer) observer.disconnect();
+});
+
+function onPhotoError(e) {
+  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    user.name || "U"
+  )}&size=128&background=6b46c1&color=fff`;
+}
+
+const userName = computed(() => user.name || "Usuario");
+const userEmail = computed(() => user.email || "correo@ejemplo.com");
+const userPhotoURL = computed(() =>
+  user.photo
+    ? user.photo
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user.name || "U"
+      )}&size=128&background=6b46c1&color=fff`
+);
+
+// Bloquear scroll global solo en la vista de chat
 onUnmounted(() => {
   const main = document.querySelector(".main-content");
   if (main) main.classList.remove("no-scroll-main");

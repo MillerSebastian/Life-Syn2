@@ -52,8 +52,8 @@ const router = createRouter({
           component: () => import("../views/Profile.vue"),
         },
         {
-          path: "chatIA",
-          name: "chatIA",
+          path: "Lisy_IA",
+          name: "Lisy_IA",
           component: () => import("../views/IAchat.vue"),
         },
       ],
