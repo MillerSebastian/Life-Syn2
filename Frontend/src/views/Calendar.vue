@@ -645,6 +645,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  overflow: visible;
 }
 
 .calendar-day:hover {
@@ -668,6 +669,15 @@ onMounted(() => {
 .day-number {
   font-weight: 600;
   margin-bottom: 0.5rem;
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 2;
+  background: rgba(255,255,255,0.85);
+  padding: 0 6px;
+  border-radius: 6px;
+  pointer-events: none;
+  color: #222 !important;
 }
 
 .day-events {
@@ -1199,7 +1209,7 @@ onMounted(() => {
 
 /* --- CSS para la lista de eventos en la vista mensual --- */
 .month-event-list {
-  margin-top: 0.25em;
+  margin-top: 1.5em;
   display: flex;
   flex-direction: column;
   gap: 2px;
