@@ -89,9 +89,10 @@
                 </div>
               </div>
               <div class="month-event-list">
-                <div v-for="event in date.events.slice(0, 3)" :key="event.id" class="month-event-item">
-                  <span class="month-event-time">{{ event.time }}</span>
+                <div v-for="event in date.events.slice(0, 3)" :key="event.id" class="month-event-item" @click.stop="editEvent(event)">
+                  <span class="month-event-dot" :class="'type-' + event.type"></span>
                   <span class="month-event-title">{{ event.title }}</span>
+                  <span class="month-event-time">{{ event.time }}</span>
                 </div>
               </div>
             </div>
@@ -116,10 +117,9 @@
             <div class="week-events">
               <div v-for="day in weekDays" :key="day" class="day-events-column">
                 <div v-for="hour in 24" :key="hour" class="week-hour-slot">
-                  <div v-for="event in getDayEvents(day).filter(e => parseInt(e.time.split(':')[0]) === hour)" :key="event.id" class="week-event" :class="'type-' + event.type">
+                  <div v-for="event in getDayEvents(day).filter(e => parseInt(e.time.split(':')[0]) === hour)" :key="event.id" class="week-event" :class="'type-' + event.type" @click.stop="editEvent(event)">
                     <div class="event-time">{{ event.time }}</div>
                     <div class="event-title">{{ event.title }}</div>
-                    <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
                   </div>
                 </div>
               </div>
@@ -133,13 +133,12 @@
             <div v-for="hour in 24" :key="hour" class="timeline-hour">
               <div class="hour-label">{{ formatHour(hour) }}</div>
               <div class="hour-events">
-                <div v-for="event in getHourEvents(hour)" :key="event.id" class="timeline-event" :class="'type-' + event.type">
+                <div v-for="event in getHourEvents(hour)" :key="event.id" class="timeline-event" :class="'type-' + event.type" @click.stop="editEvent(event)">
                   <div class="event-time">{{ event.time }}</div>
                   <div class="event-content">
                     <div class="event-title">{{ event.title }}</div>
                     <div class="event-description">{{ event.description }}</div>
                   </div>
-                  <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
                 </div>
               </div>
             </div>
@@ -270,6 +269,9 @@
           <button class="btn btn-primary" @click="saveEvent">Guardar</button>
           <button class="button is-danger has-text-white-bis" @click="showAddEventModal = false">
             Cancelar
+          </button>
+          <button v-if="editingEvent" class="btn btn-mint" @click="deleteEvent(editingEvent.id); showAddEventModal = false">
+            Eliminar
           </button>
         </footer>
       </div>
@@ -682,22 +684,30 @@ onMounted(() => {
 
 .day-events {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   gap: 0.25rem;
+  z-index: 3;
 }
-
 .event-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--primary);
+  margin: 0;
+  display: block;
 }
 
 .event-dot.type-trabajo {
   background: #6366f1;
 }
 .event-dot.type-personal {
-  background: #06d6a0;
+  background: transparent;
 }
 .event-dot.type-salud {
   background: #ef4444;
@@ -1227,14 +1237,38 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  justify-content: flex-start;
 }
-.month-event-time {
-  font-weight: 600;
-  color: #6366f1;
+.month-event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.4em;
+  display: inline-block;
+  flex-shrink: 0;
 }
 .month-event-title {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.month-event-time {
+  font-weight: 600;
+  color: #6366f1;
+  margin-right: 0.25em;
+  display: flex;
+  align-items: center;
+}
+.month-event-dot.type-personal {
+  background: #ff9800;
+}
+.btn-mint {
+  background: #06d6a0 !important;
+  color: #fff !important;
+  border: none;
+  transition: background 0.2s;
+}
+.btn-mint:hover {
+  background: #05997e !important;
 }
 </style>
