@@ -31,6 +31,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -72,6 +73,7 @@
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
             <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -119,6 +121,11 @@ const githubProvider = new GithubAuthProvider();
 
 const resetEmail = ref("");
 const modalContent = ref("");
+
+
+// Hacerlo accesible al template
+defineExpose({ modalContent });
+
 
 const sendResetEmail = async () => {
   if (!resetEmail.value) {
