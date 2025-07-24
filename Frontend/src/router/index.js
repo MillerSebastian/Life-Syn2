@@ -47,6 +47,11 @@ const router = createRouter({
           component: () => import("../views/Meals.vue"),
         },
         {
+          path: "feed",
+          name: "feed",
+          component: () => import("../views/Feed.vue"),
+        },
+        {
           path: "profile",
           name: "profile",
           component: () => import("../views/Profile.vue"),
