@@ -31,6 +31,7 @@
                 </div>
               </div>
               <h2 class="title is-3 mb-1">{{ user.name }}</h2>
+              <button v-if="!isOwnProfile" class="button is-success mt-2" @click="addFriend">Agregar como amigo</button>
             </div>
 
             <!-- Datos básicos -->
@@ -126,48 +127,59 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
+import { useRoute } from 'vue-router';
 import { auth, db } from "../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import Swal from 'sweetalert2';
 
+const route = useRoute();
 const user = reactive({
   name: "",
   email: "",
   bio: "",
   photo: "",
+  uid: ""
 });
-
 const form = reactive({
   name: "",
   email: "",
   bio: "",
   photo: "",
 });
-
 const editing = ref(false);
+const isOwnProfile = ref(true);
+const currentUserUid = ref("");
 
 async function fetchUserProfile() {
-  const currentUser = auth.currentUser;
-  if (!currentUser) return;
-  const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+  const uid = route.params.uid || auth.currentUser?.uid;
+  if (!uid) return;
+  currentUserUid.value = auth.currentUser?.uid;
+  isOwnProfile.value = uid === currentUserUid.value;
+  const userDoc = await getDoc(doc(db, "users", uid));
   if (userDoc.exists()) {
     const data = userDoc.data();
     user.name = data.name || "";
     user.email = data.email || "";
     user.bio = data.bio || "";
     user.photo = data.photo || "";
+    user.uid = uid;
     form.name = user.name;
     form.email = user.email;
     form.bio = user.bio;
     form.photo = user.photo;
   }
+  editing.value = false;
 }
 
 onMounted(() => {
   fetchUserProfile();
 });
 
+watch(() => route.params.uid, fetchUserProfile);
+
 async function saveProfile() {
+  if (!isOwnProfile.value) return;
   const currentUser = auth.currentUser;
   if (!currentUser) return;
   await updateDoc(doc(db, "users", currentUser.uid), {
@@ -206,10 +218,18 @@ function onPhotoUrlInput() {
 }
 
 function onNameInput() {
-  // Si el usuario borra la foto personalizada, el avatar se actualizará con el nombre
   if (!form.photo) {
     user.photo = "";
   }
+}
+
+function addFriend() {
+  Swal.fire({
+    icon: 'success',
+    title: 'Solicitud enviada con satisfacción',
+    showConfirmButton: false,
+    timer: 2000
+  });
 }
 </script>
 

@@ -7,32 +7,65 @@
       @toggle-sidebar="toggleSidebar"
       @update:activeSection="val => activeSection = val"
     />
-    <!--
     <div class="feed-main">
-      <NavbarFeed @go-back="goBackToApp" :user="user" />
       <div class="feed-header">
-        <form class="new-post-form" @submit.prevent="addPost">
-          <div class="new-post-top">
-            <img class="avatar" :src="user.avatar" alt="avatar" />
-            <textarea v-model="newPostContent" placeholder="¿Qué quieres compartir?" rows="3" required></textarea>
-          </div>
-          <div class="new-post-actions">
-            <label class="image-upload-btn">
-              <input type="file" accept="image/*" @change="onImageChange" style="display:none" />
-              <i class="bx bx-image"></i> Imagen
-            </label>
-            <div v-if="newPostImageUrl" class="image-preview">
-              <img :src="newPostImageUrl" alt="preview" />
-              <button type="button" class="remove-img-btn" @click="newPostImage = null; newPostImageUrl = ''">&times;</button>
-            </div>
-            <button class="btn btn-primary" type="submit">Publicar</button>
-          </div>
-        </form>
+        <button class="btn btn-primary" @click="showPostModal = true">Crear publicación</button>
       </div>
+      <transition name="fade-modal">
+        <div v-if="userProfileUid" class="modal-feed" @click.self="closeUserProfileModal">
+          <div class="modal-feed-content">
+            <UserProfile :uid="userProfileUid" @close="closeUserProfileModal" />
+          </div>
+        </div>
+      </transition>
+      <transition name="fade-modal">
+        <div v-if="showPostModal" class="modal is-active">
+          <div class="modal-background" @click="closePostModal"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">Nueva publicación</p>
+              <button class="delete" @click="closePostModal"></button>
+            </header>
+            <section class="modal-card-body">
+              <form @submit.prevent="addPost">
+                <div class="field">
+                  <label class="label">Título</label>
+                  <div class="control">
+                    <input v-model="newPostTitle" class="input" placeholder="Título" required />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Mensaje</label>
+                  <div class="control">
+                    <textarea v-model="newPostContent" class="textarea" placeholder="¿Qué quieres compartir?" rows="3" required></textarea>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">URL de imagen (opcional)</label>
+                  <div class="control">
+                    <input v-model="newPostImageUrl" class="input" placeholder="URL de imagen" type="url" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Visibilidad</label>
+                  <div class="control">
+                    <label class="radio"><input type="radio" value="public" v-model="newPostVisibility" /> Público</label>
+                    <label class="radio"><input type="radio" value="friends" v-model="newPostVisibility" /> Solo amigos</label>
+                  </div>
+                </div>
+                <footer class="modal-card-foot buttons">
+                  <button class="btn btn-primary" type="submit">Publicar</button>
+                  <button class="btn button is-danger has-text-white-bis" type="button" @click="closePostModal">Cancelar</button>
+                </footer>
+              </form>
+            </section>
+          </div>
+        </div>
+      </transition>
       <transition-group name="fade-list" tag="div" class="feed-list">
         <div v-for="post in posts" :key="post.id" class="feed-post">
           <div class="post-header">
-            <img class="avatar" :src="post.user.avatar" alt="avatar" />
+            <img class="avatar" :src="post.user.avatar" alt="avatar" @click="openUserProfileModal(post.user.uid)" style="cursor:pointer" />
             <div class="post-user-info">
               <span class="post-user">{{ post.user.name }}</span>
               <span class="post-date">{{ post.date || '' }}</span>
@@ -65,7 +98,7 @@
           </div>
           <transition-group name="fade-list" tag="div" class="post-comments">
             <div v-for="comment in post.comments" :key="comment.id" class="comment">
-              <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" />
+              <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" @click="goToUserProfile(comment.uid)" style="cursor:pointer" />
               <div class="comment-body">
                 <template v-if="editingCommentId === comment.id">
                   <input v-model="editCommentContent" class="edit-comment-input" />
@@ -157,7 +190,6 @@
         </div>
       </transition>
     </div>
-  -->
 
 
 
@@ -182,9 +214,11 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  getDoc,
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Swal from 'sweetalert2';
+import UserProfile from './UserProfile.vue';
 
 const router = useRouter();
 const user = ref({ name: 'Usuario', avatar: 'https://ui-avatars.com/api/?name=Usuario&background=6366f1&color=fff', uid: null });
@@ -236,18 +270,63 @@ function removeToast(id) {
   toasts.value = toasts.value.filter(t => t.id !== id);
 }
 
-onMounted(() => {
+const showPostModal = ref(false);
+const newPostTitle = ref('');
+const newPostVisibility = ref('public');
+function closePostModal() {
+  showPostModal.value = false;
+  newPostTitle.value = '';
+  newPostContent.value = '';
+  newPostImageUrl.value = '';
+  newPostVisibility.value = 'public';
+}
+
+const userProfileUid = ref(null);
+function openUserProfileModal(uid) {
+  userProfileUid.value = uid;
+}
+function closeUserProfileModal() {
+  userProfileUid.value = null;
+}
+
+onMounted(async () => {
   const currentUser = auth.currentUser;
+  let nombre = '';
+  let avatar = '';
+  let uid = '';
   if (currentUser) {
-    user.value.name = currentUser.displayName || 'Usuario';
-    user.value.avatar = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
-    user.value.uid = currentUser.uid;
+    uid = currentUser.uid;
+    nombre = currentUser.displayName || '';
+    avatar = currentUser.photoURL || '';
+    // Si no hay nombre, buscar en Firestore
+    if (!nombre) {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        nombre = data.name || '';
+        avatar = data.photo || '';
+      }
+    }
+    user.value.name = nombre || 'Usuario';
+    user.value.avatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
+    user.value.uid = uid;
   } else {
-    auth.onAuthStateChanged(u => {
+    auth.onAuthStateChanged(async u => {
       if (u) {
-        user.value.name = u.displayName || 'Usuario';
-        user.value.avatar = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
-        user.value.uid = u.uid;
+        uid = u.uid;
+        nombre = u.displayName || '';
+        avatar = u.photoURL || '';
+        if (!nombre) {
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            nombre = data.name || '';
+            avatar = data.photo || '';
+          }
+        }
+        user.value.name = nombre || 'Usuario';
+        user.value.avatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
+        user.value.uid = uid;
       }
     });
   }
@@ -257,6 +336,10 @@ onMounted(() => {
     const prevPosts = posts.value.map(p => ({ ...p }));
     posts.value = snapshot.docs.map(docSnap => {
       const data = docSnap.data();
+      // Si no hay avatar, genera uno con las iniciales del nombre
+      if (!data.user.avatar) {
+        data.user.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&background=6366f1&color=fff`;
+      }
       return {
         id: docSnap.id,
         ...data,
@@ -309,31 +392,32 @@ function onImageChange(e) {
 }
 
 async function addPost() {
-  if (!newPostContent.value.trim() && !newPostImage.value) return;
-  let imageUrl = '';
-  if (newPostImage.value) {
-    const file = newPostImage.value;
-    const storagePath = `feed_images/${user.value.uid}_${Date.now()}_${file.name}`;
-    const imgRef = storageRef(storage, storagePath);
-    await uploadBytes(imgRef, file);
-    imageUrl = await getDownloadURL(imgRef);
+  if (!user.value.name || user.value.name === 'Usuario') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Completa tu perfil',
+      text: 'Debes tener un nombre de usuario para publicar.',
+      showConfirmButton: true
+    });
+    return;
   }
+  if (!newPostTitle.value.trim() || !newPostContent.value.trim()) return;
   await addDoc(collection(db, 'feed_posts'), {
     user: {
       name: user.value.name,
       avatar: user.value.avatar,
       uid: user.value.uid,
     },
+    title: newPostTitle.value,
     content: newPostContent.value,
+    image: newPostImageUrl.value,
+    visibility: newPostVisibility.value,
     createdAt: serverTimestamp(),
     comments: [],
     reactions: {},
     userReactions: {},
-    image: imageUrl,
   });
-  newPostContent.value = '';
-  newPostImage.value = null;
-  newPostImageUrl.value = '';
+  closePostModal();
 }
 
 async function reactToPost(postId, type, isModal = false) {
@@ -452,6 +536,11 @@ function reactWithBounce(postId, type, isModal = false) {
   setTimeout(() => { bounceReactionId.value = ''; }, 500);
   reactToPost(postId, type, isModal);
 }
+
+function goToUserProfile(uid) {
+  if (!uid) return;
+  openUserProfileModal(uid);
+}
 </script>
 
 <script>
@@ -474,25 +563,26 @@ html, body {
   height: 100vh !important;
 }
 .feed-layout {
-  height: 92vh;
+  height: 100vh;
   width: 100%;
   max-width: none;
   margin: 0;
   display: flex;
+  overflow: hidden;
 }
 .feed-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 92vh;
+  height: 100vh;
   background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
   box-shadow: none;
   align-items: center;
   justify-content: flex-start;
   padding: 88px 40px 40px 40px;
   margin: 0;
-  overflow: hidden !important;
+  overflow-y: auto;
 }
 .feed-full {
   min-height: 100vh;
@@ -555,6 +645,10 @@ html, body {
   gap: 2rem;
   width: 100%;
   max-width: 600px;
+  margin: 0 auto;
+  align-items: center;
+  overflow: visible;
+  max-height: none;
 }
 .feed-post {
   background: var(--background, #fff);
@@ -696,6 +790,7 @@ html, body {
   padding: 2rem 1.5rem 1.5rem 1.5rem;
   position: relative;
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  height: 40em;
 }
 .modal-close {
   position: absolute;
@@ -876,15 +971,10 @@ html, body {
 }
 #theme-dark .feed-layout {
   background: linear-gradient(135deg, #181A20 0%, #23262F 100%) !important;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
 }
 #theme-dark .feed-main {
   background: linear-gradient(135deg, #23262F 0%, #181A20 100%) !important;
-  border-radius: 20px 0 0 20px;
   color: #F1F1F1;
-  box-shadow: none;
-  padding: 88px 40px 40px 40px;
-  overflow: hidden !important;
 }
 /* === INPUTS Y BOTONES ESTILO IACHAT === */
 .new-post-form textarea,
@@ -939,6 +1029,154 @@ html, body {
 #theme-dark .add-comment-form .btn:hover {
   background: linear-gradient(45deg, #06d6a0, #4F8CFF) !important;
   color: #fff !important;
+}
+.user-id {
+  font-size: 0.85em;
+  color: #888;
+  margin-left: 0.5em;
+}
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.modal-input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  padding: 0.75rem;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+.modal-select-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.2rem;
+  justify-content: center;
+}
+#theme-dark .modal-feed {
+  background: rgba(24, 26, 32, 0.85);
+}
+#theme-dark .modal-feed-content {
+  background: #23262F;
+  color: #F1F1F1;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(79,140,255,0.10);
+}
+#theme-dark .modal-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-input {
+  background: #181A20;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+}
+#theme-dark .modal-input::placeholder {
+  color: #85C1E9;
+  opacity: 1;
+}
+#theme-dark .modal-select-group label {
+  color: #A3C8FF;
+}
+#theme-dark .modal-close {
+  color: #A3C8FF;
+}
+#theme-dark .btn.btn-primary {
+  background: linear-gradient(45deg, #4F8CFF, #06d6a0) !important;
+  color: #181A20 !important;
+}
+#theme-dark .btn.btn-primary:hover {
+  background: linear-gradient(45deg, #06d6a0, #4F8CFF) !important;
+  color: #fff !important;
+}
+.modal {
+  display: none;
+}
+.modal.is-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2000;
+}
+.modal-background {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(24, 26, 32, 0.85);
+}
+.modal-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  max-width: 500px;
+  width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.modal-card-head {
+  background: #6366f1;
+  color: white;
+  padding: 1.2rem 1.5rem 1.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+}
+.modal-card-title {
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+.delete {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #fff;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+.modal-card-body {
+  background: #fff;
+  color: #23262F;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+}
+.modal-card-foot {
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.2rem 1.5rem;
+}
+#theme-dark .modal-card {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .modal-card-head {
+  background: #1A4D99;
+  color: #F1F1F1;
+  border-bottom: 1px solid #4F8CFF;
+}
+#theme-dark .modal-card-title {
+  color: #A3C8FF;
+}
+#theme-dark .modal-card-body {
+  background: #23262F;
+  color: #F1F1F1;
+}
+#theme-dark .modal-card-foot {
+  background: #23262F;
+  border-top: 1px solid #4F8CFF;
+}
+#theme-dark .modal-background {
+  background: rgba(24, 26, 32, 0.85) !important;
 }
 @media (max-width: 600px) {
   .feed-header, .feed-list, .modal-feed-content {

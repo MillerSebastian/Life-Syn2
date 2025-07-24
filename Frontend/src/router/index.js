@@ -18,6 +18,11 @@ const router = createRouter({
       component: () => import("../views/Login.vue"), // Si tienes una vista separada, cámbiala aquí
     },
     {
+      path: '/user/:uid',
+      name: 'user-profile',
+      component: () => import('../views/UserProfile.vue'),
+    },
+    {
       path: "/",
       component: () => import("../views/Layout.vue"),
       children: [
