@@ -65,6 +65,11 @@ const menuItems = [
     name: "chatIA",
     icon: "bx bx-chat",
   },
+  {
+    name: "Comunidad",
+    path: "/feed",
+    icon: "bx bx-group",
+  },
 ];
 
 const toggleSidebar = () => {

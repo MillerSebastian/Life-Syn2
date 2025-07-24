@@ -1382,4 +1382,68 @@ const dropNote = async (event) => {
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
 }
+
+/* ===== MODO OSCURO PARA TASK CARDS Y KANBAN ===== */
+#theme-dark .kanban-column {
+  background: #23262F;
+  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.10);
+  border: 1.5px solid #26334d;
+}
+#theme-dark .task-card {
+  background: #181A20;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 1px 6px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .task-card .task-title {
+  color: #A3C8FF;
+}
+#theme-dark .task-card .task-description,
+#theme-dark .task-card .task-meta,
+#theme-dark .task-card .progress-text {
+  color: #85C1E9;
+}
+#theme-dark .task-header {
+  border-bottom: 1px solid #26334d;
+}
+#theme-dark .task-priority-badge.priority-alta {
+  background: #4F1A1A;
+  color: #F87171;
+}
+#theme-dark .task-priority-badge.priority-media {
+  background: #4F3F1A;
+  color: #FACC15;
+}
+#theme-dark .task-priority-badge.priority-baja {
+  background: #1A4F2B;
+  color: #4ADE80;
+}
+#theme-dark .task-status-badge.status-pendiente {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1px solid #26334d;
+}
+#theme-dark .task-status-badge.status-progreso {
+  background: #1A4D99;
+  color: #A3C8FF;
+  border: 1px solid #4F8CFF;
+}
+#theme-dark .task-status-badge.status-completada {
+  background: #1A4F2B;
+  color: #4ADE80;
+  border: 1px solid #4ADE80;
+}
+#theme-dark .progress-bar {
+  background: #23262F;
+}
+#theme-dark .progress-fill {
+  background: #4F8CFF;
+}
+#theme-dark .btn-icon {
+  color: #A3C8FF;
+}
+#theme-dark .btn-icon:hover {
+  background: #23262F;
+  color: #4F8CFF;
+}
 </style>

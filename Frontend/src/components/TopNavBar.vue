@@ -398,25 +398,40 @@ function onPhotoError(e) {
   border: 1px solid var(--border);
   border-radius: 8px;
   transition: all 0.3s ease;
+  background: #fff;
+  color: #1e293b;
 }
-
-.input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+.input::placeholder {
+  color: #64748b;
+  opacity: 1;
 }
-
 .search-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--background);
+  background: #fff;
+  color: #1e293b;
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 16px var(--shadow-hover);
-  z-index: 100;
-  max-height: 300px;
-  overflow-y: auto;
+}
+
+/* DARK MODE SOLO PARA EL INPUT Y DROPDOWN DE BÚSQUEDA */
+#theme-dark .top-navbar .input {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+}
+#theme-dark .top-navbar .input::placeholder {
+  color: #85C1E9;
+  opacity: 1;
+}
+#theme-dark .top-navbar .search-dropdown {
+  background: #23262F;
+  color: #F1F1F1;
+  border: 1.5px solid #4F8CFF;
+  box-shadow: 0 4px 16px rgba(79, 140, 255, 0.10);
+}
+#theme-dark .top-navbar .search-result-item:hover {
+  background: #1A4D99;
+  color: #A3C8FF;
 }
 
 .search-result-item {
