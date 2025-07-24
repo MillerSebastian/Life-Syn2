@@ -130,7 +130,7 @@
 import { ref, reactive, onMounted, watch } from "vue";
 import { useRoute } from 'vue-router';
 import { auth, db } from "../../firebase";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import Swal from 'sweetalert2';
 
 const route = useRoute();
