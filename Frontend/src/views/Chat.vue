@@ -1,4 +1,11 @@
 <template>
+  <SidebarFeed
+    :user="user"
+    :isSidebarCollapsed="isSidebarCollapsed"
+    :activeSection="activeSection"
+    @toggle-sidebar="toggleSidebar"
+    @update:activeSection="(val) => (activeSection = val)"
+  />
   <div class="columns">
     <div class="column is-one-quarter">
       <div class="box">
@@ -12,10 +19,10 @@
         <ul v-else>
           <li
             v-for="user in filteredUsers"
-            :key="user.id"
+            :key="user.uid"
             @click="selectUser(user)"
             :class="{
-              'is-active': selectedUser && selectedUser.id === user.id,
+              'is-active': selectedUser && selectedUser.uid === user.uid,
             }"
             class="is-flex is-align-items-center is-justify-content-space-between"
           >
@@ -23,8 +30,8 @@
               <div
                 class="user-status-indicator mr-2"
                 :class="{
-                  'is-online': isUserOnline(user.id),
-                  'is-offline': !isUserOnline(user.id),
+                  'is-online': isUserOnline(user.uid),
+                  'is-offline': !isUserOnline(user.uid),
                 }"
               ></div>
               <div class="user-name">
@@ -38,24 +45,24 @@
                 title="Ver perfil"
               >
                 <span class="icon">
-                  <i class="fas fa-user"></i>
+                  <i class="bx bx-user"></i>
                 </span>
               </button>
-              <span v-if="unreadMessages[user.id]" class="notification-badge">
-                {{ unreadMessages[user.id] }}
+              <span v-if="unreadMessages[user.uid]" class="notification-badge">
+                {{ unreadMessages[user.uid] }}
               </span>
             </div>
           </li>
         </ul>
       </div>
     </div>
-    <div class="column">
+    <div class="column is-three-quarters chat-column">
       <div class="box">
         <h2 class="title is-4">
           Chat con
           <span
             v-if="selectedUser"
-            :style="{ color: getUserColor(selectedUser.id) }"
+            :style="{ color: getUserColor(selectedUser.uid) }"
           >
             {{ selectedUser.name }}
           </span>
@@ -110,17 +117,17 @@
                     v-html="formatMessageWithEmojis(message.text)"
                   ></div>
                 </div>
+                <button
+                  v-if="message.senderId === auth.currentUser?.uid"
+                  @click="deleteMessage(message.id)"
+                  class="delete-button always-visible"
+                  title="Eliminar mensaje"
+                >
+                  <span class="icon is-small">
+                    <i class="bx bx-trash"></i>
+                  </span>
+                </button>
               </div>
-              <button
-                v-if="message.senderId === auth.currentUser?.uid"
-                @click="deleteMessage(message.id)"
-                class="delete-button"
-                title="Eliminar mensaje"
-              >
-                <span class="icon is-small">
-                  <i class="fas fa-trash"></i>
-                </span>
-              </button>
             </div>
           </div>
         </div>
@@ -143,13 +150,13 @@
             title="Emojis"
           >
             <span class="icon">
-              <i class="far fa-smile"></i>
+              <i class="bx bx-smile"></i>
             </span>
           </button>
         </div>
         <button type="submit" class="button is-primary">
           <span class="icon">
-            <i class="fas fa-paper-plane"></i>
+            <i class="bx bx-paper-plane"></i>
           </span>
         </button>
       </form>
@@ -176,6 +183,8 @@
 </template>
 
 <script setup lang="ts">
+import NavbarFeed from "../components/NavbarFeed.vue";
+import Profile from "../views/UserProfile.vue";
 import { ref, onMounted, computed, watch, nextTick } from "vue";
 import {
   collection,
@@ -335,7 +344,7 @@ const commonEmojis = [
 const usersCollection = collection(db, "users");
 const messagesCollection = collection(db, "messages");
 const readStatusCollection = collection(db, "readStatus");
-const storage = getStorage();
+// Eliminado: const storage = getStorage();
 
 // Lista de colores para asignar a los usuarios
 const colorPalette = [
@@ -480,14 +489,10 @@ const loadUsers = async () => {
     const usersSnapshot = await getDocs(usersCollection);
     const loadedUsers: User[] = [];
 
-    for (const doc of usersSnapshot.docs) {
-      const userData = doc.data() as User;
-
-      if (
-        userData.name &&
-        userData.email &&
-      ) {
-        loadedUsers.push({ uid: doc.uid, ...userData });
+    for (const docSnap of usersSnapshot.docs) {
+      const userData = docSnap.data() as User;
+      if (userData.name && userData.email) {
+        loadedUsers.push({ uid: docSnap.id, ...userData });
       }
     }
 
@@ -495,21 +500,20 @@ const loadUsers = async () => {
 
     if (auth.currentUser) {
       const currentUserDoc = usersSnapshot.docs.find(
-        (doc) => doc.uid === auth.currentUser?.uid
+        (docSnap) => docSnap.id === auth.currentUser?.uid
       );
       if (currentUserDoc && currentUserDoc.data().name) {
         currentUser.value = {
-          uid: currentUserDoc.uid,
+          uid: currentUserDoc.id,
           ...currentUserDoc.data(),
         } as User;
-
         await loadReadStatus();
       }
     }
 
     // Asignar colores a todos los usuarios
     loadedUsers.forEach((user) => {
-      getUserColor(user.id);
+      getUserColor(user.uid);
     });
 
     setupGlobalMessagesListener();
@@ -552,13 +556,13 @@ const calculateUnreadMessages = async () => {
 
     const unreadQuery = query(
       messagesCollection,
-      where("senderId", "==", user.id),
+      where("senderId", "==", user.uid),
       where("receiverId", "==", auth.currentUser.uid),
       where("timestamp", ">", lastReadTimestamp)
     );
 
     const unreadSnapshot = await getDocs(unreadQuery);
-    unreadMessages.value[user.id] = unreadSnapshot.size;
+    unreadMessages.value[user.uid] = unreadSnapshot.size;
   }
 };
 
@@ -633,7 +637,10 @@ const setupGlobalMessagesListener = () => {
   onSnapshot(messagesQuery, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type === "added") {
-        const message = { uid: change.doc.uid, ...change.doc.data() } as Message;
+        const message = {
+          uid: change.doc.uid,
+          ...change.doc.data(),
+        } as Message;
 
         if (
           message.receiverId === auth.currentUser?.uid &&
@@ -715,24 +722,14 @@ const triggerFileInput = () => {
 
 const sendMessage = async () => {
   if (
-    (!newMessage.value.trim() && !selectedFile.value) ||
+    !newMessage.value.trim() ||
     !selectedUser.value ||
     !currentUser.value ||
     !auth.currentUser
   )
     return;
 
-  let fileData = null;
-
-  // Si hay un archivo seleccionado, súbelo primero
-  if (selectedFile.value) {
-    fileData = await uploadFile();
-    if (!fileData && !newMessage.value.trim()) {
-      return; // Si falló la carga del archivo y no hay mensaje, no enviar nada
-    }
-  }
-
-  // Crear mensaje con o sin archivo adjunto
+  // Crear mensaje solo de texto
   const messageData: any = {
     text: newMessage.value,
     author: currentUser.value.name,
@@ -742,9 +739,11 @@ const sendMessage = async () => {
     read: false,
   };
 
-  // Resetear campos después de enviar
+  // Aquí deberías agregar el mensaje a Firestore (faltaba en el código anterior)
+  await addDoc(messagesCollection, messageData);
+
+  // Resetear campo después de enviar
   newMessage.value = "";
-  selectedFile.value = null;
 
   scrollToBottom();
 };
@@ -776,11 +775,14 @@ onMounted(() => {
 
 <style scoped>
 .columns {
+  padding-right: 2%;
+  padding-left: 2%;
+  padding-top: 2%;
   height: 100vh;
 }
 
 .box {
-  height: 100%;
+  height: 93%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -832,7 +834,7 @@ li.is-active {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  background-color: hsl(220deg 13.04% 9.02%);
+  background-color: hsl(220, 79%, 72%);
   border-radius: 8px;
 }
 
@@ -911,52 +913,25 @@ li.is-active {
   text-decoration: underline;
 }
 
-.file-attachment {
-  margin-top: 6px;
-  padding: 5px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 5px;
-}
-
-.file-preview {
-  display: flex;
-  align-items: center;
-}
-
-.file-link {
-  display: flex;
-  align-items: center;
-  color: #3273dc;
-  text-decoration: none;
-}
-
-.file-link:hover {
-  text-decoration: underline;
-}
-
-.file-link .icon {
-  margin-right: 5px;
-}
-
 .delete-button {
   background-color: transparent;
   border: none;
   color: #ff3860;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   padding: 0;
-  opacity: 0;
+  opacity: 1 !important;
   position: absolute;
-  right: 4px;
-  bottom: 4px;
+  top: unset;
+  bottom: 8px;
+  right: 8px;
   transition: opacity 0.2s;
+  z-index: 2;
 }
-
+.message-bubble {
+  position: relative;
+}
 .message-bubble:hover .delete-button {
-  opacity: 0.8;
-}
-
-.delete-button:hover {
   opacity: 1;
 }
 
@@ -974,6 +949,8 @@ li.is-active {
   background-color: white;
   border-radius: 20px;
   padding-right: 10px;
+  bottom: 120px;
+  left: 25px;
 }
 
 .message-input-container .input {
@@ -984,18 +961,18 @@ li.is-active {
   box-shadow: none;
 }
 
-.emoji-button,
-.file-button {
+.emoji-button {
   background: none;
   border: none;
   cursor: pointer;
   padding: 0 5px;
   color: #888;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  margin-left: 5px;
 }
-
-.emoji-button:hover,
-.file-button:hover {
+.emoji-button:hover {
   color: #00d1b2;
 }
 
@@ -1007,6 +984,8 @@ button.is-primary {
   display: flex;
   justify-content: center;
   align-items: center;
+  bottom: 120px;
+  right: 25px;
 }
 
 .emoji-picker {
@@ -1134,5 +1113,24 @@ button.is-primary {
     width: 280px;
     right: 20px;
   }
+}
+/* Ajusta el ancho máximo del área de chat */
+.chat-column {
+  max-width: none;
+  min-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+}
+.column.is-one-quarter {
+  width: 35%;
+  min-width: 340px;
+  max-width: 500px;
+}
+.column.is-three-quarters {
+  width: 65%;
+}
+
+.delete-button.always-visible {
+  opacity: 1 !important;
 }
 </style>
