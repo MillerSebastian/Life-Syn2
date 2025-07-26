@@ -18,9 +18,9 @@ const router = createRouter({
       component: () => import("../views/Login.vue"), // Si tienes una vista separada, cámbiala aquí
     },
     {
-      path: '/user/:uid',
-      name: 'user-profile',
-      component: () => import('../views/UserProfile.vue'),
+      path: "/user/:uid",
+      name: "user-profile",
+      component: () => import("../views/UserProfile.vue"),
     },
     {
       path: "/",
@@ -55,6 +55,11 @@ const router = createRouter({
           path: "feed",
           name: "feed",
           component: () => import("../views/Feed.vue"),
+        },
+        {
+          path: "chat",
+          name: "chat",
+          component: () => import("../views/Chat.vue"),
         },
         {
           path: "profile",

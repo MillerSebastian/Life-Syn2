@@ -4,6 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getDatabase } from "firebase/database";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -17,6 +18,7 @@ const firebaseConfig = {
   messagingSenderId: "922990801055",
   appId: "1:922990801055:web:a78240af9ed2764ccb72aa",
   measurementId: "G-266MRY0GQT",
+  databaseURL: "https://lifesync-3cb2f-default-rtdb.firebaseio.com",
 };
 
 // Initialize Firebase
@@ -25,7 +27,8 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const database = getDatabase(app);
 
 const getCurrentUser = () => auth.currentUser;
 
-export { auth, db, storage, getCurrentUser };
+export { auth, db, storage, database, getCurrentUser };

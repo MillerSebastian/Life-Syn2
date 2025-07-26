@@ -4,16 +4,27 @@
       <h2 v-if="!isSidebarCollapsed">Comunidad</h2>
       <span v-else>CM</span>
       <button class="toggle-btn" @click="$emit('toggle-sidebar')">
-        <i class="bx" :class="isSidebarCollapsed ? 'bx-menu' : 'bx-menu-alt-left'"></i>
+        <i
+          class="bx"
+          :class="isSidebarCollapsed ? 'bx-menu' : 'bx-menu-alt-left'"
+        ></i>
       </button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section">MENÚ</div>
-      <div class="nav-item" :class="{ active: activeSection === 'feed' }" @click="$emit('update:activeSection', 'feed')">
+      <div
+        class="nav-item"
+        :class="{ active: activeSection === 'feed' }"
+        @click="$emit('update:activeSection', 'feed')"
+      >
         <i class="bx bx-group"></i>
         <span v-if="!isSidebarCollapsed">Comunidad</span>
       </div>
-      <div class="nav-item" :class="{ active: activeSection === 'chats' }" @click="$emit('update:activeSection', 'chats')">
+      <div
+        class="nav-item"
+        :class="{ active: activeSection === 'chat' }"
+        @click="$emit('update:activeSection', 'chat')"
+      >
         <i class="bx bx-chat"></i>
         <span v-if="!isSidebarCollapsed">Chats</span>
       </div>
@@ -24,7 +35,7 @@
       </div>
       <div class="user-info">
         <div class="user-name">{{ user.name }}</div>
-        <div class="user-email">{{ user.email || '' }}</div>
+        <div class="user-email">{{ user.email || "" }}</div>
       </div>
     </div>
   </aside>
@@ -34,7 +45,8 @@
 const props = defineProps({
   user: { type: Object, required: true },
   isSidebarCollapsed: { type: Boolean, default: false },
-  activeSection: { type: String, default: 'feed' }
+  activeSection: { type: String, default: "feed" },
+  activeSection: { type: String, default: "chat" },
 });
 </script>
 
@@ -47,8 +59,8 @@ const props = defineProps({
   color: #fff;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s cubic-bezier(.4,2,.6,1);
-  box-shadow: 2px 0 20px rgba(0,0,0,0.08);
+  transition: width 0.3s cubic-bezier(0.4, 2, 0.6, 1);
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 10;
   height: 92.5vh;
@@ -62,7 +74,7 @@ const props = defineProps({
   width: 70px;
   min-width: 70px;
   max-width: 70px;
-  transition: width 0.3s cubic-bezier(.4,2,.6,1);
+  transition: width 0.3s cubic-bezier(0.4, 2, 0.6, 1);
 }
 .feed-sidebar.collapsed .sidebar-header {
   flex-direction: column;
@@ -124,7 +136,7 @@ const props = defineProps({
   justify-content: space-between;
   padding: 20px 20px 0 20px;
   background: #4338ca;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   height: 6em;
 }
 .toggle-btn {
@@ -138,7 +150,7 @@ const props = defineProps({
   transition: all 0.3s;
 }
 .toggle-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 .sidebar-nav {
   padding: 24px 0 0 0;
@@ -163,7 +175,8 @@ const props = defineProps({
   margin: 0 10px 5px 10px;
   transition: background 0.2s, color 0.2s;
 }
-.nav-item.active, .nav-item:hover {
+.nav-item.active,
+.nav-item:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
@@ -212,41 +225,41 @@ const props = defineProps({
   font-size: 12px;
 }
 #theme-dark .feed-sidebar {
-  background: linear-gradient(180deg, #23262F 0%, #181A20 100%) !important;
-  color: #F1F1F1;
-  box-shadow: 2px 0 20px rgba(79, 140, 255, 0.10);
+  background: linear-gradient(180deg, #23262f 0%, #181a20 100%) !important;
+  color: #f1f1f1;
+  box-shadow: 2px 0 20px rgba(79, 140, 255, 0.1);
   border-right: 1.5px solid #26334d;
 }
 #theme-dark .sidebar-header {
-  background: #1A1D23 !important;
+  background: #1a1d23 !important;
   border-bottom: 1px solid #26334d;
 }
 #theme-dark .toggle-btn {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .toggle-btn:hover {
-  background: rgba(79, 140, 255, 0.10);
+  background: rgba(79, 140, 255, 0.1);
 }
 #theme-dark .nav-item {
-  color: #B0B3B8 !important;
+  color: #b0b3b8 !important;
   background: transparent !important;
 }
 #theme-dark .nav-item.active,
 #theme-dark .nav-item:hover {
-  background: rgba(79, 140, 255, 0.10) !important;
-  color: #4F8CFF !important;
+  background: rgba(79, 140, 255, 0.1) !important;
+  color: #4f8cff !important;
 }
 #theme-dark .user-profile {
   border-top: 1px solid #26334d;
   border-bottom: 1px solid #26334d;
 }
 #theme-dark .avatar {
-  background: linear-gradient(45deg, #4F8CFF, #06d6a0) !important;
+  background: linear-gradient(45deg, #4f8cff, #06d6a0) !important;
 }
 #theme-dark .user-name {
-  color: #A3C8FF !important;
+  color: #a3c8ff !important;
 }
 #theme-dark .user-email {
-  color: #85C1E9 !important;
+  color: #85c1e9 !important;
 }
-</style> 
+</style>

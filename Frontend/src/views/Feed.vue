@@ -5,203 +5,412 @@
       :isSidebarCollapsed="isSidebarCollapsed"
       :activeSection="activeSection"
       @toggle-sidebar="toggleSidebar"
-      @update:activeSection="val => activeSection = val"
+      @update:activeSection="(val) => (activeSection = val)"
     />
     <div class="feed-main">
-      <div class="feed-header">
-        <button class="btn-create-post" @click="showPostModal = true"><i class="bx bx-plus"></i>Crear publicación</button>
-      </div>
-      <transition name="fade-modal">
-        <div v-if="userProfileUid" class="modal-feed" @click.self="closeUserProfileModal">
-          <div class="modal-feed-content">
-            <UserProfile :uid="userProfileUid" @close="closeUserProfileModal" />
-          </div>
+      <Chat v-if="activeSection === 'chat'" />
+      <template v-else>
+        <div class="feed-header">
+          <button class="btn btn-primary" @click="showPostModal = true">
+            Crear publicación
+          </button>
         </div>
-      </transition>
-      <transition name="fade-modal">
-        <div v-if="showPostModal" class="modal is-active">
-          <div class="modal-background" @click="closePostModal"></div>
-          <div class="modal-card">
-            <header class="modal-card-head">
-              <p class="modal-card-title">Nueva publicación</p>
-              <button class="delete" @click="closePostModal"></button>
-            </header>
-            <section class="modal-card-body">
-              <form @submit.prevent="addPost">
-                <div class="field">
-                  <label class="label">Título</label>
-                  <div class="control">
-                    <input v-model="newPostTitle" class="input" placeholder="Título" required />
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="label">Mensaje</label>
-                  <div class="control">
-                    <textarea v-model="newPostContent" class="textarea" placeholder="¿Qué quieres compartir?" rows="3" required></textarea>
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="label">URL de imagen (opcional)</label>
-                  <div class="control">
-                    <input v-model="newPostImageUrl" class="input" placeholder="URL de imagen" type="url" />
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="label">Visibilidad</label>
-                  <div class="control">
-                    <label class="radio"><input type="radio" value="public" v-model="newPostVisibility" /> Público</label>
-                    <label class="radio"><input type="radio" value="friends" v-model="newPostVisibility" /> Solo amigos</label>
-                  </div>
-                </div>
-                <footer class="modal-card-foot buttons">
-                  <button class="btn btn-primary" type="submit">Publicar</button>
-                  <button class="btn button is-danger has-text-white-bis" type="button" @click="closePostModal">Cancelar</button>
-                </footer>
-              </form>
-            </section>
-          </div>
-        </div>
-      </transition>
-      <transition-group name="fade-list" tag="div" class="feed-list">
-        <div v-for="post in posts" :key="post.id" class="feed-post">
-          <div class="post-header">
-            <img class="avatar" :src="post.user.avatar" alt="avatar" @click="openUserProfileModal(post.user.uid)" style="cursor:pointer" />
-            <div class="post-user-info">
-              <span class="post-user">{{ post.user.name }}</span>
-              <span class="post-date">{{ post.date || '' }}</span>
-            </div>
-            <div v-if="post.user.uid === user.uid" class="post-actions-right">
-              <button class="btn-icon" @click="startEditPost(post)"><i class="bx bx-edit"></i></button>
-              <button class="btn-icon" @click="deletePost(post.id)"><i class="bx bx-trash"></i></button>
+        <transition name="fade-modal">
+          <div
+            v-if="userProfileUid"
+            class="modal-feed"
+            @click.self="closeUserProfileModal"
+          >
+            <div class="modal-feed-content">
+              <UserProfile
+                :uid="userProfileUid"
+                @close="closeUserProfileModal"
+              />
             </div>
           </div>
-          <div class="post-content" @click="openModal(post)">
-            <template v-if="editingPostId === post.id">
-              <textarea v-model="editPostContent" rows="3" class="edit-textarea"></textarea>
-              <div class="edit-actions">
-                <button class="btn btn-primary" @click.stop="saveEditPost(post)">Guardar</button>
-                <button class="btn btn-accent" @click.stop="cancelEditPost">Cancelar</button>
-              </div>
-            </template>
-            <template v-else>
-              <p>{{ post.content }}</p>
-              <img v-if="post.image" :src="post.image" class="post-img" alt="imagen de publicación" />
-            </template>
-          </div>
-          <div class="post-actions">
-            <button v-for="reaction in reactions" :key="reaction.type" class="reaction-btn"
-              :class="{ selected: post.userReaction === reaction.type, bounce: bounceReactionId === post.id + '-' + reaction.type }"
-              @click="reactWithBounce(post.id, reaction.type)">
-              <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
-              <span v-if="post.reactions[reaction.type]">{{ post.reactions[reaction.type] }}</span>
-            </button>
-          </div>
-          <transition-group name="fade-list" tag="div" class="post-comments">
-            <div v-for="comment in post.comments" :key="comment.id" class="comment">
-              <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" @click="goToUserProfile(comment.uid)" style="cursor:pointer" />
-              <div class="comment-body">
-                <template v-if="editingCommentId === comment.id">
-                  <input v-model="editCommentContent" class="edit-comment-input" />
-                  <div class="edit-actions">
-                    <button class="btn btn-primary" @click.stop="saveEditComment(post, comment)">Guardar</button>
-                    <button class="btn btn-accent" @click.stop="cancelEditComment">Cancelar</button>
+        </transition>
+        <transition name="fade-modal">
+          <div v-if="showPostModal" class="modal is-active">
+            <div class="modal-background" @click="closePostModal"></div>
+            <div class="modal-card">
+              <header class="modal-card-head">
+                <p class="modal-card-title">Nueva publicación</p>
+                <button class="delete" @click="closePostModal"></button>
+              </header>
+              <section class="modal-card-body">
+                <form @submit.prevent="addPost">
+                  <div class="field">
+                    <label class="label">Título</label>
+                    <div class="control">
+                      <input
+                        v-model="newPostTitle"
+                        class="input"
+                        placeholder="Título"
+                        required
+                      />
+                    </div>
                   </div>
-                </template>
-                <template v-else>
-                  <span class="comment-user">{{ comment.user }}</span>
-                  <span class="comment-text">{{ comment.text }}</span>
-                  <span v-if="comment.uid === user.uid" class="comment-actions">
-                    <button class="btn-icon" @click.stop="startEditComment(comment)"><i class="bx bx-edit"></i></button>
-                    <button class="btn-icon" @click.stop="deleteComment(post, comment)"><i class="bx bx-trash"></i></button>
-                  </span>
-                </template>
-              </div>
+                  <div class="field">
+                    <label class="label">Mensaje</label>
+                    <div class="control">
+                      <textarea
+                        v-model="newPostContent"
+                        class="textarea"
+                        placeholder="¿Qué quieres compartir?"
+                        rows="3"
+                        required
+                      ></textarea>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="label">URL de imagen (opcional)</label>
+                    <div class="control">
+                      <input
+                        v-model="newPostImageUrl"
+                        class="input"
+                        placeholder="URL de imagen"
+                        type="url"
+                      />
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="label">Visibilidad</label>
+                    <div class="control">
+                      <label class="radio"
+                        ><input
+                          type="radio"
+                          value="public"
+                          v-model="newPostVisibility"
+                        />
+                        Público</label
+                      >
+                      <label class="radio"
+                        ><input
+                          type="radio"
+                          value="friends"
+                          v-model="newPostVisibility"
+                        />
+                        Solo amigos</label
+                      >
+                    </div>
+                  </div>
+                  <footer class="modal-card-foot buttons">
+                    <button class="btn btn-primary" type="submit">
+                      Publicar
+                    </button>
+                    <button
+                      class="btn button is-danger has-text-white-bis"
+                      type="button"
+                      @click="closePostModal"
+                    >
+                      Cancelar
+                    </button>
+                  </footer>
+                </form>
+              </section>
             </div>
-          </transition-group>
-          <form class="add-comment-form" @submit.prevent="addComment(post.id)">
-            <input v-model="commentInputs[post.id]" placeholder="Agrega un comentario..." />
-            <button type="submit" class="btn btn-accent">Comentar</button>
-          </form>
-        </div>
-      </transition-group>
-      <transition name="fade-modal">
-        <div v-if="modalPost" class="modal-feed" @click.self="closeModal">
-          <div class="modal-feed-content">
-            <button class="modal-close" @click="closeModal">&times;</button>
+          </div>
+        </transition>
+        <transition-group name="fade-list" tag="div" class="feed-list">
+          <div v-for="post in posts" :key="post.id" class="feed-post">
             <div class="post-header">
-              <img class="avatar" :src="modalPost.user.avatar" alt="avatar" />
+              <img
+                class="avatar"
+                :src="post.user.avatar"
+                alt="avatar"
+                @click="openUserProfileModal(post.user.uid)"
+                style="cursor: pointer"
+              />
               <div class="post-user-info">
-                <span class="post-user">{{ modalPost.user.name }}</span>
-                <span class="post-date">{{ modalPost.date || '' }}</span>
+                <span class="post-user">{{ post.user.name }}</span>
+                <span class="post-date">{{ post.date || "" }}</span>
               </div>
-              <div v-if="modalPost.user.uid === user.uid" class="post-actions-right">
-                <button class="btn-icon" @click="startEditPost(modalPost, true)"><i class="bx bx-edit"></i></button>
-                <button class="btn-icon" @click="deletePost(modalPost.id, true)"><i class="bx bx-trash"></i></button>
+              <div v-if="post.user.uid === user.uid" class="post-actions-right">
+                <button class="btn-icon" @click="startEditPost(post)">
+                  <i class="bx bx-edit"></i>
+                </button>
+                <button class="btn-icon" @click="deletePost(post.id)">
+                  <i class="bx bx-trash"></i>
+                </button>
               </div>
             </div>
-            <div class="post-content">
-              <template v-if="editingPostId === modalPost.id">
-                <textarea v-model="editPostContent" rows="3" class="edit-textarea"></textarea>
+            <div class="post-content" @click="openModal(post)">
+              <template v-if="editingPostId === post.id">
+                <textarea
+                  v-model="editPostContent"
+                  rows="3"
+                  class="edit-textarea"
+                ></textarea>
                 <div class="edit-actions">
-                  <button class="btn btn-primary" @click.stop="saveEditPost(modalPost, true)">Guardar</button>
-                  <button class="btn btn-accent" @click.stop="cancelEditPost">Cancelar</button>
+                  <button
+                    class="btn btn-primary"
+                    @click.stop="saveEditPost(post)"
+                  >
+                    Guardar
+                  </button>
+                  <button class="btn btn-accent" @click.stop="cancelEditPost">
+                    Cancelar
+                  </button>
                 </div>
               </template>
               <template v-else>
-                <p>{{ modalPost.content }}</p>
-                <img v-if="modalPost.image" :src="modalPost.image" class="post-img" alt="imagen de publicación" />
+                <p>{{ post.content }}</p>
+                <img
+                  v-if="post.image"
+                  :src="post.image"
+                  class="post-img"
+                  alt="imagen de publicación"
+                />
               </template>
             </div>
             <div class="post-actions">
-              <button v-for="reaction in reactions" :key="reaction.type" class="reaction-btn"
-                :class="{ selected: modalPost.userReaction === reaction.type, bounce: bounceReactionId === modalPost.id + '-' + reaction.type }"
-                @click="reactWithBounce(modalPost.id, reaction.type, true)">
+              <button
+                v-for="reaction in reactions"
+                :key="reaction.type"
+                class="reaction-btn"
+                :class="{
+                  selected: post.userReaction === reaction.type,
+                  bounce: bounceReactionId === post.id + '-' + reaction.type,
+                }"
+                @click="reactWithBounce(post.id, reaction.type)"
+              >
                 <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
-                <span v-if="modalPost.reactions[reaction.type]">{{ modalPost.reactions[reaction.type] }}</span>
+                <span v-if="post.reactions[reaction.type]">{{
+                  post.reactions[reaction.type]
+                }}</span>
               </button>
             </div>
             <transition-group name="fade-list" tag="div" class="post-comments">
-              <div v-for="comment in modalPost.comments" :key="comment.id" class="comment">
-                <img class="avatar avatar-sm" :src="comment.avatar" alt="avatar" />
+              <div
+                v-for="comment in post.comments"
+                :key="comment.id"
+                class="comment"
+              >
+                <img
+                  class="avatar avatar-sm"
+                  :src="comment.avatar"
+                  alt="avatar"
+                  @click="goToUserProfile(comment.uid)"
+                  style="cursor: pointer"
+                />
                 <div class="comment-body">
                   <template v-if="editingCommentId === comment.id">
-                    <input v-model="editCommentContent" class="edit-comment-input" />
+                    <input
+                      v-model="editCommentContent"
+                      class="edit-comment-input"
+                    />
                     <div class="edit-actions">
-                      <button class="btn btn-primary" @click.stop="saveEditComment(modalPost, comment, true)">Guardar</button>
-                      <button class="btn btn-accent" @click.stop="cancelEditComment">Cancelar</button>
+                      <button
+                        class="btn btn-primary"
+                        @click.stop="saveEditComment(post, comment)"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        class="btn btn-accent"
+                        @click.stop="cancelEditComment"
+                      >
+                        Cancelar
+                      </button>
                     </div>
                   </template>
                   <template v-else>
                     <span class="comment-user">{{ comment.user }}</span>
                     <span class="comment-text">{{ comment.text }}</span>
-                    <span v-if="comment.uid === user.uid" class="comment-actions">
-                      <button class="btn-icon" @click.stop="startEditComment(comment)"><i class="bx bx-edit"></i></button>
-                      <button class="btn-icon" @click.stop="deleteComment(modalPost, comment, true)"><i class="bx bx-trash"></i></button>
+                    <span
+                      v-if="comment.uid === user.uid"
+                      class="comment-actions"
+                    >
+                      <button
+                        class="btn-icon"
+                        @click.stop="startEditComment(comment)"
+                      >
+                        <i class="bx bx-edit"></i>
+                      </button>
+                      <button
+                        class="btn-icon"
+                        @click.stop="deleteComment(post, comment)"
+                      >
+                        <i class="bx bx-trash"></i>
+                      </button>
                     </span>
                   </template>
                 </div>
               </div>
             </transition-group>
-            <form class="add-comment-form" @submit.prevent="addComment(modalPost.id, true)">
-              <input v-model="commentInputs[modalPost.id]" placeholder="Agrega un comentario..." />
+            <form
+              class="add-comment-form"
+              @submit.prevent="addComment(post.id)"
+            >
+              <input
+                v-model="commentInputs[post.id]"
+                placeholder="Agrega un comentario..."
+              />
               <button type="submit" class="btn btn-accent">Comentar</button>
             </form>
           </div>
-        </div>
-      </transition>
+        </transition-group>
+        <transition name="fade-modal">
+          <div v-if="modalPost" class="modal-feed" @click.self="closeModal">
+            <div class="modal-feed-content">
+              <button class="modal-close" @click="closeModal">&times;</button>
+              <div class="post-header">
+                <img class="avatar" :src="modalPost.user.avatar" alt="avatar" />
+                <div class="post-user-info">
+                  <span class="post-user">{{ modalPost.user.name }}</span>
+                  <span class="post-date">{{ modalPost.date || "" }}</span>
+                </div>
+                <div
+                  v-if="modalPost.user.uid === user.uid"
+                  class="post-actions-right"
+                >
+                  <button
+                    class="btn-icon"
+                    @click="startEditPost(modalPost, true)"
+                  >
+                    <i class="bx bx-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon"
+                    @click="deletePost(modalPost.id, true)"
+                  >
+                    <i class="bx bx-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="post-content">
+                <template v-if="editingPostId === modalPost.id">
+                  <textarea
+                    v-model="editPostContent"
+                    rows="3"
+                    class="edit-textarea"
+                  ></textarea>
+                  <div class="edit-actions">
+                    <button
+                      class="btn btn-primary"
+                      @click.stop="saveEditPost(modalPost, true)"
+                    >
+                      Guardar
+                    </button>
+                    <button class="btn btn-accent" @click.stop="cancelEditPost">
+                      Cancelar
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <p>{{ modalPost.content }}</p>
+                  <img
+                    v-if="modalPost.image"
+                    :src="modalPost.image"
+                    class="post-img"
+                    alt="imagen de publicación"
+                  />
+                </template>
+              </div>
+              <div class="post-actions">
+                <button
+                  v-for="reaction in reactions"
+                  :key="reaction.type"
+                  class="reaction-btn"
+                  :class="{
+                    selected: modalPost.userReaction === reaction.type,
+                    bounce:
+                      bounceReactionId === modalPost.id + '-' + reaction.type,
+                  }"
+                  @click="reactWithBounce(modalPost.id, reaction.type, true)"
+                >
+                  <span :aria-label="reaction.label">{{ reaction.emoji }}</span>
+                  <span v-if="modalPost.reactions[reaction.type]">{{
+                    modalPost.reactions[reaction.type]
+                  }}</span>
+                </button>
+              </div>
+              <transition-group
+                name="fade-list"
+                tag="div"
+                class="post-comments"
+              >
+                <div
+                  v-for="comment in modalPost.comments"
+                  :key="comment.id"
+                  class="comment"
+                >
+                  <img
+                    class="avatar avatar-sm"
+                    :src="comment.avatar"
+                    alt="avatar"
+                  />
+                  <div class="comment-body">
+                    <template v-if="editingCommentId === comment.id">
+                      <input
+                        v-model="editCommentContent"
+                        class="edit-comment-input"
+                      />
+                      <div class="edit-actions">
+                        <button
+                          class="btn btn-primary"
+                          @click.stop="
+                            saveEditComment(modalPost, comment, true)
+                          "
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          class="btn btn-accent"
+                          @click.stop="cancelEditComment"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <span class="comment-user">{{ comment.user }}</span>
+                      <span class="comment-text">{{ comment.text }}</span>
+                      <span
+                        v-if="comment.uid === user.uid"
+                        class="comment-actions"
+                      >
+                        <button
+                          class="btn-icon"
+                          @click.stop="startEditComment(comment)"
+                        >
+                          <i class="bx bx-edit"></i>
+                        </button>
+                        <button
+                          class="btn-icon"
+                          @click.stop="deleteComment(modalPost, comment, true)"
+                        >
+                          <i class="bx bx-trash"></i>
+                        </button>
+                      </span>
+                    </template>
+                  </div>
+                </div>
+              </transition-group>
+              <form
+                class="add-comment-form"
+                @submit.prevent="addComment(modalPost.id, true)"
+              >
+                <input
+                  v-model="commentInputs[modalPost.id]"
+                  placeholder="Agrega un comentario..."
+                />
+                <button type="submit" class="btn btn-accent">Comentar</button>
+              </form>
+            </div>
+          </div>
+        </transition>
+      </template>
     </div>
-
-
-
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue';
-import NavbarFeed from '../components/NavbarFeed.vue';
-import SidebarFeed from '../components/SidebarFeed.vue';
-import { useRouter } from 'vue-router';
-import { auth, db, storage } from '../../firebase';
+import { ref, reactive, onMounted, nextTick } from "vue";
+import NavbarFeed from "../components/NavbarFeed.vue";
+import SidebarFeed from "../components/SidebarFeed.vue";
+import { useRouter } from "vue-router";
+import { auth, db, storage } from "../../firebase";
 import {
   collection,
   addDoc,
@@ -215,70 +424,80 @@ import {
   arrayUnion,
   arrayRemove,
   getDoc,
-} from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Swal from 'sweetalert2';
-import UserProfile from './UserProfile.vue';
+} from "firebase/firestore";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import Swal from "sweetalert2";
+import UserProfile from "./UserProfile.vue";
+import Chat from "./Chat.vue";
 
 const router = useRouter();
-const user = ref({ name: 'Usuario', avatar: 'https://ui-avatars.com/api/?name=Usuario&background=6366f1&color=fff', uid: null });
+const user = ref({
+  name: "Usuario",
+  avatar:
+    "https://ui-avatars.com/api/?name=Usuario&background=6366f1&color=fff",
+  uid: null,
+});
 const posts = ref([]);
-const newPostContent = ref('');
+const newPostContent = ref("");
 const newPostImage = ref(null);
-const newPostImageUrl = ref('');
+const newPostImageUrl = ref("");
 const commentInputs = reactive({});
 const modalPost = ref(null);
 const editingPostId = ref(null);
-const editPostContent = ref('');
+const editPostContent = ref("");
 const editingCommentId = ref(null);
-const editCommentContent = ref('');
-const bounceReactionId = ref('');
+const editCommentContent = ref("");
+const bounceReactionId = ref("");
 const isSidebarCollapsed = ref(false);
-const activeSection = ref('feed');
+const activeSection = ref("feed");
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
 }
 
 const reactions = [
-  { type: 'like', emoji: '👍', label: 'Me gusta' },
-  { type: 'love', emoji: '❤️', label: 'Me encanta' },
-  { type: 'laugh', emoji: '😂', label: 'Me divierte' },
-  { type: 'wow', emoji: '😮', label: 'Me asombra' },
-  { type: 'sad', emoji: '😢', label: 'Me entristece' },
-  { type: 'angry', emoji: '😡', label: 'Me enoja' },
+  { type: "like", emoji: "👍", label: "Me gusta" },
+  { type: "love", emoji: "❤️", label: "Me encanta" },
+  { type: "laugh", emoji: "😂", label: "Me divierte" },
+  { type: "wow", emoji: "😮", label: "Me asombra" },
+  { type: "sad", emoji: "😢", label: "Me entristece" },
+  { type: "angry", emoji: "😡", label: "Me enoja" },
 ];
 
 const toasts = ref([]);
 let toastId = 0;
-function showToast(message, type = 'info') {
+function showToast(message, type = "info") {
   Swal.fire({
     toast: true,
-    position: 'top-end',
+    position: "top-end",
     icon: type,
     title: message,
     showConfirmButton: false,
     timer: 3500,
     timerProgressBar: true,
-    background: '#fff',
-    color: '#222',
+    background: "#fff",
+    color: "#222",
     customClass: {
-      popup: 'swal2-toast-custom',
+      popup: "swal2-toast-custom",
     },
   });
 }
 function removeToast(id) {
-  toasts.value = toasts.value.filter(t => t.id !== id);
+  toasts.value = toasts.value.filter((t) => t.id !== id);
 }
 
 const showPostModal = ref(false);
-const newPostTitle = ref('');
-const newPostVisibility = ref('public');
+const newPostTitle = ref("");
+const newPostVisibility = ref("public");
 function closePostModal() {
   showPostModal.value = false;
-  newPostTitle.value = '';
-  newPostContent.value = '';
-  newPostImageUrl.value = '';
-  newPostVisibility.value = 'public';
+  newPostTitle.value = "";
+  newPostContent.value = "";
+  newPostImageUrl.value = "";
+  newPostVisibility.value = "public";
 }
 
 const userProfileUid = ref(null);
@@ -291,83 +510,108 @@ function closeUserProfileModal() {
 
 onMounted(async () => {
   const currentUser = auth.currentUser;
-  let nombre = '';
-  let avatar = '';
-  let uid = '';
+  let nombre = "";
+  let avatar = "";
+  let uid = "";
   if (currentUser) {
     uid = currentUser.uid;
-    nombre = currentUser.displayName || '';
-    avatar = currentUser.photoURL || '';
+    nombre = currentUser.displayName || "";
+    avatar = currentUser.photoURL || "";
     // Si no hay nombre, buscar en Firestore
     if (!nombre) {
-      const userDoc = await getDoc(doc(db, 'users', uid));
+      const userDoc = await getDoc(doc(db, "users", uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        nombre = data.name || '';
-        avatar = data.photo || '';
+        nombre = data.name || "";
+        avatar = data.photo || "";
       }
     }
-    user.value.name = nombre || 'Usuario';
-    user.value.avatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
+    user.value.name = nombre || "Usuario";
+    user.value.avatar =
+      avatar ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user.value.name
+      )}&background=6366f1&color=fff`;
     user.value.uid = uid;
   } else {
-    auth.onAuthStateChanged(async u => {
+    auth.onAuthStateChanged(async (u) => {
       if (u) {
         uid = u.uid;
-        nombre = u.displayName || '';
-        avatar = u.photoURL || '';
+        nombre = u.displayName || "";
+        avatar = u.photoURL || "";
         if (!nombre) {
-          const userDoc = await getDoc(doc(db, 'users', uid));
+          const userDoc = await getDoc(doc(db, "users", uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
-            nombre = data.name || '';
-            avatar = data.photo || '';
+            nombre = data.name || "";
+            avatar = data.photo || "";
           }
         }
-        user.value.name = nombre || 'Usuario';
-        user.value.avatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.value.name)}&background=6366f1&color=fff`;
+        user.value.name = nombre || "Usuario";
+        user.value.avatar =
+          avatar ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            user.value.name
+          )}&background=6366f1&color=fff`;
         user.value.uid = uid;
       }
     });
   }
   // Escuchar publicaciones en tiempo real
-  const postsQuery = query(collection(db, 'feed_posts'), orderBy('createdAt', 'desc'));
-  onSnapshot(postsQuery, snapshot => {
-    const prevPosts = posts.value.map(p => ({ ...p }));
-    posts.value = snapshot.docs.map(docSnap => {
+  const postsQuery = query(
+    collection(db, "feed_posts"),
+    orderBy("createdAt", "desc")
+  );
+  onSnapshot(postsQuery, (snapshot) => {
+    const prevPosts = posts.value.map((p) => ({ ...p }));
+    posts.value = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
       // Si no hay avatar, genera uno con las iniciales del nombre
       if (!data.user.avatar) {
-        data.user.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&background=6366f1&color=fff`;
+        data.user.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          data.user.name
+        )}&background=6366f1&color=fff`;
       }
       return {
         id: docSnap.id,
         ...data,
         comments: data.comments || [],
         reactions: data.reactions || {},
-        userReaction: data.userReactions && user.value.uid ? data.userReactions[user.value.uid] : null,
+        userReaction:
+          data.userReactions && user.value.uid
+            ? data.userReactions[user.value.uid]
+            : null,
       };
     });
     // Detectar notificaciones
     nextTick(() => {
-      posts.value.forEach(post => {
+      posts.value.forEach((post) => {
         if (post.user && post.user.uid === user.value.uid) {
           // Buscar cambios en comentarios
-          const prev = prevPosts.find(p => p.id === post.id);
+          const prev = prevPosts.find((p) => p.id === post.id);
           if (prev) {
             if (post.comments.length > prev.comments.length) {
               const newComment = post.comments[post.comments.length - 1];
               if (newComment && newComment.uid !== user.value.uid) {
-                showToast(`Nuevo comentario en tu publicación: "${newComment.text}"`, 'success');
+                showToast(
+                  `Nuevo comentario en tu publicación: "${newComment.text}"`,
+                  "success"
+                );
               }
             }
             // Buscar cambios en reacciones
             const prevReacts = prev.reactions || {};
             const currReacts = post.reactions || {};
-            const prevSum = Object.values(prevReacts).reduce((a, b) => a + b, 0);
-            const currSum = Object.values(currReacts).reduce((a, b) => a + b, 0);
+            const prevSum = Object.values(prevReacts).reduce(
+              (a, b) => a + b,
+              0
+            );
+            const currSum = Object.values(currReacts).reduce(
+              (a, b) => a + b,
+              0
+            );
             if (currSum > prevSum) {
-              showToast('¡Alguien reaccionó a tu publicación!', 'info');
+              showToast("¡Alguien reaccionó a tu publicación!", "info");
             }
           }
         }
@@ -387,22 +631,22 @@ function onImageChange(e) {
     reader.readAsDataURL(file);
   } else {
     newPostImage.value = null;
-    newPostImageUrl.value = '';
+    newPostImageUrl.value = "";
   }
 }
 
 async function addPost() {
-  if (!user.value.name || user.value.name === 'Usuario') {
+  if (!user.value.name || user.value.name === "Usuario") {
     Swal.fire({
-      icon: 'error',
-      title: 'Completa tu perfil',
-      text: 'Debes tener un nombre de usuario para publicar.',
-      showConfirmButton: true
+      icon: "error",
+      title: "Completa tu perfil",
+      text: "Debes tener un nombre de usuario para publicar.",
+      showConfirmButton: true,
     });
     return;
   }
   if (!newPostTitle.value.trim() || !newPostContent.value.trim()) return;
-  await addDoc(collection(db, 'feed_posts'), {
+  await addDoc(collection(db, "feed_posts"), {
     user: {
       name: user.value.name,
       avatar: user.value.avatar,
@@ -421,9 +665,9 @@ async function addPost() {
 }
 
 async function reactToPost(postId, type, isModal = false) {
-  const post = posts.value.find(p => p && p.id === postId);
+  const post = posts.value.find((p) => p && p.id === postId);
   if (!post || !user.value.uid) return;
-  const postRef = doc(db, 'feed_posts', postId);
+  const postRef = doc(db, "feed_posts", postId);
   // Lógica: solo una reacción por usuario
   const prevReaction = post.userReactions && post.userReactions[user.value.uid];
   let newReactions = { ...post.reactions };
@@ -454,8 +698,8 @@ async function reactToPost(postId, type, isModal = false) {
 async function addComment(postId, isModal = false) {
   const text = commentInputs[postId];
   if (!text || !text.trim()) return;
-  const postRef = doc(db, 'feed_posts', postId);
-  const post = posts.value.find(p => p && p.id === postId);
+  const postRef = doc(db, "feed_posts", postId);
+  const post = posts.value.find((p) => p && p.id === postId);
   if (!post) return;
   const newComment = {
     id: Date.now(),
@@ -469,7 +713,7 @@ async function addComment(postId, isModal = false) {
   await updateDoc(postRef, {
     comments: updatedComments,
   });
-  commentInputs[postId] = '';
+  commentInputs[postId] = "";
 }
 
 function openModal(post) {
@@ -480,7 +724,7 @@ function closeModal() {
 }
 
 function goBackToApp() {
-  router.push('/dashboard');
+  router.push("/dashboard");
 }
 
 function startEditPost(post, isModal = false) {
@@ -489,19 +733,20 @@ function startEditPost(post, isModal = false) {
 }
 function cancelEditPost() {
   editingPostId.value = null;
-  editPostContent.value = '';
+  editPostContent.value = "";
 }
 async function saveEditPost(post, isModal = false) {
   if (!editPostContent.value.trim()) return;
-  const postRef = doc(db, 'feed_posts', post.id);
+  const postRef = doc(db, "feed_posts", post.id);
   await updateDoc(postRef, { content: editPostContent.value });
   editingPostId.value = null;
-  editPostContent.value = '';
-  if (isModal && modalPost.value) modalPost.value.content = editPostContent.value;
+  editPostContent.value = "";
+  if (isModal && modalPost.value)
+    modalPost.value.content = editPostContent.value;
 }
 async function deletePost(postId, isModal = false) {
-  if (!window.confirm('¿Seguro que quieres eliminar esta publicación?')) return;
-  await deleteDoc(doc(db, 'feed_posts', postId));
+  if (!window.confirm("¿Seguro que quieres eliminar esta publicación?")) return;
+  await deleteDoc(doc(db, "feed_posts", postId));
   if (isModal) closeModal();
 }
 function startEditComment(comment) {
@@ -510,30 +755,32 @@ function startEditComment(comment) {
 }
 function cancelEditComment() {
   editingCommentId.value = null;
-  editCommentContent.value = '';
+  editCommentContent.value = "";
 }
 async function saveEditComment(post, comment, isModal = false) {
   if (!editCommentContent.value.trim()) return;
-  const postRef = doc(db, 'feed_posts', post.id);
-  const updatedComments = post.comments.map(c =>
+  const postRef = doc(db, "feed_posts", post.id);
+  const updatedComments = post.comments.map((c) =>
     c.id === comment.id ? { ...c, text: editCommentContent.value } : c
   );
   await updateDoc(postRef, { comments: updatedComments });
   editingCommentId.value = null;
-  editCommentContent.value = '';
+  editCommentContent.value = "";
   if (isModal && modalPost.value) modalPost.value.comments = updatedComments;
 }
 async function deleteComment(post, comment, isModal = false) {
-  if (!window.confirm('¿Seguro que quieres eliminar este comentario?')) return;
-  const postRef = doc(db, 'feed_posts', post.id);
-  const updatedComments = post.comments.filter(c => c.id !== comment.id);
+  if (!window.confirm("¿Seguro que quieres eliminar este comentario?")) return;
+  const postRef = doc(db, "feed_posts", post.id);
+  const updatedComments = post.comments.filter((c) => c.id !== comment.id);
   await updateDoc(postRef, { comments: updatedComments });
   if (isModal && modalPost.value) modalPost.value.comments = updatedComments;
 }
 
 function reactWithBounce(postId, type, isModal = false) {
-  bounceReactionId.value = postId + '-' + type;
-  setTimeout(() => { bounceReactionId.value = ''; }, 500);
+  bounceReactionId.value = postId + "-" + type;
+  setTimeout(() => {
+    bounceReactionId.value = "";
+  }, 500);
   reactToPost(postId, type, isModal);
 }
 
@@ -546,23 +793,22 @@ function goToUserProfile(uid) {
 <script>
 // Toast.vue (componente simple)
 export default {
-  props: ['message', 'type'],
-  emits: ['close'],
+  props: ["message", "type"],
+  emits: ["close"],
   template: `
     <div :class="['toast', type]">
       <span>{{ message }}</span>
       <button class="toast-close" @click="$emit('close')">&times;</button>
     </div>
-  `
-}
+  `,
+};
 </script>
 
 <style scoped>
-/* Estilos globales para asegurar scroll */
-:global(html), :global(body) {
-  height: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
+html,
+body {
+  overflow: hidden !important;
+  height: 100vh !important;
 }
 .feed-layout {
   display: flex;
@@ -576,7 +822,14 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* No height, no overflow */
+  height: 100vh;
+  background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
+  box-shadow: none;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 88px 40px 40px 40px;
+  margin: 0;
+  overflow-y: auto;
 }
 .feed-full {
   min-height: 100vh;
@@ -607,7 +860,7 @@ export default {
   padding: 0.75rem 2.2rem 0.75rem 1.5rem;
   border-radius: 999px;
   border: none;
-  box-shadow: 0 4px 16px rgba(30,58,138,0.12);
+  box-shadow: 0 4px 16px rgba(30, 58, 138, 0.12);
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -616,9 +869,10 @@ export default {
   outline: none;
   position: relative;
 }
-.btn-create-post:hover, .btn-create-post:focus {
+.btn-create-post:hover,
+.btn-create-post:focus {
   background: var(--primary-light);
-  box-shadow: 0 8px 24px rgba(30,58,138,0.18);
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.18);
   transform: translateY(-2px) scale(1.04);
 }
 .btn-create-post i {
@@ -628,7 +882,7 @@ export default {
 .new-post-form {
   background: var(--background, #fff);
   border-radius: 12px;
-  box-shadow: 0 2px 8px var(--shadow, rgba(0,0,0,0.08));
+  box-shadow: 0 2px 8px var(--shadow, rgba(0, 0, 0, 0.08));
   padding: 1.5rem;
   border: 1px solid var(--border-color, #e2e8f0);
   display: flex;
@@ -675,7 +929,7 @@ export default {
 .feed-post {
   background: var(--background, #fff);
   border-radius: 16px;
-  box-shadow: 0 2px 12px var(--shadow, rgba(0,0,0,0.10));
+  box-shadow: 0 2px 12px var(--shadow, rgba(0, 0, 0, 0.1));
   padding: 1.5rem 1.5rem 1rem 1.5rem;
   border: 1px solid var(--border-color, #e2e8f0);
   transition: box-shadow 0.2s;
@@ -685,7 +939,7 @@ export default {
   box-sizing: border-box;
 }
 .feed-post:hover {
-  box-shadow: 0 6px 24px var(--shadow-hover, rgba(99,102,241,0.12));
+  box-shadow: 0 6px 24px var(--shadow-hover, rgba(99, 102, 241, 0.12));
 }
 .post-header {
   display: flex;
@@ -759,19 +1013,7 @@ export default {
   background: #fff;
   border-radius: 8px;
   padding: 0.4rem 0.8rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  word-break: break-word;
-  white-space: pre-line;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  margin-bottom: 0.7rem;
-}
-.comment-text {
-  display: inline;
-  word-break: break-word;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  max-width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .comment-user {
   font-weight: 600;
@@ -816,8 +1058,11 @@ export default {
 /* Modal Feed */
 .modal-feed {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.45);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -830,7 +1075,7 @@ export default {
   width: 95vw;
   padding: 2rem 1.5rem 1.5rem 1.5rem;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   height: 40em;
 }
 .modal-close {
@@ -888,13 +1133,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .post-img {
   margin-top: 0.7rem;
   max-width: 100%;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .btn-icon {
   background: none;
@@ -945,16 +1190,20 @@ export default {
   display: inline-flex;
   gap: 0.2rem;
 }
-.fade-modal-enter-active, .fade-modal-leave-active {
+.fade-modal-enter-active,
+.fade-modal-leave-active {
   transition: opacity 0.3s;
 }
-.fade-modal-enter-from, .fade-modal-leave-to {
+.fade-modal-enter-from,
+.fade-modal-leave-to {
   opacity: 0;
 }
-.fade-list-enter-active, .fade-list-leave-active {
-  transition: all 0.35s cubic-bezier(.4,2,.6,1);
+.fade-list-enter-active,
+.fade-list-leave-active {
+  transition: all 0.35s cubic-bezier(0.4, 2, 0.6, 1);
 }
-.fade-list-enter-from, .fade-list-leave-to {
+.fade-list-enter-from,
+.fade-list-leave-to {
   opacity: 0;
   transform: translateY(20px);
 }
@@ -962,10 +1211,18 @@ export default {
   animation: bounce 0.5s;
 }
 @keyframes bounce {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.3); }
-  60% { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .toast {
   position: fixed;
@@ -975,7 +1232,7 @@ export default {
   background: #fff;
   color: #222;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.13);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.13);
   padding: 1rem 2.5rem 1rem 1rem;
   z-index: 3000;
   font-size: 1rem;
@@ -1000,31 +1257,37 @@ export default {
   margin-left: auto;
 }
 @keyframes fadeInToast {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .swal2-toast-custom {
   border-radius: 8px !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.13) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.13) !important;
   font-size: 1rem !important;
   min-width: 220px !important;
   padding: 1rem 2.5rem 1rem 1rem !important;
 }
 #theme-dark .feed-layout {
-  background: linear-gradient(135deg, #181A20 0%, #23262F 100%) !important;
+  background: linear-gradient(135deg, #181a20 0%, #23262f 100%) !important;
 }
 #theme-dark .feed-main {
-  background: linear-gradient(135deg, #23262F 0%, #181A20 100%) !important;
-  color: #F1F1F1;
+  background: linear-gradient(135deg, #23262f 0%, #181a20 100%) !important;
+  color: #f1f1f1;
 }
 /* === INPUTS Y BOTONES ESTILO IACHAT === */
 .new-post-form textarea,
 .add-comment-form input {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50px;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 15px 25px;
-  color: #23262F;
+  color: #23262f;
   font-size: 1rem;
   outline: none;
   margin-bottom: 0.5rem;
@@ -1032,7 +1295,7 @@ export default {
 }
 .new-post-form textarea::placeholder,
 .add-comment-form input::placeholder {
-  color: rgba(99,102,241,0.5);
+  color: rgba(99, 102, 241, 0.5);
 }
 .new-post-actions .btn,
 .add-comment-form .btn {
@@ -1054,21 +1317,21 @@ export default {
 #theme-dark .new-post-form textarea,
 #theme-dark .add-comment-form input {
   background: rgba(79, 140, 255, 0.08) !important;
-  color: #F1F1F1 !important;
+  color: #f1f1f1 !important;
   border: 1px solid #26334d !important;
 }
 #theme-dark .new-post-form textarea::placeholder,
 #theme-dark .add-comment-form input::placeholder {
-  color: #85C1E9 !important;
+  color: #85c1e9 !important;
 }
 #theme-dark .new-post-actions .btn,
 #theme-dark .add-comment-form .btn {
-  background: linear-gradient(45deg, #4F8CFF, #06d6a0) !important;
-  color: #181A20 !important;
+  background: linear-gradient(45deg, #4f8cff, #06d6a0) !important;
+  color: #181a20 !important;
 }
 #theme-dark .new-post-actions .btn:hover,
 #theme-dark .add-comment-form .btn:hover {
-  background: linear-gradient(45deg, #06d6a0, #4F8CFF) !important;
+  background: linear-gradient(45deg, #06d6a0, #4f8cff) !important;
   color: #fff !important;
 }
 .user-id {
@@ -1100,35 +1363,35 @@ export default {
   background: rgba(24, 26, 32, 0.85);
 }
 #theme-dark .modal-feed-content {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
   border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(79,140,255,0.10);
+  box-shadow: 0 8px 32px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-input {
-  background: #181A20;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
+  background: #181a20;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
 }
 #theme-dark .modal-input::placeholder {
-  color: #85C1E9;
+  color: #85c1e9;
   opacity: 1;
 }
 #theme-dark .modal-select-group label {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-close {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .btn.btn-primary {
-  background: linear-gradient(45deg, #4F8CFF, #06d6a0) !important;
-  color: #181A20 !important;
+  background: linear-gradient(45deg, #4f8cff, #06d6a0) !important;
+  color: #181a20 !important;
 }
 #theme-dark .btn.btn-primary:hover {
-  background: linear-gradient(45deg, #06d6a0, #4F8CFF) !important;
+  background: linear-gradient(45deg, #06d6a0, #4f8cff) !important;
   color: #fff !important;
 }
 .modal {
@@ -1139,12 +1402,18 @@ export default {
   align-items: center;
   justify-content: center;
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2000;
 }
 .modal-background {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(24, 26, 32, 0.85);
 }
 .modal-card {
@@ -1153,7 +1422,7 @@ export default {
   background: #fff;
   max-width: 500px;
   width: 95vw;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1183,7 +1452,7 @@ export default {
 }
 .modal-card-body {
   background: #fff;
-  color: #23262F;
+  color: #23262f;
   padding: 2rem 1.5rem 1.5rem 1.5rem;
 }
 .modal-card-foot {
@@ -1195,32 +1464,34 @@ export default {
   padding: 1.2rem 1.5rem;
 }
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
 }
 @media (max-width: 600px) {
-  .feed-header, .feed-list, .modal-feed-content {
+  .feed-header,
+  .feed-list,
+  .modal-feed-content {
     max-width: 100vw;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
@@ -1229,10 +1500,4 @@ export default {
     padding: 1rem 0.5rem 0.5rem 0.5rem;
   }
 }
-@media (max-width: 900px) {
-  .feed-list {
-    grid-template-columns: 1fr;
-    max-width: 100%;
-  }
-}
-</style> 
+</style>
