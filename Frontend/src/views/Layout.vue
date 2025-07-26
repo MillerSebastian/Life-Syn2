@@ -41,7 +41,6 @@ const handleSidebarToggle = (collapsed) => {
   flex: 1;
   margin-left: 250px;
   background: var(--background-secondary);
-  min-height: 100vh;
   min-width: 0;
   transition: margin-left 0.3s ease;
   padding-top: 72px;
