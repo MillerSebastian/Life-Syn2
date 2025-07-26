@@ -93,7 +93,9 @@
         <div class="column is-8">
           <div class="card">
             <div class="card-header">
-              <h3 class="title is-5 mb-0">Transacciones Recientes</h3>
+              <h3 class="title is-5 mb-0">
+                Transacciones - {{ getMonthDisplayName() }}
+              </h3>
             </div>
             <div class="card-content">
               <div class="transactions-list">
@@ -152,7 +154,9 @@
           <!-- Presupuesto -->
           <div class="card mb-4">
             <div class="card-header">
-              <h3 class="title is-5 mb-0">Presupuesto Mensual</h3>
+              <h3 class="title is-5 mb-0">
+                Presupuesto - {{ getMonthDisplayName() }}
+              </h3>
             </div>
             <div class="card-content">
               <div class="budget-categories">
@@ -190,7 +194,7 @@
             <div class="card-header">
               <h3 class="title is-5 mb-0">Distribución de Gastos</h3>
             </div>
-            <div class="card-content">
+            <div class="card-content chart-content">
               <div class="expense-chart">
                 <canvas ref="expenseChart" width="300" height="200"></canvas>
               </div>
@@ -371,7 +375,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveBudget">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showBudgetModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showBudgetModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -426,6 +433,12 @@ const transactionForm = reactive({
 const transactions = ref([]);
 const getUserId = () => auth.currentUser?.uid;
 
+// Watcher para el filtro de meses
+watch(selectedMonth, () => {
+  calcularWalletData();
+  nextTick(() => renderExpenseChart());
+});
+
 onMounted(() => {
   onSnapshot(collection(db, "transactions"), (snapshot) => {
     const userId = getUserId();
@@ -448,16 +461,25 @@ const budgetCategories = ref([
   { name: "Entretenimiento", limit: 0, spent: 0 },
   { name: "Salud", limit: 0, spent: 0 },
   { name: "Compras", limit: 0, spent: 0 },
+  { name: "Facturas", limit: 0, spent: 0 },
 ]);
 
 onMounted(async () => {
   // Leer presupuesto
+  const userId = getUserId();
+  if (!userId) return;
+
   const snapshot = await getDocs(collection(db, "budgets"));
   if (!snapshot.empty) {
-    const data = snapshot.docs[0].data();
-    budgetCategories.value.forEach((cat) => {
-      if (data[cat.name]) cat.limit = data[cat.name];
-    });
+    const userBudget = snapshot.docs.find(
+      (doc) => doc.data().userId === userId
+    );
+    if (userBudget) {
+      const data = userBudget.data();
+      budgetCategories.value.forEach((cat) => {
+        if (data[cat.name]) cat.limit = data[cat.name];
+      });
+    }
   }
   calcularWalletData();
   nextTick(() => renderExpenseChart());
@@ -467,16 +489,30 @@ onMounted(async () => {
 const saveBudget = async () => {
   const userId = getUserId();
   if (!userId) return;
+
   const data = {};
   budgetCategories.value.forEach((cat) => (data[cat.name] = Number(cat.limit)));
-  const snapshot = await getDocs(collection(db, "budgets"));
-  if (!snapshot.empty) {
-    await setDoc(doc(db, "budgets", snapshot.docs[0].id), { ...data, userId });
-  } else {
-    await addDoc(collection(db, "budgets"), { ...data, userId });
+
+  try {
+    const snapshot = await getDocs(collection(db, "budgets"));
+    const userBudget = snapshot.docs.find(
+      (doc) => doc.data().userId === userId
+    );
+
+    if (userBudget) {
+      // Actualizar presupuesto existente
+      await updateDoc(doc(db, "budgets", userBudget.id), { ...data, userId });
+    } else {
+      // Crear nuevo presupuesto
+      await addDoc(collection(db, "budgets"), { ...data, userId });
+    }
+
+    showBudgetModal.value = false;
+    alertSuccess("Presupuesto guardado exitosamente");
+  } catch (error) {
+    console.error("Error al guardar presupuesto:", error);
+    alertError("Error al guardar el presupuesto");
   }
-  showBudgetModal.value = false;
-  alertSuccess("guardado exitosamente")
 };
 
 // Guardar transacción (crear o actualizar)
@@ -495,24 +531,31 @@ const saveTransaction = async () => {
       amount: Number(transactionForm.amount),
       userId,
     });
-    alertSuccess("editado exitosamente")
+    alertSuccess("editado exitosamente");
   } else {
     await addDoc(collection(db, "transactions"), {
       ...transactionForm,
       amount: Number(transactionForm.amount),
       userId,
     });
-    alertSuccess("guardado exitosamente")
+    alertSuccess("guardado exitosamente");
   }
+
+  // Recalcular datos inmediatamente
+  setTimeout(() => {
+    calcularWalletData();
+    nextTick(() => renderExpenseChart());
+  }, 100);
+
   resetTransactionForm();
   showAddTransactionModal.value = false;
 };
 
 const deleteTransaction = async (id) => {
-  const result= await alertQuestion("¿deseas eliminar la transaccion?")
-  if(!result.isConfirmed)return;
+  const result = await alertQuestion("¿deseas eliminar la transaccion?");
+  if (!result.isConfirmed) return;
   await deleteDoc(doc(db, "transactions", id));
-  alertSuccess("eliminado exitosamente")
+  alertSuccess("eliminado exitosamente");
 };
 
 const editTransaction = (transaction) => {
@@ -535,34 +578,86 @@ const resetTransactionForm = () => {
 
 // Calcular resumen financiero y gastos por categoría
 function calcularWalletData() {
-  const month = new Date().getMonth();
-  const year = new Date().getFullYear();
+  const currentDate = new Date();
+  let targetMonth, targetYear;
+
+  // Determinar el mes y año objetivo según el filtro
+  switch (selectedMonth.value) {
+    case "current":
+      targetMonth = currentDate.getMonth();
+      targetYear = currentDate.getFullYear();
+      break;
+    case "previous":
+      targetMonth = currentDate.getMonth() - 1;
+      targetYear = currentDate.getFullYear();
+      // Ajustar año si es enero del año anterior
+      if (targetMonth < 0) {
+        targetMonth = 11;
+        targetYear--;
+      }
+      break;
+    case "next":
+      targetMonth = currentDate.getMonth() + 1;
+      targetYear = currentDate.getFullYear();
+      // Ajustar año si es diciembre del año siguiente
+      if (targetMonth > 11) {
+        targetMonth = 0;
+        targetYear++;
+      }
+      break;
+    default:
+      targetMonth = currentDate.getMonth();
+      targetYear = currentDate.getFullYear();
+  }
+
   let income = 0,
     expenses = 0;
   budgetCategories.value.forEach((cat) => (cat.spent = 0));
+
   transactions.value.forEach((t) => {
     const tDate = new Date(t.date);
-    if (tDate.getMonth() === month && tDate.getFullYear() === year) {
+    if (
+      tDate.getMonth() === targetMonth &&
+      tDate.getFullYear() === targetYear
+    ) {
       if (t.type === "income") income += Number(t.amount);
       if (t.type === "expense") {
         expenses += Number(t.amount);
         // Sumar a la categoría
-        const cat = budgetCategories.value.find(
-          (c) => c.name.toLowerCase() === getCategoryName(t.category)
+        const categoryName = getCategoryName(t.category);
+        console.log(
+          "Transaction category:",
+          t.category,
+          "Mapped to:",
+          categoryName
         );
-        if (cat) cat.spent += Number(t.amount);
+        const cat = budgetCategories.value.find((c) => c.name === categoryName);
+        if (cat) {
+          cat.spent += Number(t.amount);
+          console.log("Added to category:", cat.name, "New spent:", cat.spent);
+        } else {
+          console.log("Category not found:", categoryName);
+        }
       }
     }
   });
+
   walletData.income = income;
   walletData.expenses = expenses;
   walletData.balance = income - expenses;
-  // Balance change: diferencia con el mes anterior
+
+  // Balance change: diferencia con el mes anterior del mes seleccionado
   let prevIncome = 0,
     prevExpenses = 0;
+  const prevMonth = targetMonth - 1;
+  const prevYear = targetMonth === 0 ? targetYear - 1 : targetYear;
+
   transactions.value.forEach((t) => {
     const tDate = new Date(t.date);
-    if (tDate.getMonth() === month - 1 && tDate.getFullYear() === year) {
+    const tMonth = targetMonth === 0 ? 11 : targetMonth - 1;
+    const tYear = targetMonth === 0 ? targetYear - 1 : targetYear;
+
+    if (tDate.getMonth() === tMonth && tDate.getFullYear() === tYear) {
       if (t.type === "income") prevIncome += Number(t.amount);
       if (t.type === "expense") prevExpenses += Number(t.amount);
     }
@@ -574,18 +669,68 @@ function getCategoryName(category) {
   // Mapea el valor de category a los nombres de budgetCategories
   switch (category) {
     case "food":
-      return "comida";
+      return "Comida";
     case "transport":
-      return "transporte";
+      return "Transporte";
     case "entertainment":
-      return "entretenimiento";
+      return "Entretenimiento";
     case "health":
-      return "salud";
+      return "Salud";
     case "shopping":
-      return "compras";
+      return "Compras";
+    case "bills":
+      return "Facturas";
     default:
       return category.toLowerCase();
   }
+}
+
+function getMonthDisplayName() {
+  const currentDate = new Date();
+  let targetMonth, targetYear;
+
+  switch (selectedMonth.value) {
+    case "current":
+      targetMonth = currentDate.getMonth();
+      targetYear = currentDate.getFullYear();
+      break;
+    case "previous":
+      targetMonth = currentDate.getMonth() - 1;
+      targetYear = currentDate.getFullYear();
+      if (targetMonth < 0) {
+        targetMonth = 11;
+        targetYear--;
+      }
+      break;
+    case "next":
+      targetMonth = currentDate.getMonth() + 1;
+      targetYear = currentDate.getFullYear();
+      if (targetMonth > 11) {
+        targetMonth = 0;
+        targetYear++;
+      }
+      break;
+    default:
+      targetMonth = currentDate.getMonth();
+      targetYear = currentDate.getFullYear();
+  }
+
+  const monthNames = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+
+  return `${monthNames[targetMonth]} ${targetYear}`;
 }
 
 // Gráfico de gastos
@@ -594,11 +739,17 @@ function renderExpenseChart() {
   if (!expenseChart.value) return;
   if (chartInstance) chartInstance.destroy();
   const data = budgetCategories.value.map((cat) => cat.spent);
+  const labels = budgetCategories.value.map((cat) => cat.name);
+
+  console.log("Chart data:", data);
+  console.log("Chart labels:", labels);
+  console.log("Budget categories:", budgetCategories.value);
+
   const ctx = expenseChart.value.getContext("2d");
   chartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: budgetCategories.value.map((cat) => cat.name),
+      labels: labels,
       datasets: [
         {
           data,
@@ -608,6 +759,7 @@ function renderExpenseChart() {
             "#fbbf24",
             "#ef4444",
             "#8b5cf6",
+            "#10b981",
           ],
         },
       ],
@@ -656,6 +808,40 @@ const getProgressPercentage = (spent, limit) => {
   return Math.min((spent / limit) * 100, 100);
 };
 
+const getMonthDisplayName = () => {
+  const monthNames = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+  const currentDate = new Date();
+  let targetMonth;
+
+  switch (selectedMonth.value) {
+    case "current":
+      targetMonth = currentDate.getMonth();
+      break;
+    case "previous":
+      targetMonth = currentDate.getMonth() - 1;
+      break;
+    case "next":
+      targetMonth = currentDate.getMonth() + 1;
+      break;
+    default:
+      targetMonth = currentDate.getMonth();
+  }
+  return monthNames[targetMonth];
+};
+
 const route = useRoute();
 const highlightedId = ref(null);
 
@@ -679,20 +865,19 @@ watch(
 </script>
 
 <style scoped>
-
-.modal-card-body{
+.modal-card-body {
   width: 40em;
 }
 
-
-.select-month{
+.select-month {
   border-radius: 10px;
   padding: 0em 1em;
   border: 1px solid transparent;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.select-month>option{
+.select-month > option {
   border-radius: 10px;
 }
 
@@ -832,6 +1017,41 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-height: 875px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Estilizar scrollbar */
+.transactions-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transactions-list::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.transactions-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.transactions-list::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary);
+}
+
+/* Estilos para modo oscuro del scrollbar */
+#theme-dark .transactions-list::-webkit-scrollbar-track {
+  background: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .transactions-list::-webkit-scrollbar-thumb {
+  background: rgba(79, 140, 255, 0.3);
+}
+
+#theme-dark .transactions-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 140, 255, 0.5);
 }
 
 .transaction-item {
@@ -981,6 +1201,12 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-bottom: 1rem;
+}
+
+.chart-content {
+  padding: 1.5rem;
+  padding-bottom: 2rem;
 }
 
 /* Responsive */
@@ -1055,26 +1281,26 @@ watch(
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
