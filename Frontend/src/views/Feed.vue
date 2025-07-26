@@ -811,12 +811,11 @@ body {
   height: 100vh !important;
 }
 .feed-layout {
-  height: 100vh;
-  width: 100%;
-  max-width: none;
-  margin: 0;
   display: flex;
-  overflow: hidden;
+  background: var(--background-secondary);
+  min-height: 100vh;
+  width: 100%;
+  /* No height, no overflow */
 }
 .feed-main {
   flex: 1;
@@ -848,6 +847,37 @@ body {
   margin-top: 2rem;
   width: 100%;
   max-width: 600px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 0.5rem;
+}
+.btn-create-post {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.75rem 2.2rem 0.75rem 1.5rem;
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(30, 58, 138, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  outline: none;
+  position: relative;
+}
+.btn-create-post:hover,
+.btn-create-post:focus {
+  background: var(--primary-light);
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.18);
+  transform: translateY(-2px) scale(1.04);
+}
+.btn-create-post i {
+  font-size: 1.3em;
+  margin-right: 0.2em;
 }
 .new-post-form {
   background: var(--background, #fff);
@@ -888,15 +918,13 @@ body {
   justify-content: flex-end;
 }
 .feed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2.5rem;
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
-  align-items: center;
-  overflow: visible;
-  max-height: none;
+  /* No max-height, no overflow-y, no height */
 }
 .feed-post {
   background: var(--background, #fff);
@@ -906,6 +934,9 @@ body {
   border: 1px solid var(--border-color, #e2e8f0);
   transition: box-shadow 0.2s;
   cursor: pointer;
+  width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
 }
 .feed-post:hover {
   box-shadow: 0 6px 24px var(--shadow-hover, rgba(99, 102, 241, 0.12));
@@ -961,11 +992,15 @@ body {
   background: var(--primary-light, #e0e7ff);
 }
 .post-comments {
-  border-top: 1px solid var(--border-color, #e2e8f0);
-  padding-top: 0.75rem;
   background: var(--background-secondary, #f8fafc);
   border-radius: 0 0 12px 12px;
   margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.2rem;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 .comment {
   display: flex;

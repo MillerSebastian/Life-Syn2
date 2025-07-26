@@ -1,18 +1,11 @@
 <template>
-  <SidebarFeed
-    :user="user"
-    :isSidebarCollapsed="isSidebarCollapsed"
-    :activeSection="activeSection"
-    @toggle-sidebar="toggleSidebar"
-    @update:activeSection="(val) => (activeSection = val)"
-  />
   <div class="columns">
     <div class="column is-one-quarter">
       <div class="box">
         <h2 class="title is-4">Usuarios</h2>
         <div v-if="loadingUsers" class="has-text-centered py-4">
           <span class="icon is-large">
-            <i class="fas fa-spinner fa-pulse"></i>
+            <i class="bx bx-loader-alt bx-spin"></i>
           </span>
           <p>Cargando usuarios...</p>
         </div>
@@ -39,15 +32,6 @@
               </div>
             </div>
             <div class="user-actions is-flex">
-              <button
-                @click.stop="viewUserProfile(user)"
-                class="button is-small is-light mr-2"
-                title="Ver perfil"
-              >
-                <span class="icon">
-                  <i class="bx bx-user"></i>
-                </span>
-              </button>
               <span v-if="unreadMessages[user.uid]" class="notification-badge">
                 {{ unreadMessages[user.uid] }}
               </span>
@@ -56,7 +40,7 @@
         </ul>
       </div>
     </div>
-    <div class="column is-three-quarters chat-column">
+    <div class="column">
       <div class="box">
         <h2 class="title is-4">
           Chat con
@@ -106,9 +90,24 @@
                   >
                     {{ message.author }}
                   </span>
-                  <span class="message-time">
-                    {{ formatTime(message.timestamp) }}
-                  </span>
+                  <div class="message-time-container">
+                    <span class="message-time">
+                      {{ formatTime(message.timestamp) }}
+                      <span v-if="message.edited" class="edited-indicator"
+                        >(editado)</span
+                      >
+                    </span>
+                    <button
+                      v-if="message.senderId === auth.currentUser?.uid"
+                      @click="toggleMessageMenu(message.id)"
+                      class="message-menu-button"
+                      title="Opciones del mensaje"
+                    >
+                      <span class="icon is-small">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 <div class="message-content">
                   <!-- Renderizar mensajes con emojis -->
@@ -117,49 +116,100 @@
                     v-html="formatMessageWithEmojis(message.text)"
                   ></div>
                 </div>
-                <button
-                  v-if="message.senderId === auth.currentUser?.uid"
-                  @click="deleteMessage(message.id)"
-                  class="delete-button always-visible"
-                  title="Eliminar mensaje"
+
+                <!-- Modal de opciones del mensaje -->
+                <div
+                  v-if="activeMessageMenu === message.id"
+                  class="message-menu-modal"
+                  @click.stop
                 >
-                  <span class="icon is-small">
-                    <i class="bx bx-trash"></i>
-                  </span>
-                </button>
+                  <div class="message-menu-content">
+                    <button
+                      @click="editMessage(message)"
+                      class="menu-option edit-option"
+                    >
+                      <span class="icon is-small">
+                        <i class="bx bx-edit"></i>
+                      </span>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      @click="deleteMessage(message.id)"
+                      class="menu-option delete-option"
+                    >
+                      <span class="icon is-small">
+                        <i class="bx bx-trash"></i>
+                      </span>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <form
-        @submit.prevent="sendMessage"
-        v-if="selectedUser"
-        class="message-form"
-      >
-        <div class="message-input-container">
-          <input
-            v-model="newMessage"
-            placeholder="Escribe un mensaje..."
-            class="input"
-          />
+        <form
+          @submit.prevent="sendMessage"
+          v-if="selectedUser"
+          class="message-form"
+        >
+          <!-- Interfaz de edición de mensaje -->
+          <div v-if="editingMessage" class="edit-message-container">
+            <div class="edit-message-header">
+              <span class="edit-label">Editando mensaje:</span>
+              <button @click="cancelMessageEdit" class="cancel-edit-button">
+                <span class="icon is-small">
+                  <i class="bx bx-x"></i>
+                </span>
+              </button>
+            </div>
+            <div class="edit-message-input-container">
+              <input
+                v-model="editMessageText"
+                placeholder="Editar mensaje..."
+                class="input edit-input"
+              />
+              <button
+                @click="saveMessageEdit"
+                class="button is-success is-small"
+                :disabled="!editMessageText.trim()"
+              >
+                <span class="icon is-small">
+                  <i class="bx bx-check"></i>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulario normal de envío de mensajes -->
+          <div v-else class="message-input-container">
+            <input
+              v-model="newMessage"
+              placeholder="Escribe un mensaje..."
+              class="input"
+            />
+            <button
+              type="button"
+              @click="toggleEmojiPicker"
+              class="emoji-button"
+              title="Emojis"
+            >
+              <span class="icon">
+                <i class="bx bx-smile"></i>
+              </span>
+            </button>
+          </div>
           <button
-            type="button"
-            @click="toggleEmojiPicker"
-            class="emoji-button"
-            title="Emojis"
+            type="submit"
+            class="button is-primary"
+            v-if="!editingMessage"
           >
             <span class="icon">
-              <i class="bx bx-smile"></i>
+              <i class="bx bx-send"></i>
             </span>
           </button>
-        </div>
-        <button type="submit" class="button is-primary">
-          <span class="icon">
-            <i class="bx bx-paper-plane"></i>
-          </span>
-        </button>
-      </form>
+        </form>
+      </div>
 
       <!-- Selector de emojis -->
       <div v-if="showEmojiPicker" class="emoji-picker">
@@ -183,9 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import NavbarFeed from "../components/NavbarFeed.vue";
-import Profile from "../views/UserProfile.vue";
-import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from "vue";
 import {
   collection,
   addDoc,
@@ -200,8 +248,16 @@ import {
   updateDoc,
   setDoc,
   getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import { db, auth } from "../../firebase";
+import {
+  ref as dbRef,
+  set,
+  onValue,
+  off,
+  onDisconnect,
+} from "firebase/database";
+import { db, auth, database } from "../../firebase";
 import { useRouter } from "vue-router";
 
 // Interfaces actualizadas para reflejar la estructura de datos del registro
@@ -221,6 +277,8 @@ interface Message {
   senderId: string;
   receiverId: string;
   read?: boolean;
+  edited?: boolean;
+  editedAt?: any;
 }
 
 interface ReadStatus {
@@ -245,16 +303,66 @@ const userColors = ref<UserColors>({});
 const loadingUsers = ref<boolean>(true);
 const showEmojiPicker = ref<boolean>(false);
 const isUploading = ref<boolean>(false);
+const activeMessageMenu = ref<string | null>(null);
+const editingMessage = ref<Message | null>(null);
+const editMessageText = ref<string>("");
+const onlineUsers = ref<Set<string>>(new Set());
+const userPresenceRefs = ref<Map<string, any>>(new Map());
 
 // Add this to your existing script setup
 const router = useRouter();
 
-// Function to check user online status (you'll need to implement this)
+// Function to check user online status
 const isUserOnline = (userId: string): boolean => {
-  // Placeholder implementation
-  // In a real-world scenario, you'd track user online status
-  // through Firebase presence or a similar mechanism
-  return false; // Replace with actual online status logic
+  return onlineUsers.value.has(userId);
+};
+
+// Función para establecer el estado online del usuario actual
+const setUserOnline = async () => {
+  if (!auth.currentUser) return;
+
+  const userStatusRef = dbRef(database, `status/${auth.currentUser.uid}`);
+
+  // Establecer estado online
+  await set(userStatusRef, {
+    online: true,
+    lastSeen: Date.now(),
+    uid: auth.currentUser.uid,
+  });
+
+  // Establecer estado offline cuando el usuario se desconecte
+  await onDisconnect(userStatusRef).set({
+    online: false,
+    lastSeen: Date.now(),
+    uid: auth.currentUser.uid,
+  });
+};
+
+// Función para escuchar el estado online de otros usuarios
+const listenToUserPresence = (userId: string) => {
+  if (userPresenceRefs.value.has(userId)) return; // Ya está escuchando
+
+  const userStatusRef = dbRef(database, `status/${userId}`);
+
+  const unsubscribe = onValue(userStatusRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.online) {
+      onlineUsers.value.add(userId);
+    } else {
+      onlineUsers.value.delete(userId);
+    }
+  });
+
+  userPresenceRefs.value.set(userId, unsubscribe);
+};
+
+// Función para limpiar los listeners de presencia
+const cleanupPresenceListeners = () => {
+  userPresenceRefs.value.forEach((unsubscribe) => {
+    if (unsubscribe) unsubscribe();
+  });
+  userPresenceRefs.value.clear();
+  onlineUsers.value.clear();
 };
 
 // Emojis comunes para el selector
@@ -344,7 +452,6 @@ const commonEmojis = [
 const usersCollection = collection(db, "users");
 const messagesCollection = collection(db, "messages");
 const readStatusCollection = collection(db, "readStatus");
-// Eliminado: const storage = getStorage();
 
 // Lista de colores para asignar a los usuarios
 const colorPalette = [
@@ -489,10 +596,11 @@ const loadUsers = async () => {
     const usersSnapshot = await getDocs(usersCollection);
     const loadedUsers: User[] = [];
 
-    for (const docSnap of usersSnapshot.docs) {
-      const userData = docSnap.data() as User;
+    for (const doc of usersSnapshot.docs) {
+      const userData = doc.data() as User;
+
       if (userData.name && userData.email) {
-        loadedUsers.push({ uid: docSnap.id, ...userData });
+        loadedUsers.push({ uid: doc.id, ...userData });
       }
     }
 
@@ -500,20 +608,25 @@ const loadUsers = async () => {
 
     if (auth.currentUser) {
       const currentUserDoc = usersSnapshot.docs.find(
-        (docSnap) => docSnap.id === auth.currentUser?.uid
+        (doc) => doc.id === auth.currentUser?.uid
       );
       if (currentUserDoc && currentUserDoc.data().name) {
         currentUser.value = {
           uid: currentUserDoc.id,
           ...currentUserDoc.data(),
         } as User;
+
         await loadReadStatus();
+        setUserOnline(); // Establecer estado online del usuario actual
+        listenToUserPresence(auth.currentUser.uid); // Escuchar estado online del usuario actual
       }
     }
 
     // Asignar colores a todos los usuarios
     loadedUsers.forEach((user) => {
       getUserColor(user.uid);
+      // Escuchar el estado online de cada usuario
+      listenToUserPresence(user.uid);
     });
 
     setupGlobalMessagesListener();
@@ -708,16 +821,55 @@ const toggleEmojiPicker = () => {
   showEmojiPicker.value = !showEmojiPicker.value;
 };
 
+// Función para alternar el menú de opciones del mensaje
+const toggleMessageMenu = (messageId: string) => {
+  if (activeMessageMenu.value === messageId) {
+    activeMessageMenu.value = null;
+  } else {
+    activeMessageMenu.value = messageId;
+  }
+};
+
+// Función para cerrar el menú de opciones
+const closeMessageMenu = () => {
+  activeMessageMenu.value = null;
+};
+
+// Función para editar un mensaje
+const editMessage = (message: Message) => {
+  editingMessage.value = message;
+  editMessageText.value = message.text;
+  closeMessageMenu();
+};
+
+// Función para guardar la edición del mensaje
+const saveMessageEdit = async () => {
+  if (!editingMessage.value || !editMessageText.value.trim()) return;
+
+  try {
+    const messageRef = doc(db, "messages", editingMessage.value.id);
+    await updateDoc(messageRef, {
+      text: editMessageText.value.trim(),
+      edited: true,
+      editedAt: Timestamp.now(),
+    });
+
+    editingMessage.value = null;
+    editMessageText.value = "";
+  } catch (error) {
+    console.error("Error al editar el mensaje:", error);
+  }
+};
+
+// Función para cancelar la edición
+const cancelMessageEdit = () => {
+  editingMessage.value = null;
+  editMessageText.value = "";
+};
+
 // Función para añadir un emoji al mensaje
 const addEmoji = (emoji: string) => {
   newMessage.value += emoji;
-};
-
-// Desencadena el selector de archivos
-const triggerFileInput = () => {
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
 };
 
 const sendMessage = async () => {
@@ -729,7 +881,7 @@ const sendMessage = async () => {
   )
     return;
 
-  // Crear mensaje solo de texto
+  // Crear mensaje
   const messageData: any = {
     text: newMessage.value,
     author: currentUser.value.name,
@@ -739,7 +891,7 @@ const sendMessage = async () => {
     read: false,
   };
 
-  // Aquí deberías agregar el mensaje a Firestore (faltaba en el código anterior)
+  // Agregar mensaje a Firestore
   await addDoc(messagesCollection, messageData);
 
   // Resetear campo después de enviar
@@ -770,22 +922,39 @@ watch(messages, () => {
 
 onMounted(() => {
   loadUsers();
+
+  // Event listener para cerrar el modal cuando se hace clic fuera
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    // Solo cerrar si no se hace clic en el botón del menú o en el modal
+    if (
+      !target.closest(".message-menu-modal") &&
+      !target.closest(".message-menu-button") &&
+      !target.closest(".message-time-container")
+    ) {
+      closeMessageMenu();
+    }
+  });
+});
+
+// Limpiar listeners cuando el componente se desmonte
+onUnmounted(() => {
+  cleanupPresenceListeners();
 });
 </script>
 
 <style scoped>
 .columns {
-  padding-right: 2%;
-  padding-left: 2%;
-  padding-top: 2%;
-  height: 100vh;
+  height: 85vh;
+  margin-top: 20px;
 }
 
 .box {
-  height: 93%;
+  height: calc(100% - 80px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding-bottom: 10px;
 }
 
 ul {
@@ -830,12 +999,12 @@ li.is-active {
 .messages {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 20px;
   padding: 10px;
   display: flex;
   flex-direction: column;
-  background-color: hsl(220, 79%, 72%);
+  background-color: hsl(220, 74%, 63%);
   border-radius: 8px;
+  min-height: 300px;
 }
 
 .messages-list {
@@ -857,6 +1026,7 @@ li.is-active {
   display: flex;
   margin-bottom: 10px;
   width: 100%;
+  position: relative;
 }
 
 .sent {
@@ -903,6 +1073,18 @@ li.is-active {
   margin-left: 8px;
 }
 
+.message-time-container {
+  display: flex;
+  align-items: center;
+}
+
+.edited-indicator {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  font-style: italic;
+  margin-left: 4px;
+}
+
 .message-content {
   word-break: break-word;
   line-height: 1.4;
@@ -913,31 +1095,153 @@ li.is-active {
   text-decoration: underline;
 }
 
+.message-menu-button {
+  background-color: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.message-time-container:hover .message-menu-button {
+  opacity: 0.8;
+}
+
+.message-menu-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.message-menu-modal {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 120px;
+  border: 1px solid #ddd;
+  margin-top: 4px;
+}
+
+.message-menu-content {
+  padding: 4px 0;
+}
+
+.menu-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.9rem;
+}
+
+.menu-option:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-option .icon {
+  margin-right: 8px;
+}
+
+.edit-option {
+  color: #3273dc;
+}
+
+.delete-option {
+  color: #ff3860;
+}
+
+.edit-message-container {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.edit-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background-color: #f0f8ff;
+  border-radius: 6px;
+  border-left: 3px solid #3273dc;
+}
+
+.edit-label {
+  font-size: 0.9rem;
+  color: #3273dc;
+  font-weight: 500;
+}
+
+.cancel-edit-button {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.cancel-edit-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.edit-message-input-container {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 20px;
+  padding: 5px 15px;
+  border: 2px solid #3273dc;
+}
+
+.edit-input {
+  flex: 1;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
 .delete-button {
   background-color: transparent;
   border: none;
   color: #ff3860;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   padding: 0;
-  opacity: 1 !important;
+  opacity: 0;
   position: absolute;
-  top: unset;
-  bottom: 8px;
-  right: 8px;
+  right: 4px;
+  bottom: 4px;
   transition: opacity 0.2s;
-  z-index: 2;
 }
-.message-bubble {
-  position: relative;
-}
+
 .message-bubble:hover .delete-button {
+  opacity: 0.8;
+}
+
+.delete-button:hover {
   opacity: 1;
 }
 
 .message-form {
   display: flex;
   margin-top: auto;
+  padding: 10px;
+  background-color: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .message-input-container {
@@ -948,9 +1252,19 @@ li.is-active {
   align-items: center;
   background-color: white;
   border-radius: 20px;
-  padding-right: 10px;
-  bottom: 120px;
-  left: 25px;
+  padding: 5px 15px;
+  border: 2px solid #3273dc;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.message-input-container:hover {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(50, 115, 220, 0.1);
+}
+
+.message-input-container:focus-within {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(50, 115, 220, 0.2);
 }
 
 .message-input-container .input {
@@ -961,19 +1275,25 @@ li.is-active {
   box-shadow: none;
 }
 
-.emoji-button {
+.emoji-button,
+.file-button {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 5px;
-  color: #888;
+  padding: 8px;
+  color: #0000009e;
   transition: color 0.2s;
+  font-size: 1.2rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  margin-left: 5px;
+  justify-content: center;
 }
-.emoji-button:hover {
+
+.emoji-button:hover,
+.file-button:hover {
   color: #00d1b2;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 button.is-primary {
@@ -984,20 +1304,18 @@ button.is-primary {
   display: flex;
   justify-content: center;
   align-items: center;
-  bottom: 120px;
-  right: 25px;
 }
 
 .emoji-picker {
   position: absolute;
-  bottom: 70px;
-  right: 50px;
+  bottom: 80px;
+  right: 20px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   width: 320px;
   max-height: 300px;
-  z-index: 10;
+  z-index: 1000;
   overflow-y: auto;
 }
 
@@ -1060,39 +1378,35 @@ button.is-primary {
   color: #00d1b2;
 }
 
-.selected-file {
-  display: flex;
-  align-items: center;
-  margin-top: 8px;
-  padding: 8px;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-}
-
-.selected-file .file-preview {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.selected-file .icon {
-  margin-right: 8px;
-  color: #3273dc;
-}
-
 .user-status-indicator {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   margin-right: 8px;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .user-status-indicator.is-online {
   background-color: #48bb78; /* Green */
+  animation: pulse 2s infinite;
 }
 
 .user-status-indicator.is-offline {
   background-color: #a0aec0; /* Gray */
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(72, 187, 120, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(72, 187, 120, 0);
+  }
 }
 
 .user-actions {
@@ -1114,23 +1428,284 @@ button.is-primary {
     right: 20px;
   }
 }
-/* Ajusta el ancho máximo del área de chat */
-.chat-column {
-  max-width: none;
-  min-width: 700px;
-  width: 100%;
-  margin: 0 auto;
-}
-.column.is-one-quarter {
-  width: 35%;
-  min-width: 340px;
-  max-width: 500px;
-}
-.column.is-three-quarters {
-  width: 65%;
+
+/* ===== MODO OSCURO PARA CHAT ===== */
+#theme-dark .columns {
+  background: linear-gradient(135deg, #181a20 0%, #23262f 100%);
 }
 
-.delete-button.always-visible {
-  opacity: 1 !important;
+#theme-dark .box {
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 2px 12px rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .title {
+  color: #a3c8ff;
+}
+
+#theme-dark .messages {
+  background: #181a20;
+  border: 1px solid #26334d;
+}
+
+#theme-dark .no-chat-selected,
+#theme-dark .no-messages {
+  color: #85c1e9;
+}
+
+#theme-dark .message-bubble {
+  color: #f1f1f1;
+}
+
+#theme-dark .sent-bubble {
+  background: linear-gradient(45deg, #4f8cff, #06d6a0);
+  color: #181a20;
+}
+
+#theme-dark .received-bubble {
+  background: rgba(79, 140, 255, 0.1);
+  color: #a3c8ff;
+  border-left: 3px solid #4f8cff;
+}
+
+#theme-dark .message-author {
+  color: #a3c8ff;
+}
+
+#theme-dark .message-time {
+  color: #85c1e9;
+}
+
+#theme-dark .message-link {
+  color: #4f8cff;
+}
+
+#theme-dark .delete-button {
+  color: #f87171;
+}
+
+#theme-dark .delete-button:hover {
+  color: #dc2626;
+  background-color: rgba(248, 113, 113, 0.1);
+}
+
+#theme-dark .message-form {
+  border-top: 1px solid #26334d;
+}
+
+#theme-dark .message-input-container {
+  background: rgba(79, 140, 255, 0.08);
+  border: 2px solid #4f8cff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#theme-dark .message-input-container:hover {
+  border-color: #6ba3ff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.2);
+}
+
+#theme-dark .message-input-container:focus-within {
+  border-color: #6ba3ff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.3);
+}
+
+#theme-dark .message-input-container .input {
+  background: transparent;
+  color: #f1f1f1;
+  border: none;
+}
+
+#theme-dark .message-input-container .input::placeholder {
+  color: #85c1e9;
+}
+
+#theme-dark .emoji-button {
+  color: #a3c8ff;
+}
+
+#theme-dark .emoji-button:hover {
+  color: #4f8cff;
+  background-color: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark button.is-primary {
+  background: linear-gradient(45deg, #4f8cff, #06d6a0);
+  color: #181a20;
+}
+
+#theme-dark button.is-primary:hover {
+  background: linear-gradient(45deg, #06d6a0, #4f8cff);
+  color: #fff;
+}
+
+#theme-dark .emoji-picker {
+  background: #23262f;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .emoji-picker-header {
+  background: #1a4d99;
+  border-bottom: 1px solid #4f8cff;
+}
+
+#theme-dark .emoji-picker-header h4 {
+  color: #a3c8ff;
+}
+
+#theme-dark .close-button {
+  color: #a3c8ff;
+}
+
+#theme-dark .emoji-item {
+  color: #f1f1f1;
+}
+
+#theme-dark .emoji-item:hover {
+  background: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark li {
+  color: #f1f1f1;
+  border: 1px solid transparent;
+}
+
+#theme-dark li:hover {
+  background: rgba(79, 140, 255, 0.1);
+  border-color: #4f8cff;
+}
+
+#theme-dark li.is-active {
+  background: #4f8cff;
+  color: #181a20;
+  border-color: #4f8cff;
+}
+
+#theme-dark .user-name {
+  color: #f1f1f1;
+}
+
+#theme-dark .user-status-indicator.is-online {
+  background: #4ade80;
+}
+
+#theme-dark .user-status-indicator.is-offline {
+  background: #6b7280;
+}
+
+#theme-dark .notification-badge {
+  background: #f87171;
+  color: #181a20;
+}
+
+#theme-dark .button.is-small.is-light {
+  background: rgba(79, 140, 255, 0.1);
+  color: #a3c8ff;
+  border: 1px solid #4f8cff;
+}
+
+#theme-dark .button.is-small.is-light:hover {
+  background: rgba(79, 140, 255, 0.2);
+  color: #4f8cff;
+}
+
+/* Estilos del modal de opciones del mensaje en modo oscuro */
+#theme-dark .message-menu-button {
+  color: #a3c8ff;
+}
+
+#theme-dark .message-time-container:hover .message-menu-button {
+  opacity: 0.8;
+}
+
+#theme-dark .message-menu-button:hover {
+  background-color: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .message-menu-modal {
+  background: #23262f;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .menu-option {
+  color: #f1f1f1;
+}
+
+#theme-dark .menu-option:hover {
+  background-color: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .edit-option {
+  color: #4f8cff;
+}
+
+#theme-dark .delete-option {
+  color: #f87171;
+}
+
+/* Estilos de la interfaz de edición en modo oscuro */
+#theme-dark .edit-message-header {
+  background: rgba(79, 140, 255, 0.1);
+  border-left: 3px solid #4f8cff;
+}
+
+#theme-dark .edit-label {
+  color: #4f8cff;
+}
+
+#theme-dark .cancel-edit-button {
+  color: #a3c8ff;
+}
+
+#theme-dark .cancel-edit-button:hover {
+  background-color: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .edit-message-input-container {
+  background: rgba(79, 140, 255, 0.08);
+  border: 2px solid #4f8cff;
+}
+
+#theme-dark .edit-input {
+  background: transparent;
+  color: #f1f1f1;
+}
+
+#theme-dark .edit-input::placeholder {
+  color: #85c1e9;
+}
+
+#theme-dark .edited-indicator {
+  color: #85c1e9;
+  opacity: 0.8;
+}
+
+#theme-dark .user-status-indicator {
+  border: 2px solid #23262f;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+#theme-dark .user-status-indicator.is-online {
+  background: #4ade80;
+  animation: pulse-dark 2s infinite;
+}
+
+#theme-dark .user-status-indicator.is-offline {
+  background: #6b7280;
+}
+
+@keyframes pulse-dark {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
 }
 </style>

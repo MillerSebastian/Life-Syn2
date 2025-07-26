@@ -63,7 +63,7 @@ const props = defineProps({
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 10;
-  height: 92vh;
+  height: 92.5vh;
   max-height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
