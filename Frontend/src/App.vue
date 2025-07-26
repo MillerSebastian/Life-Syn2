@@ -82,6 +82,15 @@ CSS Para Theme Dark
   --shadow-hover: rgba(0,0,0,0.6);
   
   /* Cards en modo dark */
+  .comment-body{
+    background-color: #23262F;
+    color: #F1F1F1;
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 2px solid #4A90E2;
+  }
+
   .input{
     background-color:#1A2332;
   }
