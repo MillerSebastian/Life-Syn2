@@ -7,6 +7,9 @@
         <p class="subtitle is-6 text-secondary">
           Gestiona tu alimentación y nutrición diaria
         </p>
+        <button class="btn btn-accent mt-3" @click="openNutritionGoalsModal">
+          <i class="bx bx-cog mr-2"></i>Editar Metas Nutricionales
+        </button>
       </div>
 
       <!-- Resumen nutricional -->
@@ -81,7 +84,7 @@
                       :key="meal.id"
                       :id="'meal-' + meal.id"
                       class="meal-item"
-                      :class="meal.type"
+                      :class="[meal.type, { 'meal-completed': meal.completed }]"
                     >
                       <div class="meal-time">{{ meal.time }}</div>
                       <div class="meal-content">
@@ -90,6 +93,13 @@
                           <div class="meal-calories">
                             {{ meal.calories }} cal
                           </div>
+                        </div>
+                        <div v-if="meal.image" class="meal-image">
+                          <img
+                            :src="meal.image"
+                            :alt="meal.name"
+                            @error="handleImageError"
+                          />
                         </div>
                         <div class="meal-description">
                           {{ meal.description }}
@@ -116,6 +126,24 @@
                         </div>
                       </div>
                       <div class="meal-actions">
+                        <button
+                          class="btn-icon completed-checkbox"
+                          :class="{ 'is-completed': meal.completed }"
+                          @click="toggleMealCompletion(meal)"
+                          :title="
+                            meal.completed
+                              ? 'Desmarcar como completada'
+                              : 'Marcar como completada'
+                          "
+                        >
+                          <i
+                            :class="
+                              meal.completed
+                                ? 'bx bx-check-circle'
+                                : 'bx bx-circle'
+                            "
+                          ></i>
+                        </button>
                         <button class="btn-icon" @click="editMeal(meal)">
                           <i class="bx bx-edit"></i>
                         </button>
@@ -144,13 +172,20 @@
                     :key="meal.id"
                     :id="'meal-' + meal.id"
                     class="meal-item"
-                    :class="meal.type"
+                    :class="[meal.type, { 'meal-completed': meal.completed }]"
                   >
                     <div class="meal-time">{{ meal.time }}</div>
                     <div class="meal-content">
                       <div class="meal-header">
                         <h4 class="meal-title">{{ meal.name }}</h4>
                         <div class="meal-calories">{{ meal.calories }} cal</div>
+                      </div>
+                      <div v-if="meal.image" class="meal-image">
+                        <img
+                          :src="meal.image"
+                          :alt="meal.name"
+                          @error="handleImageError"
+                        />
                       </div>
                       <div class="meal-description">{{ meal.description }}</div>
                       <div class="meal-ingredients">
@@ -175,6 +210,24 @@
                       </div>
                     </div>
                     <div class="meal-actions">
+                      <button
+                        class="btn-icon completed-checkbox"
+                        :class="{ 'is-completed': meal.completed }"
+                        @click="toggleMealCompletion(meal)"
+                        :title="
+                          meal.completed
+                            ? 'Desmarcar como completada'
+                            : 'Marcar como completada'
+                        "
+                      >
+                        <i
+                          :class="
+                            meal.completed
+                              ? 'bx bx-check-circle'
+                              : 'bx bx-circle'
+                          "
+                        ></i>
+                      </button>
                       <button class="btn-icon" @click="editMeal(meal)">
                         <i class="bx bx-edit"></i>
                       </button>
@@ -204,14 +257,19 @@
           <!-- Resumen diario -->
           <div class="card mb-4">
             <div class="card-header">
-              <h3 class="title is-5 mb-0">Resumen Diario</h3>
+              <h3 class="title is-5 mb-0">Resumen Nutricional</h3>
             </div>
             <div class="card-content">
               <div class="daily-summary">
+                <!-- Calorías -->
                 <div class="summary-item">
-                  <div class="summary-label">Calorías Consumidas</div>
-                  <div class="summary-value">
-                    {{ dailyCalories }} / {{ dailyTarget }} cal
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-fire mr-2"></i>Calorías
+                    </div>
+                    <div class="summary-value">
+                      {{ dailyCalories }} / {{ dailyTarget }} cal
+                    </div>
                   </div>
                   <div class="progress-bar">
                     <div
@@ -220,23 +278,125 @@
                       :style="{ width: getCalorieProgress() + '%' }"
                     ></div>
                   </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-label">Comidas Completadas</div>
-                  <div class="summary-value">
-                    {{ realCompletedMeals }}
+                  <div class="summary-percentage">
+                    {{ Math.round(getCalorieProgress()) }}% de la meta
                   </div>
                 </div>
+
+                <!-- Proteínas -->
                 <div class="summary-item">
-                  <div class="summary-label">Agua Consumida</div>
-                  <div class="summary-value">
-                    {{ realWaterIntake.toFixed(2) }} / 2.5L
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-dumbbell mr-2"></i>Proteínas
+                    </div>
+                    <div class="summary-value">
+                      {{ dailyProtein }} / {{ nutritionGoals.protein }}g
+                    </div>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill protein-progress"
+                      :style="{ width: getProteinProgress() + '%' }"
+                    ></div>
+                  </div>
+                  <div class="summary-percentage">
+                    {{ Math.round(getProteinProgress()) }}% de la meta
+                  </div>
+                </div>
+
+                <!-- Carbohidratos -->
+                <div class="summary-item">
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-bread mr-2"></i>Carbohidratos
+                    </div>
+                    <div class="summary-value">
+                      {{ dailyCarbs }} / {{ nutritionGoals.carbs }}g
+                    </div>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill carbs-progress"
+                      :style="{ width: getCarbsProgress() + '%' }"
+                    ></div>
+                  </div>
+                  <div class="summary-percentage">
+                    {{ Math.round(getCarbsProgress()) }}% de la meta
+                  </div>
+                </div>
+
+                <!-- Grasas -->
+                <div class="summary-item">
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-droplet mr-2"></i>Grasas
+                    </div>
+                    <div class="summary-value">
+                      {{ dailyFat }} / {{ nutritionGoals.fat }}g
+                    </div>
+                  </div>
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill fat-progress"
+                      :style="{ width: getFatProgress() + '%' }"
+                    ></div>
+                  </div>
+                  <div class="summary-percentage">
+                    {{ Math.round(getFatProgress()) }}% de la meta
+                  </div>
+                </div>
+
+                <!-- Agua -->
+                <div class="summary-item">
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-water mr-2"></i>Agua
+                    </div>
+                    <div class="summary-value">
+                      <div class="water-input-container">
+                        <input
+                          v-model="manualWaterIntake"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="10"
+                          class="water-input"
+                          placeholder="0.0"
+                          @blur="saveWaterIntake"
+                          @keyup.enter="saveWaterIntake"
+                        />
+                        <span class="water-unit">L</span>
+                      </div>
+                      / {{ nutritionGoals.water }}L
+                    </div>
                   </div>
                   <div class="progress-bar">
                     <div
                       class="progress-fill water-progress"
-                      :style="{ width: (realWaterIntake / 2.5) * 100 + '%' }"
+                      :style="{
+                        width:
+                          (totalWaterIntake / nutritionGoals.water) * 100 + '%',
+                      }"
                     ></div>
+                  </div>
+                  <div class="summary-percentage">
+                    {{
+                      Math.round(
+                        (totalWaterIntake / nutritionGoals.water) * 100
+                      )
+                    }}% de la meta
+                  </div>
+                </div>
+
+                <!-- Comidas completadas -->
+                <div class="summary-item">
+                  <div class="summary-header">
+                    <div class="summary-label">
+                      <i class="bx bx-check-circle mr-2"></i>Comidas Completadas
+                    </div>
+                    <div class="summary-value">
+                      {{ realCompletedMeals }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -320,14 +480,25 @@
             </div>
           </div>
           <div class="field">
-            <label class="label">Imagen (opcional)</label>
+            <label class="label">Imagen (URL)</label>
             <div class="control">
-              <input type="file" @change="handleImageChange" accept="image/*" />
-              <div v-if="mealForm.image">
+              <input
+                v-model="mealForm.image"
+                class="input"
+                type="url"
+                placeholder="https://ejemplo.com/imagen.jpg"
+              />
+              <div v-if="mealForm.image" class="mt-2">
                 <img
                   :src="mealForm.image"
                   alt="Imagen comida"
-                  style="max-width: 120px; margin-top: 8px"
+                  style="
+                    max-width: 120px;
+                    max-height: 120px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                  "
+                  @error="handleImageError"
                 />
               </div>
             </div>
@@ -410,7 +581,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveMeal">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showAddMealModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showAddMealModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -441,7 +615,10 @@
             </div>
           </div>
         </section>
-        <footer class="modal-card-foot buttons" style="flex-wrap: wrap; gap: 0.5rem">
+        <footer
+          class="modal-card-foot buttons"
+          style="flex-wrap: wrap; gap: 0.5rem"
+        >
           <button
             class="btn btn-primary is-small mr-2 mb-2"
             :disabled="weekPlanLoading"
@@ -479,12 +656,134 @@
         {{ weekPlanError }}
       </div>
     </div>
+
+    <!-- Modal para editar metas nutricionales -->
+    <div class="modal" :class="{ 'is-active': showNutritionGoalsModal }">
+      <div
+        class="modal-background"
+        @click="showNutritionGoalsModal = false"
+      ></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Editar Metas Nutricionales</p>
+          <button
+            class="delete"
+            @click="showNutritionGoalsModal = false"
+          ></button>
+        </header>
+        <section class="modal-card-body">
+          <div class="columns">
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">Calorías Diarias</label>
+                <div class="control">
+                  <input
+                    v-model.number="nutritionGoalsForm.calories"
+                    class="input"
+                    type="number"
+                    min="1000"
+                    max="5000"
+                    step="50"
+                    placeholder="2000"
+                  />
+                </div>
+                <p class="help">Rango recomendado: 1000 - 5000 cal</p>
+              </div>
+            </div>
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">Agua Diaria (L)</label>
+                <div class="control">
+                  <input
+                    v-model.number="nutritionGoalsForm.water"
+                    class="input"
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    placeholder="2.5"
+                  />
+                </div>
+                <p class="help">Rango recomendado: 1 - 5 L</p>
+              </div>
+            </div>
+          </div>
+          <div class="columns">
+            <div class="column is-4">
+              <div class="field">
+                <label class="label">Proteína (g)</label>
+                <div class="control">
+                  <input
+                    v-model.number="nutritionGoalsForm.protein"
+                    class="input"
+                    type="number"
+                    min="50"
+                    max="300"
+                    step="5"
+                    placeholder="120"
+                  />
+                </div>
+                <p class="help">Rango recomendado: 50 - 300g</p>
+              </div>
+            </div>
+            <div class="column is-4">
+              <div class="field">
+                <label class="label">Carbohidratos (g)</label>
+                <div class="control">
+                  <input
+                    v-model.number="nutritionGoalsForm.carbs"
+                    class="input"
+                    type="number"
+                    min="100"
+                    max="500"
+                    step="10"
+                    placeholder="250"
+                  />
+                </div>
+                <p class="help">Rango recomendado: 100 - 500g</p>
+              </div>
+            </div>
+            <div class="column is-4">
+              <div class="field">
+                <label class="label">Grasa (g)</label>
+                <div class="control">
+                  <input
+                    v-model.number="nutritionGoalsForm.fat"
+                    class="input"
+                    type="number"
+                    min="30"
+                    max="150"
+                    step="5"
+                    placeholder="70"
+                  />
+                </div>
+                <p class="help">Rango recomendado: 30 - 150g</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <footer class="modal-card-foot buttons">
+          <button class="btn btn-primary" @click="saveNutritionGoals">
+            Guardar Metas
+          </button>
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showNutritionGoalsModal = false"
+          >
+            Cancelar
+          </button>
+          <button class="btn btn-warning" @click="resetToDefaults">
+            Restablecer Valores por Defecto
+          </button>
+        </footer>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
-import { db, storage, auth } from "../../firebase";
+import { db, auth } from "../../firebase";
 import {
   collection,
   onSnapshot,
@@ -492,68 +791,37 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
 import { useRoute } from "vue-router";
 import { nextTick } from "vue";
-import { alertQuestion, alertSuccess } from "@/components/alert";
+import { alertQuestion, alertSuccess, alertError } from "@/components/alert";
 
 // Estado de la aplicación
 const showAddMealModal = ref(false);
 const showMealPlanModal = ref(false);
+const showNutritionGoalsModal = ref(false);
 const editingMeal = ref(null);
 const selectedDate = ref("today");
-const mealImageFile = ref(null);
 
-// Datos nutricionales (calculados en tiempo real)
-const nutritionData = computed(() => {
-  const totalCalories = dailyMeals.value.reduce(
-    (total, meal) => total + (meal.calories || 0),
-    0
-  );
-  const totalProtein = dailyMeals.value.reduce(
-    (total, meal) => total + (meal.nutrition?.protein || 0),
-    0
-  );
-  const totalCarbs = dailyMeals.value.reduce(
-    (total, meal) => total + (meal.nutrition?.carbs || 0),
-    0
-  );
-  const totalFat = dailyMeals.value.reduce(
-    (total, meal) => total + (meal.nutrition?.fat || 0),
-    0
-  );
+// Metas nutricionales del usuario
+const nutritionGoals = ref({
+  calories: 2000,
+  protein: 120,
+  carbs: 250,
+  fat: 70,
+  water: 2.5,
+});
 
-  return [
-    {
-      name: "Calorías",
-      value: totalCalories.toLocaleString(),
-      target: "2,000",
-      icon: "bx bx-fire",
-    },
-    {
-      name: "Proteína",
-      value: totalProtein + "g",
-      target: "120g",
-      icon: "bx bx-dumbbell",
-    },
-    {
-      name: "Carbohidratos",
-      value: totalCarbs + "g",
-      target: "250g",
-      icon: "bx bx-bread",
-    },
-    {
-      name: "Grasa",
-      value: totalFat + "g",
-      target: "70g",
-      icon: "bx bx-droplet",
-    },
-  ];
+// Formulario de metas nutricionales
+const nutritionGoalsForm = reactive({
+  calories: 2000,
+  protein: 120,
+  carbs: 250,
+  fat: 70,
+  water: 2.5,
 });
 
 // Formulario de comida
@@ -567,6 +835,54 @@ const mealForm = reactive({
   protein: "",
   carbs: "",
   fat: "",
+  image: "",
+});
+
+// Agua consumida manualmente
+const manualWaterIntake = ref(0);
+const dailyWaterData = ref({});
+
+// Datos nutricionales (calculados en tiempo real)
+const nutritionData = computed(() => {
+  const totalCalories = dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.calories || 0), 0);
+  const totalProtein = dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.protein || 0), 0);
+  const totalCarbs = dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.carbs || 0), 0);
+  const totalFat = dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.fat || 0), 0);
+
+  return [
+    {
+      name: "Calorías",
+      value: totalCalories.toLocaleString(),
+      target: nutritionGoals.value.calories.toLocaleString(),
+      icon: "bx bx-fire",
+    },
+    {
+      name: "Proteína",
+      value: totalProtein + "g",
+      target: nutritionGoals.value.protein + "g",
+      icon: "bx bx-dumbbell",
+    },
+    {
+      name: "Carbohidratos",
+      value: totalCarbs + "g",
+      target: nutritionGoals.value.carbs + "g",
+      icon: "bx bx-bread",
+    },
+    {
+      name: "Grasa",
+      value: totalFat + "g",
+      target: nutritionGoals.value.fat + "g",
+      icon: "bx bx-droplet",
+    },
+  ];
 });
 
 // Comidas desde Firestore
@@ -615,9 +931,31 @@ onMounted(() => {
     weekMeals.value = {};
     userMeals.forEach((m) => {
       if (!weekMeals.value[m.date]) weekMeals.value[m.date] = [];
-      weekMeals.value[m.date].push(m); 
+      weekMeals.value[m.date].push(m);
     });
   });
+
+  // Cargar metas nutricionales del usuario
+  const userId = getUserId();
+  if (userId) {
+    onSnapshot(doc(db, "users", userId), (doc) => {
+      if (doc.exists() && doc.data().nutritionGoals) {
+        const userGoals = doc.data().nutritionGoals;
+        nutritionGoals.value = {
+          calories: userGoals.calories || 2000,
+          protein: userGoals.protein || 120,
+          carbs: userGoals.carbs || 250,
+          fat: userGoals.fat || 70,
+          water: userGoals.water || 2.5,
+        };
+        // Actualizar el formulario también
+        Object.assign(nutritionGoalsForm, nutritionGoals.value);
+      }
+    });
+  }
+
+  // Cargar agua consumida manualmente
+  loadWaterIntake();
 });
 
 // Recetas favoritas desde Firestore
@@ -626,11 +964,16 @@ onMounted(() => {
   onSnapshot(collection(db, "favoriteRecipes"), (snapshot) => {
     const userId = getUserId();
     if (!userId) return;
-    favoriteRecipes.value = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    favoriteRecipes.value = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((recipe) => recipe.userId === userId);
   });
+
+  // Cargar agua consumida del día
+  loadWaterIntake();
 });
 
 // Computed properties
@@ -645,10 +988,30 @@ const currentDateText = computed(() => {
 });
 
 const dailyCalories = computed(() => {
-  return dailyMeals.value.reduce((total, meal) => total + meal.calories, 0);
+  return dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + meal.calories, 0);
 });
 
-const dailyTarget = 2000;
+const dailyProtein = computed(() => {
+  return dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.protein || 0), 0);
+});
+
+const dailyCarbs = computed(() => {
+  return dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.carbs || 0), 0);
+});
+
+const dailyFat = computed(() => {
+  return dailyMeals.value
+    .filter((meal) => meal.completed)
+    .reduce((total, meal) => total + (meal.nutrition?.fat || 0), 0);
+});
+
+const dailyTarget = computed(() => nutritionGoals.value.calories);
 
 const completedMeals = computed(() => {
   return dailyMeals.value.length;
@@ -656,7 +1019,7 @@ const completedMeals = computed(() => {
 
 const totalMeals = 4;
 
-const waterIntake = 1.8; // Litros
+const waterIntake = computed(() => nutritionGoals.value.water);
 
 // Computed para comidas de la semana agrupadas por día
 const weekMealsList = computed(() => {
@@ -680,19 +1043,28 @@ const weekMealsList = computed(() => {
 // Agua consumida real (sumar campo waterIntake si existe en las comidas de ese día, si no, dejar 0)
 const realWaterIntake = computed(() => {
   if (selectedDate.value === "week") {
-    // Sumar toda el agua de la semana
-    return dailyMeals.value.reduce((sum, m) => sum + (m.waterIntake || 0), 0);
+    // Sumar toda el agua de la semana (solo comidas completadas)
+    return dailyMeals.value
+      .filter((meal) => meal.completed)
+      .reduce((sum, m) => sum + (m.waterIntake || 0), 0);
   } else {
-    return dailyMeals.value.reduce((sum, m) => sum + (m.waterIntake || 0), 0);
+    return dailyMeals.value
+      .filter((meal) => meal.completed)
+      .reduce((sum, m) => sum + (m.waterIntake || 0), 0);
   }
 });
 
-// Comidas completadas reales (cantidad de comidas con nombre no vacío)
+// Total de agua (manual + de comidas)
+const totalWaterIntake = computed(() => {
+  return realWaterIntake.value + (parseFloat(manualWaterIntake.value) || 0);
+});
+
+// Comidas completadas reales (cantidad de comidas marcadas como completadas)
 const realCompletedMeals = computed(() => {
   if (selectedDate.value === "week") {
-    return dailyMeals.value.filter((m) => m.name && m.name.trim()).length;
+    return dailyMeals.value.filter((m) => m.completed).length;
   } else {
-    return dailyMeals.value.filter((m) => m.name && m.name.trim()).length;
+    return dailyMeals.value.filter((m) => m.completed).length;
   }
 });
 
@@ -702,31 +1074,24 @@ const editMeal = (meal) => {
   Object.assign(mealForm, {
     ...meal,
     ingredientsText: meal.ingredients ? meal.ingredients.join(", ") : "",
+    image: meal.image || "",
+    date: meal.date || new Date().toISOString().split("T")[0],
   });
   showAddMealModal.value = true;
 };
 
 const deleteMeal = async (id) => {
-  const result= await alertQuestion("¿estas seguro de eliminarlo?")
-  if(!result.isConfirmed) return;
+  const result = await alertQuestion("¿estas seguro de eliminarlo?");
+  if (!result.isConfirmed) return;
   await deleteDoc(doc(db, "meals", id));
-  alertSuccess("eliminado exitosamente")
+  alertSuccess("eliminado exitosamente");
 };
 
 const saveMeal = async () => {
   const userId = getUserId();
   if (!userId) return;
   if (!mealForm.name.trim() || !mealForm.time || !mealForm.calories) return;
-  let imageUrl = mealForm.image || "";
-  if (mealImageFile.value) {
-    const file = mealImageFile.value;
-    const storageReference = storageRef(
-      storage,
-      `meals/${Date.now()}_${file.name}`
-    );
-    await uploadBytes(storageReference, file);
-    imageUrl = await getDownloadURL(storageReference);
-  }
+
   const mealData = {
     ...mealForm,
     ingredients: mealForm.ingredientsText
@@ -738,19 +1103,42 @@ const saveMeal = async () => {
       carbs: parseInt(mealForm.carbs) || 0,
       fat: parseInt(mealForm.fat) || 0,
     },
-    image: imageUrl,
+    image: mealForm.image || "",
     date: mealForm.date || new Date().toISOString().split("T")[0],
     userId,
   };
+
   if (editingMeal.value) {
+    // Preservar el estado completed de la comida existente
+    mealData.completed = editingMeal.value.completed;
     await updateDoc(doc(db, "meals", editingMeal.value.id), mealData);
+
+    // Actualizar receta favorita si existe
+    const oldName = editingMeal.value.name;
+    const newName = mealForm.name;
+    if (oldName !== newName) {
+      const existingFavorite = favoriteRecipes.value.find(
+        (r) => r.name === oldName
+      );
+      if (existingFavorite) {
+        await updateDoc(doc(db, "favoriteRecipes", existingFavorite.id), {
+          name: newName,
+          calories: mealForm.calories,
+          image: mealForm.image || "",
+        });
+      }
+    }
+
+    alertSuccess("Comida editada exitosamente");
   } else {
+    // Solo establecer completed: false para nuevas comidas
+    mealData.completed = false;
     await addDoc(collection(db, "meals"), mealData);
+    alertSuccess("Comida agregada exitosamente");
   }
-  alertSuccess("guardado exitosamente")
+
   resetMealForm();
   showAddMealModal.value = false;
-  mealImageFile.value = null;
 };
 
 const resetMealForm = () => {
@@ -764,6 +1152,7 @@ const resetMealForm = () => {
     protein: "",
     carbs: "",
     fat: "",
+    image: "",
   });
   editingMeal.value = null;
 };
@@ -774,7 +1163,26 @@ const addRecipeToMeal = (recipe) => {
 };
 
 const getCalorieProgress = () => {
-  return Math.min((dailyCalories.value / dailyTarget) * 100, 100);
+  if (dailyTarget.value === 0) return 0;
+  return Math.min((dailyCalories.value / dailyTarget.value) * 100, 100);
+};
+
+const getProteinProgress = () => {
+  if (nutritionGoals.value.protein === 0) return 0;
+  return Math.min(
+    (dailyProtein.value / nutritionGoals.value.protein) * 100,
+    100
+  );
+};
+
+const getCarbsProgress = () => {
+  if (nutritionGoals.value.carbs === 0) return 0;
+  return Math.min((dailyCarbs.value / nutritionGoals.value.carbs) * 100, 100);
+};
+
+const getFatProgress = () => {
+  if (nutritionGoals.value.fat === 0) return 0;
+  return Math.min((dailyFat.value / nutritionGoals.value.fat) * 100, 100);
 };
 
 const getCalorieProgressClass = () => {
@@ -788,10 +1196,15 @@ const getCalorieProgressClass = () => {
 const toggleFavorite = async (meal) => {
   const userId = getUserId();
   if (!userId) return;
+
+  // Buscar si ya existe como favorito (por nombre)
   const exists = favoriteRecipes.value.find((r) => r.name === meal.name);
+
   if (exists) {
+    // Remover de favoritos
     await deleteDoc(doc(db, "favoriteRecipes", exists.id));
   } else {
+    // Agregar a favoritos
     await addDoc(collection(db, "favoriteRecipes"), {
       name: meal.name,
       calories: meal.calories,
@@ -802,8 +1215,53 @@ const toggleFavorite = async (meal) => {
 };
 
 // Subida de imagen
-const handleImageChange = (e) => {
-  mealImageFile.value = e.target.files[0];
+const handleImageError = (event) => {
+  event.target.src = "https://via.placeholder.com/150"; // Fallback to a placeholder image
+};
+
+// Funciones para manejar agua manual
+const saveWaterIntake = async () => {
+  const userId = getUserId();
+  if (!userId) return;
+
+  const waterValue = parseFloat(manualWaterIntake.value) || 0;
+  const currentDate =
+    selectedDate.value === "today"
+      ? new Date().toISOString().split("T")[0]
+      : selectedDate.value;
+
+  try {
+    const waterRef = doc(db, "dailyWater", `${userId}_${currentDate}`);
+    await setDoc(waterRef, {
+      userId,
+      date: currentDate,
+      waterIntake: waterValue,
+      updatedAt: serverTimestamp(),
+    });
+    alertSuccess("Agua consumida guardada");
+  } catch (error) {
+    console.error("Error al guardar agua:", error);
+    alertError("Error al guardar el agua consumida");
+  }
+};
+
+const loadWaterIntake = () => {
+  const userId = getUserId();
+  if (!userId) return;
+
+  const currentDate =
+    selectedDate.value === "today"
+      ? new Date().toISOString().split("T")[0]
+      : selectedDate.value;
+
+  const waterRef = doc(db, "dailyWater", `${userId}_${currentDate}`);
+  getDoc(waterRef).then((doc) => {
+    if (doc.exists()) {
+      manualWaterIntake.value = doc.data().waterIntake || 0;
+    } else {
+      manualWaterIntake.value = 0;
+    }
+  });
 };
 
 const weekDays = [
@@ -969,6 +1427,8 @@ watch(selectedDate, () => {
         (a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type)
       );
   }
+  // Recargar el agua consumida manualmente cuando cambia la fecha
+  loadWaterIntake();
 });
 
 const route = useRoute();
@@ -991,29 +1451,71 @@ watch(
   },
   { immediate: true }
 );
+
+// Funciones para metas nutricionales
+const openNutritionGoalsModal = () => {
+  // Cargar los valores actuales en el formulario
+  Object.assign(nutritionGoalsForm, nutritionGoals.value);
+  showNutritionGoalsModal.value = true;
+};
+
+const saveNutritionGoals = async () => {
+  const userId = getUserId();
+  if (!userId) return;
+  const updatedNutritionGoals = {
+    ...nutritionGoals.value,
+    ...nutritionGoalsForm,
+  };
+  await updateDoc(doc(db, "users", userId), {
+    nutritionGoals: updatedNutritionGoals,
+  });
+  alertSuccess("Metas nutricionales guardadas con éxito!");
+  showNutritionGoalsModal.value = false;
+};
+
+const resetToDefaults = () => {
+  Object.assign(nutritionGoalsForm, {
+    calories: 2000,
+    protein: 120,
+    carbs: 250,
+    fat: 70,
+    water: 2.5,
+  });
+};
+
+const toggleMealCompletion = async (meal) => {
+  const userId = getUserId();
+  if (!userId) return;
+  const mealRef = doc(db, "meals", meal.id);
+  const updatedMeal = {
+    ...meal,
+    completed: !meal.completed,
+  };
+  await updateDoc(mealRef, updatedMeal);
+};
 </script>
 
 <style scoped>
-
-.button-cancel{
+.button-cancel {
   position: relative;
   bottom: 4px;
   right: 4px;
 }
 
-.modal-card-foot{
+.modal-card-foot {
   display: flex;
   flex-direction: row;
 }
 
-.select-month{
+.select-month {
   border-radius: 10px;
   padding: 0em 1em;
   border: 1px solid transparent;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.select-month>option{
+.select-month > option {
   border-radius: 10px;
 }
 
@@ -1130,6 +1632,41 @@ watch(
   border-left-color: #8b5cf6;
 }
 
+.meal-item.meal-completed {
+  opacity: 0.7;
+  background: var(--background);
+  border-left-color: var(--accent);
+  position: relative;
+  overflow: hidden;
+}
+
+.meal-item.meal-completed::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(6, 214, 160, 0.1) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: shimmer 2s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .meal-time {
   font-weight: 600;
   color: var(--primary);
@@ -1169,6 +1706,19 @@ watch(
   color: var(--secondary);
   margin-bottom: 0.75rem;
   line-height: 1.5;
+}
+
+.meal-image {
+  margin-bottom: 0.75rem;
+}
+
+.meal-image img {
+  width: 100%;
+  max-width: 200px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .meal-ingredients {
@@ -1234,6 +1784,26 @@ watch(
   color: var(--primary);
 }
 
+.completed-checkbox {
+  color: var(--secondary);
+  transition: all 0.3s ease;
+}
+
+.completed-checkbox.is-completed {
+  color: var(--accent);
+  transform: scale(1.1);
+}
+
+.completed-checkbox:hover {
+  color: var(--accent);
+  transform: scale(1.05);
+}
+
+.completed-checkbox.is-completed:hover {
+  color: var(--success);
+  transform: scale(1.15);
+}
+
 /* Resumen diario */
 .daily-summary {
   display: flex;
@@ -1247,23 +1817,40 @@ watch(
   border-radius: 8px;
 }
 
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 .summary-label {
   font-size: 0.875rem;
   color: var(--secondary);
-  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
 }
 
 .summary-value {
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.summary-percentage {
+  font-size: 0.75rem;
+  color: var(--accent);
+  margin-top: 0.5rem;
+  text-align: right;
+  font-weight: 500;
 }
 
 .progress-bar {
   width: 100%;
-  height: 6px;
+  height: 8px;
   background: var(--border);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -1286,6 +1873,18 @@ watch(
 
 .progress-fill.water-progress {
   background: #3b82f6;
+}
+
+.progress-fill.protein-progress {
+  background: #1d4ed8;
+}
+
+.progress-fill.carbs-progress {
+  background: #059669;
+}
+
+.progress-fill.fat-progress {
+  background: #d97706;
 }
 
 /* Recetas favoritas */
@@ -1413,29 +2012,221 @@ watch(
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
 }
 
+#theme-dark .meal-image img {
+  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.1);
+  border: 1px solid rgba(79, 140, 255, 0.2);
+}
+
+/* Estilos para el modal de metas nutricionales */
+.modal-card-body .help {
+  font-size: 0.75rem;
+  color: var(--secondary);
+  margin-top: 0.25rem;
+}
+
+.modal-card-body .field {
+  margin-bottom: 1.5rem;
+}
+
+.modal-card-body .label {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.modal-card-body .input {
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  transition: border-color 0.3s ease;
+}
+
+.modal-card-body .input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.1);
+}
+
+/* Estilos para modo oscuro del modal de metas */
+#theme-dark .modal-card-body .label {
+  color: #f1f1f1;
+}
+
+#theme-dark .modal-card-body .help {
+  color: #85c1e9;
+}
+
+#theme-dark .modal-card-body .input {
+  background: rgba(79, 140, 255, 0.08);
+  border-color: #26334d;
+  color: #f1f1f1;
+}
+
+#theme-dark .modal-card-body .input:focus {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.2);
+}
+
+/* Estilos para modo oscuro del resumen nutricional */
+#theme-dark .summary-item {
+  background: rgba(79, 140, 255, 0.05);
+  border: 1px solid rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .summary-label {
+  color: #a3c8ff;
+}
+
+#theme-dark .summary-value {
+  color: #f1f1f1;
+}
+
+#theme-dark .summary-percentage {
+  color: #4f8cff;
+}
+
+#theme-dark .progress-bar {
+  background: rgba(79, 140, 255, 0.1);
+}
+
+#theme-dark .progress-fill.protein-progress {
+  background: #4f8cff;
+}
+
+#theme-dark .progress-fill.carbs-progress {
+  background: #06d6a0;
+}
+
+#theme-dark .progress-fill.fat-progress {
+  background: #fbbf24;
+}
+
+#theme-dark .progress-fill.water-progress {
+  background: #60a5fa;
+}
+
+/* Estilos para modo oscuro del checkbox de completado */
+#theme-dark .completed-checkbox {
+  color: #6b7280;
+}
+
+#theme-dark .completed-checkbox.is-completed {
+  color: #06d6a0;
+}
+
+#theme-dark .completed-checkbox:hover {
+  color: #4f8cff;
+}
+
+#theme-dark .completed-checkbox.is-completed:hover {
+  color: #4ade80;
+}
+
+/* Estilos para modo oscuro de comidas completadas */
+#theme-dark .meal-item.meal-completed {
+  background: rgba(6, 214, 160, 0.05);
+  border-left-color: #06d6a0;
+  overflow: hidden;
+}
+
+#theme-dark .meal-item.meal-completed::after {
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(6, 214, 160, 0.2) 50%,
+    transparent 70%
+  );
+}
+
+/* Estilos para modo oscuro de las tarjetas de nutrición */
+#theme-dark .nutrition-card {
+  background: rgba(79, 140, 255, 0.05);
+  border-left-color: #4f8cff;
+}
+
+#theme-dark .nutrition-icon {
+  color: #4f8cff;
+}
+
+#theme-dark .nutrition-value {
+  color: #f1f1f1;
+}
+
+#theme-dark .nutrition-label {
+  color: #85c1e9;
+}
+
+#theme-dark .nutrition-target {
+  color: #4f8cff;
+}
+
+/* Estilos para el input de agua manual */
+.water-input-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.water-input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.water-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.1);
+}
+
+.water-unit {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Estilos para modo oscuro del input de agua */
+#theme-dark .water-input {
+  background: rgba(79, 140, 255, 0.08);
+  border-color: #26334d;
+  color: #f1f1f1;
+}
+
+#theme-dark .water-input:focus {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
+}
+
+#theme-dark .water-unit {
+  color: #85c1e9;
+}
 </style>
