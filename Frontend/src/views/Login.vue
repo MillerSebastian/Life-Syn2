@@ -29,9 +29,7 @@
           <p>or login with social platforms</p>
           <div class="social-icons">
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
-            <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
-            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
@@ -71,9 +69,7 @@
           <p>or register with social platforms</p>
           <div class="social-icons">
             <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
-            <a @click.prevent="loginWithFacebook"><i class="bx bxl-facebook"></i></a>
             <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
-            <a href="#"><i class="bx bxl-linkedin"></i></a>
           </div>
         </form>
       </div>
