@@ -434,7 +434,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
-import Swal from "sweetalert2";
+
 import UserProfile from "./UserProfile.vue";
 import Chat from "./Chat.vue";
 import Friends from "./Friends.vue";
@@ -498,6 +498,53 @@ function listenToFriendRequests() {
   });
 }
 
+// Función para enviar notificaciones de feed
+const sendFeedNotification = async (type, post, actionUser) => {
+  if (!post || !post.user || !actionUser) return;
+
+  // No enviar notificación si el usuario se notifica a sí mismo
+  if (post.user.uid === actionUser.uid) return;
+
+  try {
+    let title = "";
+    let message = "";
+    let notificationType = "feed_update";
+
+    switch (type) {
+      case "comment":
+        title = "Nuevo comentario";
+        message = `${actionUser.name} comentó en tu publicación "${post.title}"`;
+        notificationType = "feed_comment";
+        break;
+      case "reaction":
+        title = "Nueva reacción";
+        message = `${actionUser.name} reaccionó a tu publicación "${post.title}"`;
+        notificationType = "feed_reaction";
+        break;
+      default:
+        return;
+    }
+
+    const notificationData = {
+      toUserId: post.user.uid,
+      fromUserId: actionUser.uid,
+      fromUserName: actionUser.name,
+      fromUserPhoto: actionUser.avatar,
+      type: notificationType,
+      title,
+      message,
+      postId: post.id,
+      postTitle: post.title,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(db, "notifications"), notificationData);
+  } catch (error) {
+    console.error("Error enviando notificación de feed:", error);
+  }
+};
+
 const reactions = [
   { type: "like", emoji: "👍", label: "Me gusta" },
   { type: "love", emoji: "❤️", label: "Me encanta" },
@@ -506,28 +553,6 @@ const reactions = [
   { type: "sad", emoji: "😢", label: "Me entristece" },
   { type: "angry", emoji: "😡", label: "Me enoja" },
 ];
-
-const toasts = ref([]);
-let toastId = 0;
-function showToast(message, type = "info") {
-  Swal.fire({
-    toast: true,
-    position: "top-end",
-    icon: type,
-    title: message,
-    showConfirmButton: false,
-    timer: 3500,
-    timerProgressBar: true,
-    background: "#fff",
-    color: "#222",
-    customClass: {
-      popup: "swal2-toast-custom",
-    },
-  });
-}
-function removeToast(id) {
-  toasts.value = toasts.value.filter((t) => t.id !== id);
-}
 
 const showPostModal = ref(false);
 const newPostTitle = ref("");
@@ -627,33 +652,6 @@ onMounted(async () => {
     nextTick(() => {
       posts.value.forEach((post) => {
         if (post.user && post.user.uid === user.value.uid) {
-          // Buscar cambios en comentarios
-          const prev = prevPosts.find((p) => p.id === post.id);
-          if (prev) {
-            if (post.comments.length > prev.comments.length) {
-              const newComment = post.comments[post.comments.length - 1];
-              if (newComment && newComment.uid !== user.value.uid) {
-                showToast(
-                  `Nuevo comentario en tu publicación: "${newComment.text}"`,
-                  "success"
-                );
-              }
-            }
-            // Buscar cambios en reacciones
-            const prevReacts = prev.reactions || {};
-            const currReacts = post.reactions || {};
-            const prevSum = Object.values(prevReacts).reduce(
-              (a, b) => a + b,
-              0
-            );
-            const currSum = Object.values(currReacts).reduce(
-              (a, b) => a + b,
-              0
-            );
-            if (currSum > prevSum) {
-              showToast("¡Alguien reaccionó a tu publicación!", "info");
-            }
-          }
         }
       });
     });
@@ -679,12 +677,6 @@ function onImageChange(e) {
 
 async function addPost() {
   if (!user.value.name || user.value.name === "Usuario") {
-    Swal.fire({
-      icon: "error",
-      title: "Completa tu perfil",
-      text: "Debes tener un nombre de usuario para publicar.",
-      showConfirmButton: true,
-    });
     return;
   }
   if (!newPostTitle.value.trim() || !newPostContent.value.trim()) return;
@@ -730,6 +722,9 @@ async function reactToPost(postId, type, isModal = false) {
     if (!newReactions[type]) newReactions[type] = 0;
     newReactions[type]++;
     newUserReactions[user.value.uid] = type;
+
+    // Enviar notificación solo cuando se agrega una nueva reacción
+    await sendFeedNotification("reaction", post, user.value);
   }
   await updateDoc(postRef, {
     reactions: newReactions,
@@ -755,6 +750,10 @@ async function addComment(postId, isModal = false) {
   await updateDoc(postRef, {
     comments: updatedComments,
   });
+
+  // Enviar notificación de comentario
+  await sendFeedNotification("comment", post, user.value);
+
   commentInputs[postId] = "";
 }
 
@@ -830,20 +829,6 @@ function goToUserProfile(uid) {
   if (!uid) return;
   openUserProfileModal(uid);
 }
-</script>
-
-<script>
-// Toast.vue (componente simple)
-export default {
-  props: ["message", "type"],
-  emits: ["close"],
-  template: `
-    <div :class="['toast', type]">
-      <span>{{ message }}</span>
-      <button class="toast-close" @click="$emit('close')">&times;</button>
-    </div>
-  `,
-};
 </script>
 
 <style scoped>
@@ -1266,55 +1251,7 @@ body {
     transform: scale(1);
   }
 }
-.toast {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  min-width: 220px;
-  background: #fff;
-  color: #222;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.13);
-  padding: 1rem 2.5rem 1rem 1rem;
-  z-index: 3000;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.7rem;
-  animation: fadeInToast 0.4s;
-}
-.toast.success {
-  border-left: 5px solid #06d6a0;
-}
-.toast.info {
-  border-left: 5px solid #6366f1;
-}
-.toast-close {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 1.3rem;
-  cursor: pointer;
-  margin-left: auto;
-}
-@keyframes fadeInToast {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.swal2-toast-custom {
-  border-radius: 8px !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.13) !important;
-  font-size: 1rem !important;
-  min-width: 220px !important;
-  padding: 1rem 2.5rem 1rem 1rem !important;
-}
+
 #theme-dark .feed-layout {
   background: linear-gradient(135deg, #181a20 0%, #23262f 100%) !important;
 }

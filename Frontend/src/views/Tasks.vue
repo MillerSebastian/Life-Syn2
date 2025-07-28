@@ -390,10 +390,116 @@ import {
   doc,
   query,
   where,
+  serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { useRoute } from "vue-router";
 import { alertQuestion, alertSuccess } from "@/components/alert";
 import FloatingIcons from "../components/FloatingIcons.vue";
+
+// Función para enviar notificaciones de tareas
+const sendTaskNotification = async (type, task, oldStatus = null) => {
+  console.log("=== INICIANDO ENVÍO DE NOTIFICACIÓN ===");
+  console.log("Tipo:", type);
+  console.log("Tarea:", task);
+  console.log("Estado anterior:", oldStatus);
+  const userId = getUserId();
+  if (!userId) return;
+
+  // Validar que la tarea tenga los campos necesarios
+  if (!task || !task.id || !task.title) {
+    console.error("Tarea inválida para notificación:", task);
+    return;
+  }
+
+  // Para notificaciones de fechas, validar que la tarea tenga una fecha válida
+  if (
+    (type === "due_soon" || type === "overdue") &&
+    (!task.dueDate ||
+      (typeof task.dueDate === "string" &&
+        (task.dueDate.includes("mañana") ||
+          task.dueDate.includes("tarde") ||
+          task.dueDate.includes("hoy"))))
+  ) {
+    console.warn(
+      "No se enviará notificación de fecha para tarea sin fecha válida:",
+      task.title
+    );
+    return;
+  }
+
+  try {
+    let title = "";
+    let message = "";
+    let notificationType = "task_update";
+
+    switch (type) {
+      case "created":
+        title = "Nueva Tarea Creada";
+        message = `Has creado la tarea: "${task.title}"`;
+        notificationType = "task_created";
+        break;
+      case "completed":
+        title = "¡Tarea Completada!";
+        message = `Has completado la tarea: "${task.title}"`;
+        notificationType = "task_completed";
+        break;
+      case "progress":
+        title = "Tarea en Progreso";
+        message = `Has iniciado la tarea: "${task.title}"`;
+        notificationType = "task_progress";
+        break;
+      case "reopened":
+        title = "Tarea Reabierta";
+        message = `Has reabierto la tarea: "${task.title}"`;
+        notificationType = "task_reopened";
+        break;
+      case "due_soon":
+        title = "¡Tarea Vence Pronto!";
+        message = `La tarea "${task.title}" vence en exactamente 1 día`;
+        notificationType = "task_due_soon";
+        break;
+      case "overdue":
+        title = "¡Tarea Vencida!";
+        message = `La tarea "${task.title}" está vencida`;
+        notificationType = "task_overdue";
+        break;
+      default:
+        return;
+    }
+
+    // Obtener datos del usuario actual para la notificación
+    const currentUserDoc = await getDoc(doc(db, "users", userId));
+    const currentUserData = currentUserDoc.data();
+
+    const notificationData = {
+      toUserId: userId,
+      fromUserId: userId, // El usuario se notifica a sí mismo
+      fromUserName: currentUserData?.name || "Usuario",
+      fromUserPhoto: currentUserData?.photo || null,
+      type: notificationType,
+      title,
+      message,
+      taskId: task.id,
+      taskTitle: task.title,
+      oldStatus: oldStatus || null,
+      newStatus: task.status || "unknown",
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+
+    console.log("Enviando notificación:", notificationData);
+    const notificationRef = await addDoc(
+      collection(db, "notifications"),
+      notificationData
+    );
+    console.log("Notificación enviada con ID:", notificationRef.id);
+    console.log("=== NOTIFICACIÓN ENVIADA EXITOSAMENTE ===");
+  } catch (error) {
+    console.error("Error enviando notificación:", error);
+    console.log("=== ERROR EN ENVÍO DE NOTIFICACIÓN ===");
+  }
+};
 
 // Estado de la aplicación
 const showAddTaskModal = ref(false);
@@ -435,6 +541,9 @@ const notes = ref([]);
 const getUserId = () => auth.currentUser?.uid;
 
 onMounted(() => {
+  let lastCheckTime = 0;
+  const CHECK_INTERVAL = 60000; // Verificar cada minuto
+
   onSnapshot(collection(db, "tasks"), (snapshot) => {
     const userId = getUserId();
     if (!userId) return;
@@ -450,6 +559,18 @@ onMounted(() => {
       const col = kanbanColumns.value.find((c) => c.id === task.status);
       if (col) col.tasks.push(task);
     });
+
+    // Verificar tareas que vencen pronto o están vencidas
+    // Solo verificar si hay tareas, el usuario está autenticado y ha pasado suficiente tiempo
+    const now = Date.now();
+    if (
+      userTasks.length > 0 &&
+      userId &&
+      now - lastCheckTime > CHECK_INTERVAL
+    ) {
+      lastCheckTime = now;
+      checkTaskDeadlines(userTasks);
+    }
   });
 
   // Notas en tiempo real (ahora filtradas por usuario)
@@ -461,6 +582,116 @@ onMounted(() => {
       .filter((n) => n.userId === userId);
   });
 });
+
+// Función para verificar fechas límite de tareas
+const checkTaskDeadlines = async (tasks) => {
+  if (!tasks || tasks.length === 0) return;
+
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  // Obtener notificaciones ya enviadas hoy
+  const todayKey = today.toDateString();
+  const sentNotifications = JSON.parse(
+    localStorage.getItem(`taskNotifications_${todayKey}`) || "{}"
+  );
+
+  let hasChanges = false;
+  let invalidDateCount = 0;
+
+  for (const task of tasks) {
+    // Validar que la tarea tenga los campos necesarios
+    if (
+      !task ||
+      !task.id ||
+      !task.title ||
+      !task.dueDate ||
+      task.status === "completed"
+    ) {
+      continue;
+    }
+
+    try {
+      // Verificar si la fecha es una cadena de texto descriptiva en lugar de una fecha válida
+      if (
+        typeof task.dueDate === "string" &&
+        (task.dueDate.includes("mañana") ||
+          task.dueDate.includes("tarde") ||
+          task.dueDate.includes("hoy") ||
+          task.dueDate.includes("próximo"))
+      ) {
+        invalidDateCount++;
+        if (invalidDateCount <= 3) {
+          // Solo mostrar los primeros 3 errores para no saturar la consola
+          console.warn(
+            "Fecha descriptiva inválida para tarea:",
+            task.id,
+            task.dueDate
+          );
+        }
+        continue;
+      }
+
+      const dueDate = new Date(task.dueDate);
+      if (isNaN(dueDate.getTime())) {
+        invalidDateCount++;
+        if (invalidDateCount <= 3) {
+          console.warn("Fecha inválida para tarea:", task.id, task.dueDate);
+        }
+        continue;
+      }
+
+      dueDate.setHours(0, 0, 0, 0);
+
+      // Verificar si vence exactamente en 1 día
+      if (dueDate.getTime() === tomorrow.getTime()) {
+        const notificationKey = `due_soon_${task.id}`;
+        if (!sentNotifications[notificationKey]) {
+          console.log(
+            "Enviando notificación de tarea que vence pronto:",
+            task.title
+          );
+          await sendTaskNotification("due_soon", task);
+          sentNotifications[notificationKey] = true;
+          hasChanges = true;
+        }
+      }
+
+      // Verificar si está vencida
+      if (dueDate.getTime() < today.getTime()) {
+        const notificationKey = `overdue_${task.id}`;
+        if (!sentNotifications[notificationKey]) {
+          console.log("Enviando notificación de tarea vencida:", task.title);
+          await sendTaskNotification("overdue", task);
+          sentNotifications[notificationKey] = true;
+          hasChanges = true;
+        }
+      }
+    } catch (error) {
+      console.error("Error procesando fecha de tarea:", task.id, error);
+    }
+  }
+
+  // Solo guardar en localStorage si hubo cambios
+  if (hasChanges) {
+    localStorage.setItem(
+      `taskNotifications_${todayKey}`,
+      JSON.stringify(sentNotifications)
+    );
+  }
+
+  // Mostrar resumen de fechas inválidas
+  if (invalidDateCount > 0) {
+    console.log(
+      `Se encontraron ${invalidDateCount} tareas con fechas inválidas o descriptivas`
+    );
+  }
+};
 
 const route = useRoute();
 const highlightedId = ref(null);
@@ -496,14 +727,32 @@ watch(
 const saveTask = async () => {
   const userId = getUserId();
   if (!userId) return;
+
   if (editingTask.value) {
     await updateDoc(doc(db, "tasks", editingTask.value.id), {
       ...taskForm,
       userId,
     });
   } else {
-    await addDoc(collection(db, "tasks"), { ...taskForm, userId });
+    // Crear nueva tarea
+    const newTaskRef = await addDoc(collection(db, "tasks"), {
+      ...taskForm,
+      userId,
+    });
+
+    // Enviar notificación de nueva tarea creada
+    const newTask = {
+      id: newTaskRef.id,
+      ...taskForm,
+      userId,
+    };
+
+    // Validar que la tarea se creó correctamente antes de enviar notificación
+    if (newTaskRef.id && newTask.title) {
+      await sendTaskNotification("created", newTask);
+    }
   }
+
   showAddTaskModal.value = false;
   editingTask.value = null;
   Object.assign(taskForm, {
@@ -673,19 +922,56 @@ const dragStart = (event, task) => {
 const dragEnd = (event) => {
   event.target.style.opacity = "1";
   event.target.style.transform = "rotate(0deg)";
-  draggedTask.value = null;
+  // No limpiar draggedTask aquí, se limpiará en dropTask
 };
 
 const dropTask = async (event, newStatus) => {
   event.preventDefault();
-  if (!draggedTask.value) return;
+
+  // Validación adicional para evitar errores
+  if (!draggedTask.value || !draggedTask.value.id) {
+    console.warn("draggedTask es null o no tiene id:", draggedTask.value);
+    return;
+  }
+
+  const oldStatus = draggedTask.value.status;
+  const taskId = draggedTask.value.id;
 
   try {
-    await updateDoc(doc(db, "tasks", draggedTask.value.id), {
+    await updateDoc(doc(db, "tasks", taskId), {
       status: newStatus,
     });
+
+    // Obtener la tarea completa desde Firestore para enviar notificaciones
+    const taskDoc = await getDoc(doc(db, "tasks", taskId));
+    if (taskDoc.exists()) {
+      const taskData = taskDoc.data();
+      const task = {
+        id: taskId,
+        ...taskData,
+        status: newStatus,
+      };
+
+      console.log("Tarea obtenida para notificación:", task);
+
+      if (oldStatus === "completed" && newStatus === "progress") {
+        // Tarea reabierta (de completada a en progreso)
+        await sendTaskNotification("reopened", task, oldStatus);
+      } else if (newStatus === "completed") {
+        // Tarea completada
+        await sendTaskNotification("completed", task, oldStatus);
+      } else if (oldStatus === "todo" && newStatus === "progress") {
+        // Tarea iniciada (de pendiente a en progreso)
+        await sendTaskNotification("progress", task, oldStatus);
+      }
+    } else {
+      console.warn("No se encontró la tarea para enviar notificación:", taskId);
+    }
   } catch (error) {
     console.error("Error al mover la tarea:", error);
+  } finally {
+    // Limpiar draggedTask al final
+    draggedTask.value = null;
   }
 };
 
