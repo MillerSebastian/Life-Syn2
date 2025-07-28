@@ -1,5 +1,6 @@
 <template>
   <div class="login-page">
+    <FloatingIcons viewType="login" />
     <div class="container" ref="container">
       <div class="form-box login">
         <form @submit.prevent="handleLogin">
@@ -24,12 +25,16 @@
           </div>
           <div class="forgot-link">
             <a href="#" @click.prevent="openForgotModal">Forgot Password?</a>
-          </div>   
+          </div>
           <button type="submit" class="btn">Login</button>
           <p>or login with social platforms</p>
           <div class="social-icons">
-            <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
-            <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a @click.prevent="loginWithGoogle"
+              ><i class="bx bxl-google"></i
+            ></a>
+            <a @click.prevent="loginWithGitHub"
+              ><i class="bx bxl-github"></i
+            ></a>
           </div>
         </form>
       </div>
@@ -68,8 +73,12 @@
           <button type="submit" class="btn">Register</button>
           <p>or register with social platforms</p>
           <div class="social-icons">
-            <a @click.prevent="loginWithGoogle"><i class="bx bxl-google"></i></a>
-            <a @click.prevent="loginWithGitHub"><i class="bx bxl-github"></i></a>
+            <a @click.prevent="loginWithGoogle"
+              ><i class="bx bxl-google"></i
+            ></a>
+            <a @click.prevent="loginWithGitHub"
+              ><i class="bx bxl-github"></i
+            ></a>
           </div>
         </form>
       </div>
@@ -110,6 +119,7 @@ import {
 import { db } from "../../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { alertError, alertSuccess } from "@/components/alert";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
@@ -118,10 +128,8 @@ const githubProvider = new GithubAuthProvider();
 const resetEmail = ref("");
 const modalContent = ref("");
 
-
 // Hacerlo accesible al template
 defineExpose({ modalContent });
-
 
 const sendResetEmail = async () => {
   if (!resetEmail.value) {
@@ -140,7 +148,7 @@ const sendResetEmail = async () => {
 };
 
 const openForgotModal = () => {
-  console.log('Abriendo modal de recuperación');
+  console.log("Abriendo modal de recuperación");
   modalContent.value = `
     <div style="z-index:9999999; background:rgba(0,0,0,0.8); position:fixed; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center;">
       <div style="background:#fff; border:5px solid #f00; color:#000; z-index:10000001; padding:2rem; border-radius:10px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.3); text-align:center;">
@@ -157,11 +165,11 @@ const openForgotModal = () => {
     </div>
   `;
   setTimeout(() => {
-    document.getElementById('cancelarBtn').onclick = () => {
+    document.getElementById("cancelarBtn").onclick = () => {
       modalContent.value = "";
     };
-    document.getElementById('enviarBtn').onclick = () => {
-      const email = document.getElementById('resetEmailInput').value;
+    document.getElementById("enviarBtn").onclick = () => {
+      const email = document.getElementById("resetEmailInput").value;
       sendResetEmailDirect(email);
     };
   }, 0);
@@ -213,20 +221,21 @@ const handleLogin = async () => {
       email,
       password
     );
-    
+
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", userCredential.user.uid);
 
-    
     let nombre = email;
 
-      const userDocRef = doc(db, "users", userCredential.user.uid);
+    const userDocRef = doc(db, "users", userCredential.user.uid);
 
-      const userDocSnap = await import("firebase/firestore").then(({ getDoc }) => getDoc(userDocRef));
-      if (userDocSnap && userDocSnap.exists()) {
-        const data = userDocSnap.data();
-        if (data.name) nombre = data.name;
-      }
+    const userDocSnap = await import("firebase/firestore").then(({ getDoc }) =>
+      getDoc(userDocRef)
+    );
+    if (userDocSnap && userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      if (data.name) nombre = data.name;
+    }
     alertSuccess(`Bienvenido ${nombre}`);
     router.push("/dashboard");
   } catch (error) {
@@ -257,20 +266,19 @@ const handleRegister = async () => {
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", userCredential.user.uid);
     router.push("/dashboard");
-    alertSuccess(`bienvenido ${name}`)
+    alertSuccess(`bienvenido ${name}`);
   } catch (error) {
     alertError("Error al registrarse");
   }
 };
 
-function logout() {
-}
+function logout() {}
 const loginWithGoogle = async () => {
   try {
     console.log("Google clicked");
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    await registerUserIfNotExists(user)
+    await registerUserIfNotExists(user);
     console.log("Login exitoso con Google", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
@@ -289,7 +297,7 @@ const loginWithFacebook = async () => {
   try {
     const result = await signInWithPopup(auth, facebookProvider);
     const user = result.user;
-    await registerUserIfNotExists(user)
+    await registerUserIfNotExists(user);
     console.log("Login exitoso con Facebook", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
@@ -308,7 +316,7 @@ const loginWithGitHub = async () => {
   try {
     const result = await signInWithPopup(auth, githubProvider);
     const user = result.user;
-    await registerUserIfNotExists(user)
+    await registerUserIfNotExists(user);
     console.log("Login exitoso con GitHub", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
@@ -337,16 +345,23 @@ async function registerUserIfNotExists(user) {
     });
     console.log(" Usuario registrado en Firestore");
   } else {
-     const oldData = snap.data();
-    if (oldData.name === "Sin nombre" && user.displayName && user.displayName !== "Sin nombre") {
-      await setDoc(userRef, { ...oldData, name: user.displayName }, { merge: true });
+    const oldData = snap.data();
+    if (
+      oldData.name === "Sin nombre" &&
+      user.displayName &&
+      user.displayName !== "Sin nombre"
+    ) {
+      await setDoc(
+        userRef,
+        { ...oldData, name: user.displayName },
+        { merge: true }
+      );
       console.log(" Nombre actualizado en Firestore");
     }
   }
 }
 </script>
 <style scoped>
-
 @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css");
 

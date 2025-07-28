@@ -1,5 +1,6 @@
 <template>
   <div class="tasks-page">
+    <FloatingIcons viewType="tasks" />
     <div class="container">
       <!-- Header -->
       <div class="page-header">
@@ -14,7 +15,9 @@
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.total }}</p>
                   <p class="subtitle is-6 text-secondary">Total Tareas</p>
@@ -26,11 +29,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.todo }}</p>
                   <p class="subtitle is-6 text-secondary">Pendientes</p>
@@ -42,11 +47,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.progress }}</p>
                   <p class="subtitle is-6 text-secondary">En Progreso</p>
@@ -58,11 +65,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="column">
           <div class="card summary-card">
             <div class="card-content py-4 px-3">
-              <div class="is-flex is-align-items-center is-justify-content-space-between">
+              <div
+                class="is-flex is-align-items-center is-justify-content-space-between"
+              >
                 <div>
                   <p class="title is-4 mb-1">{{ taskCounts.completed }}</p>
                   <p class="subtitle is-6 text-secondary">Completadas</p>
@@ -91,7 +100,10 @@
           </div>
           <div class="is-flex is-align-items-center gap-2">
             <span class="text-secondary">Filtrar por:</span>
-            <select v-model="filterPriority" class="select is-small select-month">
+            <select
+              v-model="filterPriority"
+              class="select is-small select-month"
+            >
               <option value="">Todas las prioridades</option>
               <option value="alta">Alta</option>
               <option value="media">Media</option>
@@ -170,7 +182,9 @@
                       :style="{ width: getTaskProgress(task) + '%' }"
                     ></div>
                   </div>
-                  <span class="progress-text">{{ getTaskProgress(task) }}%</span>
+                  <span class="progress-text"
+                    >{{ getTaskProgress(task) }}%</span
+                  >
                 </div>
               </div>
             </div>
@@ -179,11 +193,15 @@
       </div>
 
       <!-- Stickers de Notas -->
-      <div class="notes-section mt-5" @click="showAddNoteModal = true" style="cursor:pointer;" @dragover.prevent @drop="dropNote($event)">
+      <div
+        class="notes-section mt-5"
+        @click="showAddNoteModal = true"
+        style="cursor: pointer"
+        @dragover.prevent
+        @drop="dropNote($event)"
+      >
         <template v-if="notes.length === 0">
-          <div class="notes-add">
-            Agregar notas
-          </div>
+          <div class="notes-add">Agregar notas</div>
         </template>
         <template v-else>
           <div class="notes-grid">
@@ -192,11 +210,11 @@
               :key="note.id"
               :id="'note-' + note.id"
               class="note-sticker draggable"
-              :style="{ 
+              :style="{
                 backgroundColor: note.color,
                 position: note.position ? 'absolute' : 'relative',
                 left: note.position ? note.position.x + 'px' : 'auto',
-                top: note.position ? note.position.y + 'px' : 'auto'
+                top: note.position ? note.position.y + 'px' : 'auto',
               }"
               draggable="true"
               @click.stop="editNote(note)"
@@ -288,7 +306,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveTask">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showAddTaskModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showAddTaskModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -345,7 +366,10 @@
         </section>
         <footer class="modal-card-foot buttons">
           <button class="btn btn-primary" @click="saveNote">Guardar</button>
-          <button class="btn button is-danger has-text-white-bis" @click="showAddNoteModal = false">
+          <button
+            class="btn button is-danger has-text-white-bis"
+            @click="showAddNoteModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -369,6 +393,7 @@ import {
 } from "firebase/firestore";
 import { useRoute } from "vue-router";
 import { alertQuestion, alertSuccess } from "@/components/alert";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Estado de la aplicación
 const showAddTaskModal = ref(false);
@@ -494,10 +519,10 @@ const saveTask = async () => {
 
 // Eliminar tarea
 const deleteTask = async (id) => {
-  const result= await alertQuestion("¿deseas eliminar la tarea?")
-  if(!result.isConfirmed) return;
+  const result = await alertQuestion("¿deseas eliminar la tarea?");
+  if (!result.isConfirmed) return;
   await deleteDoc(doc(db, "tasks", id));
-  alertSuccess("Tarea eliminada exitosamente")
+  alertSuccess("Tarea eliminada exitosamente");
 };
 
 // Editar tarea
@@ -529,11 +554,11 @@ const getFilteredTasks = (columnId) => {
 // Calcular progreso automático según el estado
 const getTaskProgress = (task) => {
   switch (task.status) {
-    case 'todo':
+    case "todo":
       return 0;
-    case 'progress':
+    case "progress":
       return 50;
-    case 'completed':
+    case "completed":
       return 100;
     default:
       return 0;
@@ -543,39 +568,39 @@ const getTaskProgress = (task) => {
 // Obtener estado en texto
 const getTaskStatus = (task) => {
   switch (task.status) {
-    case 'todo':
-      return 'Pendiente';
-    case 'progress':
-      return 'En Progreso';
-    case 'completed':
-      return 'Completada';
+    case "todo":
+      return "Pendiente";
+    case "progress":
+      return "En Progreso";
+    case "completed":
+      return "Completada";
     default:
-      return 'Pendiente';
+      return "Pendiente";
   }
 };
 
 // Obtener clase CSS del estado
 const getTaskStatusClass = (task) => {
   switch (task.status) {
-    case 'todo':
-      return 'status-pendiente';
-    case 'progress':
-      return 'status-progreso';
-    case 'completed':
-      return 'status-completada';
+    case "todo":
+      return "status-pendiente";
+    case "progress":
+      return "status-progreso";
+    case "completed":
+      return "status-completada";
     default:
-      return 'status-pendiente';
+      return "status-pendiente";
   }
 };
 
 // Calcular conteos de tareas por estado
 const taskCounts = computed(() => {
-  const allTasks = kanbanColumns.value.flatMap(col => col.tasks);
+  const allTasks = kanbanColumns.value.flatMap((col) => col.tasks);
   return {
     total: allTasks.length,
-    todo: allTasks.filter(task => task.status === 'todo').length,
-    progress: allTasks.filter(task => task.status === 'progress').length,
-    completed: allTasks.filter(task => task.status === 'completed').length
+    todo: allTasks.filter((task) => task.status === "todo").length,
+    progress: allTasks.filter((task) => task.status === "progress").length,
+    completed: allTasks.filter((task) => task.status === "completed").length,
   };
 });
 
@@ -592,9 +617,9 @@ const editNote = (note) => {
 };
 
 const deleteNote = async (noteId) => {
-  const result= await alertQuestion("¿quieres eliminar la nota?")
-  if(!result.isConfirmed) return;
-  alertSuccess("Nota eliminada exitosamente")
+  const result = await alertQuestion("¿quieres eliminar la nota?");
+  if (!result.isConfirmed) return;
+  alertSuccess("Nota eliminada exitosamente");
   await deleteDoc(doc(db, "notes", noteId));
 };
 
@@ -614,17 +639,17 @@ const saveNote = async () => {
     const containerHeight = 300; // Alto aproximado del contenedor
     const noteWidth = 200;
     const noteHeight = 150;
-    
+
     const x = (containerWidth - noteWidth) / 2;
     const y = (containerHeight - noteHeight) / 2;
-    
+
     await addDoc(collection(db, "notes"), {
       ...noteForm,
       date: new Date().toLocaleDateString(),
       userId,
-      position: { x, y }
+      position: { x, y },
     });
-    alertSuccess("Nota guardada exitosamente")
+    alertSuccess("Nota guardada exitosamente");
   }
   resetNoteForm();
   showAddNoteModal.value = false;
@@ -686,7 +711,7 @@ const dropNote = async (event) => {
   // Obtener las dimensiones del contenedor de notas
   const notesContainer = event.currentTarget;
   const rect = notesContainer.getBoundingClientRect();
-  
+
   // Calcular la posición exacta del mouse relativa al contenedor
   const mouseX = event.clientX - rect.left;
   const mouseY = event.clientY - rect.top;
@@ -694,19 +719,25 @@ const dropNote = async (event) => {
   // Dimensiones de la nota
   const noteWidth = 200;
   const noteHeight = 150;
-  
+
   // Dimensiones del contenedor
   const containerWidth = rect.width;
   const containerHeight = rect.height;
 
   // Ajustar la posición para que la nota no se salga del contenedor
   // Centrar la nota en la posición del mouse
-  const adjustedX = Math.max(0, Math.min(mouseX - noteWidth / 2, containerWidth - noteWidth));
-  const adjustedY = Math.max(0, Math.min(mouseY - noteHeight / 2, containerHeight - noteHeight));
+  const adjustedX = Math.max(
+    0,
+    Math.min(mouseX - noteWidth / 2, containerWidth - noteWidth)
+  );
+  const adjustedY = Math.max(
+    0,
+    Math.min(mouseY - noteHeight / 2, containerHeight - noteHeight)
+  );
 
   try {
     await updateDoc(doc(db, "notes", draggedNote.value.id), {
-      position: { x: adjustedX, y: adjustedY }
+      position: { x: adjustedX, y: adjustedY },
     });
   } catch (error) {
     console.error("Error al mover la nota:", error);
@@ -715,14 +746,15 @@ const dropNote = async (event) => {
 </script>
 
 <style scoped>
-.select-month{
+.select-month {
   border-radius: 10px;
   padding: 0em 1em;
   border: 1px solid transparent;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.notes-add{
+.notes-add {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1359,26 +1391,26 @@ const dropNote = async (event) => {
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
@@ -1386,65 +1418,65 @@ const dropNote = async (event) => {
 
 /* ===== MODO OSCURO PARA TASK CARDS Y KANBAN ===== */
 #theme-dark .kanban-column {
-  background: #23262F;
-  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.1);
   border: 1.5px solid #26334d;
 }
 #theme-dark .task-card {
-  background: #181A20;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 1px 6px rgba(79, 140, 255, 0.10);
+  background: #181a20;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 1px 6px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .task-card .task-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .task-card .task-description,
 #theme-dark .task-card .task-meta,
 #theme-dark .task-card .progress-text {
-  color: #85C1E9;
+  color: #85c1e9;
 }
 #theme-dark .task-header {
   border-bottom: 1px solid #26334d;
 }
 #theme-dark .task-priority-badge.priority-alta {
-  background: #4F1A1A;
-  color: #F87171;
+  background: #4f1a1a;
+  color: #f87171;
 }
 #theme-dark .task-priority-badge.priority-media {
-  background: #4F3F1A;
-  color: #FACC15;
+  background: #4f3f1a;
+  color: #facc15;
 }
 #theme-dark .task-priority-badge.priority-baja {
-  background: #1A4F2B;
-  color: #4ADE80;
+  background: #1a4f2b;
+  color: #4ade80;
 }
 #theme-dark .task-status-badge.status-pendiente {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
   border: 1px solid #26334d;
 }
 #theme-dark .task-status-badge.status-progreso {
-  background: #1A4D99;
-  color: #A3C8FF;
-  border: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #a3c8ff;
+  border: 1px solid #4f8cff;
 }
 #theme-dark .task-status-badge.status-completada {
-  background: #1A4F2B;
-  color: #4ADE80;
-  border: 1px solid #4ADE80;
+  background: #1a4f2b;
+  color: #4ade80;
+  border: 1px solid #4ade80;
 }
 #theme-dark .progress-bar {
-  background: #23262F;
+  background: #23262f;
 }
 #theme-dark .progress-fill {
-  background: #4F8CFF;
+  background: #4f8cff;
 }
 #theme-dark .btn-icon {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .btn-icon:hover {
-  background: #23262F;
-  color: #4F8CFF;
+  background: #23262f;
+  color: #4f8cff;
 }
 </style>

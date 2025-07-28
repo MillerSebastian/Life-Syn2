@@ -1,5 +1,6 @@
 <template>
   <div class="meals-page">
+    <FloatingIcons viewType="meals" />
     <div class="container">
       <!-- Header -->
       <div class="page-header">
@@ -798,6 +799,7 @@ import {
 import { useRoute } from "vue-router";
 import { nextTick } from "vue";
 import { alertQuestion, alertSuccess, alertError } from "@/components/alert";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Estado de la aplicación
 const showAddMealModal = ref(false);
