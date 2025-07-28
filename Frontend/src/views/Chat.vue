@@ -1,147 +1,153 @@
 <template>
-  <div class="columns">
-    <div class="column is-one-quarter">
-      <div class="box">
-        <h2 class="title is-4">Usuarios</h2>
-        <div v-if="loadingUsers" class="has-text-centered py-4">
-          <span class="icon is-large">
-            <i class="bx bx-loader-alt bx-spin"></i>
-          </span>
-          <p>Cargando usuarios...</p>
-        </div>
-        <ul v-else>
-          <li
-            v-for="user in filteredUsers"
-            :key="user.uid"
-            @click="selectUser(user)"
-            :class="{
-              'is-active': selectedUser && selectedUser.uid === user.uid,
-            }"
-            class="is-flex is-align-items-center is-justify-content-space-between"
-          >
-            <div class="is-flex is-align-items-center">
-              <div
-                class="user-status-indicator mr-2"
-                :class="{
-                  'is-online': isUserOnline(user.uid),
-                  'is-offline': !isUserOnline(user.uid),
-                }"
-              ></div>
-              <div class="user-name">
-                {{ user.name }}
-              </div>
-            </div>
-            <div class="user-actions is-flex">
-              <span v-if="unreadMessages[user.uid]" class="notification-badge">
-                {{ unreadMessages[user.uid] }}
-              </span>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-    <div class="column">
-      <div class="box">
-        <h2 class="title is-4">
-          Chat con
-          <span
-            v-if="selectedUser"
-            :style="{ color: getUserColor(selectedUser.uid) }"
-          >
-            {{ selectedUser.name }}
-          </span>
-          <span v-else>...</span>
-        </h2>
-        <div class="messages" ref="messagesContainer">
-          <div v-if="!selectedUser" class="no-chat-selected">
-            <p>Selecciona un usuario para comenzar a chatear</p>
+  <div class="chat-page">
+    <FloatingIcons viewType="chat" />
+    <div class="columns">
+      <div class="column is-one-quarter">
+        <div class="box">
+          <h2 class="title is-4">Usuarios</h2>
+          <div v-if="loadingUsers" class="has-text-centered py-4">
+            <span class="icon is-large">
+              <i class="bx bx-loader-alt bx-spin"></i>
+            </span>
+            <p>Cargando usuarios...</p>
           </div>
-          <div v-else-if="messages.length === 0" class="no-messages">
-            <p>No hay mensajes aún. ¡Envía el primer mensaje!</p>
-          </div>
-          <div v-else class="messages-list">
-            <div
-              v-for="message in sortedMessages"
-              :key="message.id"
-              :class="[
-                'message-wrapper',
-                message.senderId === auth.currentUser?.uid
-                  ? 'sent'
-                  : 'received',
-              ]"
+          <ul v-else>
+            <li
+              v-for="user in filteredUsers"
+              :key="user.uid"
+              @click="selectUser(user)"
+              :class="{
+                'is-active': selectedUser && selectedUser.uid === user.uid,
+              }"
+              class="is-flex is-align-items-center is-justify-content-space-between"
             >
-              <div
-                class="message-bubble"
-                :class="
-                  message.senderId === auth.currentUser?.uid
-                    ? 'sent-bubble'
-                    : 'received-bubble'
-                "
-                :style="
-                  message.senderId !== auth.currentUser?.uid
-                    ? { borderColor: getUserColor(message.senderId) }
-                    : {}
-                "
-              >
-                <div class="message-header">
-                  <span
-                    class="message-author"
-                    :style="{ color: getUserColor(message.senderId) }"
-                  >
-                    {{ message.author }}
-                  </span>
-                  <div class="message-time-container">
-                    <span class="message-time">
-                      {{ formatTime(message.timestamp) }}
-                      <span v-if="message.edited" class="edited-indicator"
-                        >(editado)</span
-                      >
-                    </span>
-                    <button
-                      v-if="message.senderId === auth.currentUser?.uid"
-                      @click="toggleMessageMenu(message.id)"
-                      class="message-menu-button"
-                      title="Opciones del mensaje"
-                    >
-                      <span class="icon is-small">
-                        <i class="bx bx-dots-vertical-rounded"></i>
-                      </span>
-                    </button>
-                  </div>
-                </div>
-                <div class="message-content">
-                  <!-- Renderizar mensajes con emojis -->
-                  <div
-                    v-if="message.text"
-                    v-html="formatMessageWithEmojis(message.text)"
-                  ></div>
-                </div>
-
-                <!-- Modal de opciones del mensaje -->
+              <div class="is-flex is-align-items-center">
                 <div
-                  v-if="activeMessageMenu === message.id"
-                  class="message-menu-modal"
-                  @click.stop
+                  class="user-status-indicator mr-2"
+                  :class="{
+                    'is-online': isUserOnline(user.uid),
+                    'is-offline': !isUserOnline(user.uid),
+                  }"
+                ></div>
+                <div class="user-name">
+                  {{ user.name }}
+                </div>
+              </div>
+              <div class="user-actions is-flex">
+                <span
+                  v-if="unreadMessages[user.uid]"
+                  class="notification-badge"
                 >
-                  <div class="message-menu-content">
-                    <button
-                      @click="editMessage(message)"
-                      class="menu-option edit-option"
+                  {{ unreadMessages[user.uid] }}
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box">
+          <h2 class="title is-4">
+            Chat con
+            <span
+              v-if="selectedUser"
+              :style="{ color: getUserColor(selectedUser.uid) }"
+            >
+              {{ selectedUser.name }}
+            </span>
+            <span v-else>...</span>
+          </h2>
+          <div class="messages" ref="messagesContainer">
+            <div v-if="!selectedUser" class="no-chat-selected">
+              <p>Selecciona un usuario para comenzar a chatear</p>
+            </div>
+            <div v-else-if="messages.length === 0" class="no-messages">
+              <p>No hay mensajes aún. ¡Envía el primer mensaje!</p>
+            </div>
+            <div v-else class="messages-list">
+              <div
+                v-for="message in sortedMessages"
+                :key="message.id"
+                :class="[
+                  'message-wrapper',
+                  message.senderId === auth.currentUser?.uid
+                    ? 'sent'
+                    : 'received',
+                ]"
+              >
+                <div
+                  class="message-bubble"
+                  :class="
+                    message.senderId === auth.currentUser?.uid
+                      ? 'sent-bubble'
+                      : 'received-bubble'
+                  "
+                  :style="
+                    message.senderId !== auth.currentUser?.uid
+                      ? { borderColor: getUserColor(message.senderId) }
+                      : {}
+                  "
+                >
+                  <div class="message-header">
+                    <span
+                      class="message-author"
+                      :style="{ color: getUserColor(message.senderId) }"
                     >
-                      <span class="icon is-small">
-                        <i class="bx bx-edit"></i>
+                      {{ message.author }}
+                    </span>
+                    <div class="message-time-container">
+                      <span class="message-time">
+                        {{ formatTime(message.timestamp) }}
+                        <span v-if="message.edited" class="edited-indicator"
+                          >(editado)</span
+                        >
                       </span>
-                      <span>Editar</span>
-                    </button>
-                    <button
-                      @click="deleteMessage(message.id)"
-                      class="menu-option delete-option"
-                    >
-                      <span class="icon is-small">
-                        <i class="bx bx-trash"></i>
-                      </span>
-                      <span>Eliminar</span>
-                    </button>
+                      <button
+                        v-if="message.senderId === auth.currentUser?.uid"
+                        @click="toggleMessageMenu(message.id)"
+                        class="message-menu-button"
+                        title="Opciones del mensaje"
+                      >
+                        <span class="icon is-small">
+                          <i class="bx bx-dots-vertical-rounded"></i>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="message-content">
+                    <!-- Renderizar mensajes con emojis -->
+                    <div
+                      v-if="message.text"
+                      v-html="formatMessageWithEmojis(message.text)"
+                    ></div>
+                  </div>
+
+                  <!-- Modal de opciones del mensaje -->
+                  <div
+                    v-if="activeMessageMenu === message.id"
+                    class="message-menu-modal"
+                    @click.stop
+                  >
+                    <div class="message-menu-content">
+                      <button
+                        @click="editMessage(message)"
+                        class="menu-option edit-option"
+                      >
+                        <span class="icon is-small">
+                          <i class="bx bx-edit"></i>
+                        </span>
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        @click="deleteMessage(message.id)"
+                        class="menu-option delete-option"
+                      >
+                        <span class="icon is-small">
+                          <i class="bx bx-trash"></i>
+                        </span>
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -259,6 +265,7 @@ import {
 } from "firebase/database";
 import { db, auth, database } from "../../firebase";
 import { useRouter } from "vue-router";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Interfaces actualizadas para reflejar la estructura de datos del registro
 interface User {

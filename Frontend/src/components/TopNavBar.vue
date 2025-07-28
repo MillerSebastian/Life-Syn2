@@ -303,8 +303,8 @@ async function fetchUserProfile() {
   const userDoc = await getDoc(doc(db, "users", currentUser.uid));
   if (userDoc.exists()) {
     const data = userDoc.data();
-    user.name = data.name || "";
-    user.photo = data.photo || "";
+    user.name = data.name ;
+    user.photo = data.photo ;
   }
 }
 

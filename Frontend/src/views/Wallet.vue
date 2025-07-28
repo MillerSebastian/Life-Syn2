@@ -1,5 +1,6 @@
 <template>
   <div class="wallet-page">
+    <FloatingIcons viewType="wallet" />
     <div class="container">
       <!-- Header -->
       <div class="page-header">
@@ -403,6 +404,7 @@ import {
 import Chart from "chart.js/auto";
 import { useRoute } from "vue-router";
 import { alertQuestion, alertSuccess } from "@/components/alert";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Estado de la aplicación
 const showAddTransactionModal = ref(false);
@@ -806,40 +808,6 @@ const getProgressClass = (spent, limit) => {
 
 const getProgressPercentage = (spent, limit) => {
   return Math.min((spent / limit) * 100, 100);
-};
-
-const getMonthDisplayName = () => {
-  const monthNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ];
-  const currentDate = new Date();
-  let targetMonth;
-
-  switch (selectedMonth.value) {
-    case "current":
-      targetMonth = currentDate.getMonth();
-      break;
-    case "previous":
-      targetMonth = currentDate.getMonth() - 1;
-      break;
-    case "next":
-      targetMonth = currentDate.getMonth() + 1;
-      break;
-    default:
-      targetMonth = currentDate.getMonth();
-  }
-  return monthNames[targetMonth];
 };
 
 const route = useRoute();

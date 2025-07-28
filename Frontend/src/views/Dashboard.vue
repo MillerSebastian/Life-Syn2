@@ -1,11 +1,13 @@
 <template>
   <div class="dashboard-page">
+    <FloatingIcons viewType="dashboard" />
     <DashboardSummary />
   </div>
 </template>
 
 <script setup>
 import DashboardSummary from "../components/DashboardSummary.vue";
+import FloatingIcons from "../components/FloatingIcons.vue";
 </script>
 
 <style scoped>

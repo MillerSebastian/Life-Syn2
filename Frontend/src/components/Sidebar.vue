@@ -62,7 +62,7 @@ const menuItems = [
   },
   {
     path: "chatIA",
-    name: "chatIA",
+    name: "Lisy IA",
     icon: "bx bx-chat",
   },
   {
@@ -319,50 +319,50 @@ watch(
 
 /* ===== MODO OSCURO ===== */
 #theme-dark .sidebar {
-  background: #23262F;
-  color: #F1F1F1;
-  box-shadow: 2px 0 8px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  box-shadow: 2px 0 8px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .sidebar-header {
-  background: #1A1D23;
+  background: #1a1d23;
   border-bottom: 1px solid #26334d;
 }
 #theme-dark .logo h2,
 #theme-dark .logo span {
-  color: #F1F1F1;
+  color: #f1f1f1;
 }
 #theme-dark .toggle-btn {
-  color: #F1F1F1;
+  color: #f1f1f1;
 }
 #theme-dark .toggle-btn:hover {
-  background: rgba(79, 140, 255, 0.10);
+  background: rgba(79, 140, 255, 0.1);
 }
 #theme-dark .sidebar-nav {
   background: transparent;
 }
 #theme-dark .nav-item {
-  color: #B0B3B8;
+  color: #b0b3b8;
   background: transparent;
 }
 #theme-dark .nav-item:hover {
-  background: rgba(79, 140, 255, 0.10);
-  color: #4F8CFF;
+  background: rgba(79, 140, 255, 0.1);
+  color: #4f8cff;
 }
 #theme-dark .nav-item.active {
-  background: #4F8CFF;
-  color: #181A20;
+  background: #4f8cff;
+  color: #181a20;
   box-shadow: 0 2px 8px rgba(79, 140, 255, 0.15);
 }
 #theme-dark .sidebar-footer {
-  background: #1A1D23;
+  background: #1a1d23;
   border-top: 1px solid #26334d;
 }
 #theme-dark .logout-btn {
-  background: #F87171;
-  color: #181A20;
+  background: #f87171;
+  color: #181a20;
 }
 #theme-dark .logout-btn:hover {
-  background: #DC2626;
+  background: #dc2626;
   color: #fff;
   box-shadow: 0 4px 12px rgba(248, 113, 113, 0.18);
 }

@@ -1,5 +1,6 @@
 <template>
   <div class="calendar-page">
+    <FloatingIcons viewType="calendar" />
     <div class="container">
       <!-- Header -->
       <div class="page-header">
@@ -89,7 +90,11 @@
                 </div>
               </div>
               <div class="month-event-list">
-                <div v-for="event in date.events.slice(0, 3)" :key="event.id" class="month-event-item">
+                <div
+                  v-for="event in date.events.slice(0, 3)"
+                  :key="event.id"
+                  class="month-event-item"
+                >
                   <span class="month-event-time">{{ event.time }}</span>
                   <span class="month-event-title">{{ event.title }}</span>
                 </div>
@@ -116,10 +121,22 @@
             <div class="week-events">
               <div v-for="day in weekDays" :key="day" class="day-events-column">
                 <div v-for="hour in 24" :key="hour" class="week-hour-slot">
-                  <div v-for="event in getDayEvents(day).filter(e => parseInt(e.time.split(':')[0]) === hour)" :key="event.id" class="week-event" :class="'type-' + event.type">
+                  <div
+                    v-for="event in getDayEvents(day).filter(
+                      (e) => parseInt(e.time.split(':')[0]) === hour
+                    )"
+                    :key="event.id"
+                    class="week-event"
+                    :class="'type-' + event.type"
+                  >
                     <div class="event-time">{{ event.time }}</div>
                     <div class="event-title">{{ event.title }}</div>
-                    <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
+                    <button
+                      class="delete-event-btn"
+                      @click.stop="deleteEvent(event.id)"
+                    >
+                      <i class="bx bx-trash"></i>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -133,13 +150,23 @@
             <div v-for="hour in 24" :key="hour" class="timeline-hour">
               <div class="hour-label">{{ formatHour(hour) }}</div>
               <div class="hour-events">
-                <div v-for="event in getHourEvents(hour)" :key="event.id" class="timeline-event" :class="'type-' + event.type">
+                <div
+                  v-for="event in getHourEvents(hour)"
+                  :key="event.id"
+                  class="timeline-event"
+                  :class="'type-' + event.type"
+                >
                   <div class="event-time">{{ event.time }}</div>
                   <div class="event-content">
                     <div class="event-title">{{ event.title }}</div>
                     <div class="event-description">{{ event.description }}</div>
                   </div>
-                  <button class="delete-event-btn" @click.stop="deleteEvent(event.id)"><i class="bx bx-trash"></i></button>
+                  <button
+                    class="delete-event-btn"
+                    @click.stop="deleteEvent(event.id)"
+                  >
+                    <i class="bx bx-trash"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -268,7 +295,10 @@
         </section>
         <footer class="modal-card-foot">
           <button class="btn btn-primary" @click="saveEvent">Guardar</button>
-          <button class="button is-danger has-text-white-bis" @click="showAddEventModal = false">
+          <button
+            class="button is-danger has-text-white-bis"
+            @click="showAddEventModal = false"
+          >
             Cancelar
           </button>
         </footer>
@@ -289,6 +319,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { alertQuestion, alertSuccess } from "@/components/alert";
+import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Estado de la aplicación
 const showAddEventModal = ref(false);
@@ -393,7 +424,9 @@ const calendarDates = computed(() => {
     const dateISO = date.toISOString().split("T")[0];
 
     const dayEvents = events.value.filter((event) => {
-      const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+      const eventDateISO = new Date(event.date + "T00:00:00")
+        .toISOString()
+        .split("T")[0];
       return eventDateISO === dateISO;
     });
 
@@ -452,7 +485,7 @@ const selectDate = (date) => {
   if (date.isCurrentMonth) {
     viewMode.value = "day";
     // Forzar la fecha seleccionada a la zona local para evitar desfases
-    currentDate.value = new Date(date.date + 'T00:00:00');
+    currentDate.value = new Date(date.date + "T00:00:00");
   }
 };
 
@@ -485,13 +518,13 @@ const saveEvent = async () => {
     duration: 60,
     location: "",
   });
-  alertSuccess("creado exitosamente")
+  alertSuccess("creado exitosamente");
 };
 
 const deleteEvent = async (id) => {
-  const result= await alertQuestion("¿deseas eliminar el evento?");
-  if(!result.isConfirmed) return;
-  alertSuccess("eliminado exitosamente")
+  const result = await alertQuestion("¿deseas eliminar el evento?");
+  if (!result.isConfirmed) return;
+  alertSuccess("eliminado exitosamente");
   await deleteDoc(doc(db, "events", id));
 };
 
@@ -529,7 +562,9 @@ const getDayEvents = (day) => {
   const dayDate = startOfWeek.toISOString().split("T")[0];
 
   return events.value.filter((event) => {
-    const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+    const eventDateISO = new Date(event.date + "T00:00:00")
+      .toISOString()
+      .split("T")[0];
     return eventDateISO === dayDate;
   });
 };
@@ -539,7 +574,9 @@ const getHourEvents = (hour) => {
   const dayDate = currentDate.value.toISOString().split("T")[0];
   return events.value.filter((event) => {
     // Comparar usando la fecha local del evento
-    const eventDateISO = new Date(event.date + 'T00:00:00').toISOString().split('T')[0];
+    const eventDateISO = new Date(event.date + "T00:00:00")
+      .toISOString()
+      .split("T")[0];
     if (eventDateISO !== dayDate) return false;
     const eventHour = parseInt(event.time.split(":")[0]);
     return eventHour === hour;
@@ -570,8 +607,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-
-.modal-card-foot{
+.modal-card-foot {
   gap: 1em;
 }
 
@@ -815,7 +851,7 @@ onMounted(() => {
   font-size: 0.8rem;
   cursor: pointer;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
   border-left: 4px solid #6366f1;
   transition: box-shadow 0.2s;
   z-index: 2;
@@ -826,7 +862,7 @@ onMounted(() => {
   align-self: flex-start;
 }
 .week-event:hover {
-  box-shadow: 0 4px 16px rgba(99,102,241,0.18);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.18);
 }
 
 .event-time {
@@ -896,12 +932,12 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   border-left: 4px solid #6366f1;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
   font-size: 0.95rem;
 }
 .timeline-event:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .event-content {
@@ -1116,24 +1152,24 @@ onMounted(() => {
 #theme-dark .calendar-header,
 #theme-dark .week-header {
   background: var(--primary-dark);
-  color: #F1F1F1;
+  color: #f1f1f1;
 }
 
 #theme-dark .calendar-day {
-  background: #23262F !important;
+  background: #23262f !important;
   color: var(--text);
   border: 1px solid #26334d;
   transition: background 0.2s;
 }
 
 #theme-dark .calendar-day.other-month {
-  background: #23262F !important;
+  background: #23262f !important;
   color: #6c7383;
   opacity: 0.7;
 }
 
 #theme-dark .calendar-day.today {
-  background: #4F8CFF !important;
+  background: #4f8cff !important;
   color: #fff !important;
 }
 
@@ -1143,7 +1179,7 @@ onMounted(() => {
 }
 
 #theme-dark .calendar-day.has-events {
-  box-shadow: 0 0 0 2px #4F8CFF33;
+  box-shadow: 0 0 0 2px #4f8cff33;
 }
 
 #theme-dark .calendar-day:hover {
@@ -1155,26 +1191,26 @@ onMounted(() => {
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
