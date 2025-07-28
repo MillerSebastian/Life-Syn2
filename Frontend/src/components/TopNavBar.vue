@@ -66,6 +66,7 @@
               }}
             </span>
           </button>
+          <!-- Botón temporal para debug -->
         </div>
         <div class="navbar-item">
           <button class="button nav-button" @click.prevent="cambiarTema">
@@ -166,29 +167,147 @@
                   v-if="notification.type === 'friend_request'"
                   class="notification-actions"
                 >
-                  <button
-                    class="button is-success is-small"
-                    @click="acceptFriendRequest(notification)"
-                    :disabled="processingNotification === notification.id"
+                  <!-- Estado de la solicitud -->
+                  <div
+                    v-if="notification.status === 'accepted'"
+                    class="notification-status accepted"
                   >
-                    <i
-                      v-if="processingNotification === notification.id"
-                      class="bx bx-loader-alt bx-spin"
-                    ></i>
-                    <span v-else>Aceptar</span>
-                  </button>
-                  <button
-                    class="button is-danger is-small"
-                    @click="rejectFriendRequest(notification)"
-                    :disabled="processingNotification === notification.id"
+                    <i class="bx bx-check-circle"></i>
+                    <span>Solicitud aceptada</span>
+                  </div>
+                  <div
+                    v-else-if="notification.status === 'rejected'"
+                    class="notification-status rejected"
                   >
-                    <i
-                      v-if="processingNotification === notification.id"
-                      class="bx bx-loader-alt bx-spin"
-                    ></i>
-                    <span v-else>Rechazar</span>
-                  </button>
+                    <i class="bx bx-x-circle"></i>
+                    <span>Solicitud rechazada</span>
+                  </div>
+                  <!-- Botones de acción solo si está pendiente -->
+                  <div v-else class="notification-buttons">
+                    <button
+                      class="button is-success is-small"
+                      @click="acceptFriendRequest(notification)"
+                      :disabled="processingNotification === notification.id"
+                    >
+                      <i
+                        v-if="processingNotification === notification.id"
+                        class="bx bx-loader-alt bx-spin"
+                      ></i>
+                      <span v-else>Aceptar</span>
+                    </button>
+                    <button
+                      class="button is-danger is-small"
+                      @click="rejectFriendRequest(notification)"
+                      :disabled="processingNotification === notification.id"
+                    >
+                      <i
+                        v-if="processingNotification === notification.id"
+                        class="bx bx-loader-alt bx-spin"
+                      ></i>
+                      <span v-else>Rechazar</span>
+                    </button>
+                  </div>
                 </div>
+
+                <!-- Acciones para notificaciones de tareas, eventos y feed -->
+                <div
+                  v-if="
+                    notification.type &&
+                    (notification.type.startsWith('task_') ||
+                      notification.type.startsWith('event_') ||
+                      notification.type.startsWith('feed_'))
+                  "
+                  class="notification-actions"
+                >
+                  <div class="task-notification-info">
+                    <i
+                      :class="getNotificationIcon(notification.type)"
+                      :style="{
+                        color: getNotificationColor(notification.type),
+                      }"
+                    ></i>
+                    <span>{{ getNotificationText(notification.type) }}</span>
+                  </div>
+                </div>
+
+                <!-- Respuesta rápida para mensajes directos -->
+                <div
+                  v-if="notification.type === 'dm_message'"
+                  class="notification-actions"
+                >
+                  <div v-if="!quickReplyVisible[notification.id]">
+                    <button
+                      class="button is-link is-small"
+                      @click="quickReplyVisible[notification.id] = true"
+                    >
+                      <i class="bx bx-reply"></i>
+                      <span>Responder</span>
+                    </button>
+                  </div>
+                  <div
+                    v-else
+                    class="quick-reply-input"
+                    style="
+                      display: flex;
+                      gap: 8px;
+                      align-items: flex-start;
+                      padding-top: 6px;
+                    "
+                  >
+                    <input
+                      type="text"
+                      class="input"
+                      placeholder="Escribe tu respuesta..."
+                      v-model="quickReply[notification.id]"
+                      @keyup.enter="sendQuickReply(notification)"
+                      autofocus
+                    />
+                    <button
+                      class="button is-success is-small"
+                      @click="sendQuickReply(notification)"
+                      :disabled="
+                        !quickReply[notification.id] ||
+                        quickReplyStatus[notification.id] === 'enviando'
+                      "
+                      style="margin-top: 2px"
+                    >
+                      <i
+                        v-if="quickReplyStatus[notification.id] === 'enviando'"
+                        class="bx bx-loader-alt bx-spin"
+                      ></i>
+                      <span v-else>Enviar</span>
+                    </button>
+                  </div>
+                  <div
+                    v-if="quickReplyStatus[notification.id] === 'enviado'"
+                    class="notification-feedback"
+                  >
+                    <span class="icon is-small">
+                      <i class="bx bx-check-circle"></i>
+                    </span>
+                    <span>Mensaje enviado</span>
+                  </div>
+                  <div
+                    v-if="quickReplyStatus[notification.id] === 'error'"
+                    class="notification-feedback"
+                  >
+                    <span class="icon is-small">
+                      <i class="bx bx-x-circle"></i>
+                    </span>
+                    <span>Error al enviar</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botón de borrar movido fuera del contenido principal -->
+              <div class="notification-delete">
+                <button
+                  class="button is-small is-light"
+                  @click="deleteNotification(notification.id)"
+                  title="Eliminar notificación"
+                >
+                  <i class="bx bx-trash"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -253,6 +372,9 @@ function handleBlur() {
   setTimeout(() => (showResults.value = false), 200);
 }
 
+// Variable para almacenar el unsubscribe del listener
+let notificationsUnsubscribe = null;
+
 // Esperar a que el usuario esté autenticado antes de sincronizar
 watch(
   () => auth.currentUser,
@@ -260,27 +382,108 @@ watch(
     if (user) {
       searchStore.syncAll();
       loadNotifications();
+    } else {
+      // Limpiar listener si el usuario se desautentica
+      if (notificationsUnsubscribe) {
+        console.log(
+          "Usuario desautenticado, limpiando listener de notificaciones"
+        );
+        notificationsUnsubscribe();
+        notificationsUnsubscribe = null;
+        notifications.value = [];
+      }
     }
   },
   { immediate: true }
 );
 
+// Función para manejar errores de carga de fotos de notificaciones
+const onNotificationPhotoError = (event) => {
+  const target = event.target;
+  const notificationName = target.alt || "U";
+  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    notificationName
+  )}&size=64`;
+};
+
 // Cargar notificaciones del usuario
-function loadNotifications() {
+async function loadNotifications() {
   if (!auth.currentUser) return;
+
+  // Limpiar listener anterior si existe
+  if (notificationsUnsubscribe) {
+    notificationsUnsubscribe();
+  }
 
   const notificationsQuery = query(
     collection(db, "notifications"),
-    where("userId", "==", auth.currentUser.uid),
+    where("toUserId", "==", auth.currentUser.uid),
     orderBy("createdAt", "desc")
   );
 
-  onSnapshot(notificationsQuery, (snapshot) => {
-    notifications.value = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  });
+  // Cargar notificaciones inicialmente
+  const initialSnapshot = await getDocs(notificationsQuery);
+
+  // Cargar notificaciones y enriquecer con datos de usuario si es necesario
+  const enrichedNotifications = await Promise.all(
+    initialSnapshot.docs.map(async (doc) => {
+      const notificationData = doc.data();
+
+      // Si es una notificación de tarea, evento o feed y no tiene datos de usuario, cargarlos
+      if (
+        notificationData.type &&
+        (notificationData.type.startsWith("task_") ||
+          notificationData.type.startsWith("event_") ||
+          notificationData.type.startsWith("feed_")) &&
+        !notificationData.fromUserName
+      ) {
+        try {
+          const userDoc = await getDoc(
+            doc(db, "users", notificationData.fromUserId)
+          );
+          const userData = userDoc.data();
+          return {
+            id: doc.id,
+            ...notificationData,
+            fromUserName: userData?.name || "Usuario",
+            fromUserPhoto: userData?.photo || null,
+          };
+        } catch (error) {
+          console.error("Error cargando datos de usuario:", error);
+          return {
+            id: doc.id,
+            ...notificationData,
+            fromUserName: "Usuario",
+            fromUserPhoto: null,
+          };
+        }
+      }
+
+      return {
+        id: doc.id,
+        ...notificationData,
+      };
+    })
+  );
+
+  notifications.value = enrichedNotifications;
+
+  // Configurar listener para cambios futuros
+  notificationsUnsubscribe = onSnapshot(
+    notificationsQuery,
+    (snapshot) => {
+      // Cargar notificaciones directamente (ya vienen con datos de usuario)
+      const loadedNotifications = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      notifications.value = loadedNotifications;
+    },
+    (error) => {
+      console.error("Error en listener de notificaciones:", error);
+    }
+  );
 }
 
 // Aceptar solicitud de amistad desde notificación
@@ -340,9 +543,12 @@ async function acceptFriendRequest(notification) {
         createdAt: serverTimestamp(),
       });
 
-      // Marcar notificación como leída
+      // Actualizar notificación con estado aceptado
       await updateDoc(doc(db, "notifications", notification.id), {
         read: true,
+        status: "accepted",
+        message: "Solicitud de amistad aceptada",
+        updatedAt: serverTimestamp(),
       });
 
       console.log("Solicitud aceptada correctamente");
@@ -379,9 +585,12 @@ async function rejectFriendRequest(notification) {
       // Eliminar la solicitud
       await deleteDoc(doc(db, "friend_requests", requestSnapshot.docs[0].id));
 
-      // Marcar notificación como leída
+      // Actualizar notificación con estado rechazado
       await updateDoc(doc(db, "notifications", notification.id), {
         read: true,
+        status: "rejected",
+        message: "Solicitud de amistad rechazada",
+        updatedAt: serverTimestamp(),
       });
 
       alertSuccess("Solicitud de amistad rechazada");
@@ -408,17 +617,176 @@ function formatTime(timestamp) {
   return `Hace ${Math.floor(diffInMinutes / 1440)}d`;
 }
 
-// Manejar error en foto de notificación
-function onNotificationPhotoError(e) {
-  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    "U"
-  )}&size=64`;
-}
-
 // Contar notificaciones no leídas
 const unreadNotificationsCount = computed(() => {
-  return notifications.value.filter((n) => !n.read).length;
+  const count = notifications.value.filter((n) => !n.read).length;
+  console.log(
+    "=== COMPUTED UNREAD NOTIFICATIONS ===",
+    "No leídas:",
+    count,
+    "Total:",
+    notifications.value.length,
+    "Notifications array:",
+    notifications.value
+  );
+  return count;
 });
+
+// Borrar notificación
+async function deleteNotification(notificationId) {
+  try {
+    await deleteDoc(doc(db, "notifications", notificationId));
+    alertSuccess("Notificación eliminada");
+  } catch (error) {
+    console.error("Error eliminando notificación:", error);
+    alertError("Error al eliminar la notificación");
+  }
+}
+
+// Funciones auxiliares para notificaciones de tareas
+function getNotificationIcon(type) {
+  // Notificaciones de tareas
+  if (type.startsWith("task_")) {
+    switch (type) {
+      case "task_created":
+        return "bx bx-plus-circle";
+      case "task_completed":
+        return "bx bx-check-circle";
+      case "task_progress":
+        return "bx bx-loader-alt";
+      case "task_reopened":
+        return "bx bx-refresh";
+      case "task_due_soon":
+        return "bx bx-time";
+      case "task_overdue":
+        return "bx bx-error-circle";
+      default:
+        return "bx bx-task";
+    }
+  }
+
+  // Notificaciones de eventos
+  if (type.startsWith("event_")) {
+    switch (type) {
+      case "event_two_days_before":
+        return "bx bx-calendar-x";
+      case "event_day_of":
+        return "bx bx-calendar-check";
+      default:
+        return "bx bx-calendar";
+    }
+  }
+
+  // Notificaciones de feed
+  if (type.startsWith("feed_")) {
+    switch (type) {
+      case "feed_comment":
+        return "bx bx-comment";
+      case "feed_reaction":
+        return "bx bx-heart";
+      default:
+        return "bx bx-news";
+    }
+  }
+
+  return "bx bx-bell";
+}
+
+function getNotificationColor(type) {
+  // Notificaciones de tareas
+  if (type.startsWith("task_")) {
+    switch (type) {
+      case "task_created":
+        return "#6366f1";
+      case "task_completed":
+        return "#06d6a0";
+      case "task_progress":
+        return "#f59e0b";
+      case "task_reopened":
+        return "#8b5cf6";
+      case "task_due_soon":
+        return "#ef4444";
+      case "task_overdue":
+        return "#dc2626";
+      default:
+        return "#64748b";
+    }
+  }
+
+  // Notificaciones de eventos
+  if (type.startsWith("event_")) {
+    switch (type) {
+      case "event_two_days_before":
+        return "#f59e0b";
+      case "event_day_of":
+        return "#06d6a0";
+      default:
+        return "#64748b";
+    }
+  }
+
+  // Notificaciones de feed
+  if (type.startsWith("feed_")) {
+    switch (type) {
+      case "feed_comment":
+        return "#3b82f6";
+      case "feed_reaction":
+        return "#ef4444";
+      default:
+        return "#64748b";
+    }
+  }
+
+  return "#64748b";
+}
+
+function getNotificationText(type) {
+  // Notificaciones de tareas
+  if (type.startsWith("task_")) {
+    switch (type) {
+      case "task_created":
+        return "Nueva tarea creada";
+      case "task_completed":
+        return "Tarea completada";
+      case "task_progress":
+        return "Tarea en progreso";
+      case "task_reopened":
+        return "Tarea reabierta";
+      case "task_due_soon":
+        return "Vence pronto";
+      case "task_overdue":
+        return "Tarea vencida";
+      default:
+        return "Actualización de tarea";
+    }
+  }
+
+  // Notificaciones de eventos
+  if (type.startsWith("event_")) {
+    switch (type) {
+      case "event_two_days_before":
+        return "Evento en 2 días";
+      case "event_day_of":
+        return "Evento hoy";
+      default:
+        return "Actualización de evento";
+    }
+  }
+
+  // Notificaciones de feed
+  if (type.startsWith("feed_")) {
+    switch (type) {
+      case "feed_comment":
+        return "Nuevo comentario";
+      case "feed_reaction":
+        return "Nueva reacción";
+      default:
+        return "Actualización de feed";
+    }
+  }
+
+  return "Notificación";
+}
 
 const results = computed(() => {
   if (!searchQuery.value.trim()) return [];
@@ -591,6 +959,81 @@ function onPhotoError(e) {
     user.name || "U"
   )}&size=64`;
 }
+
+// Estado para la respuesta rápida
+const quickReply = reactive({});
+const quickReplyStatus = reactive({});
+
+// Estado para mostrar/ocultar el input de respuesta rápida
+const quickReplyVisible = reactive({});
+
+// Mensajes locales pending global para acceso desde notificaciones
+if (typeof window !== "undefined") {
+  if (!window.localPendingMessages) window.localPendingMessages = [];
+}
+
+// Modifica sendQuickReply para ocultar el input tras enviar
+const sendQuickReply = async (notification) => {
+  const text = quickReply[notification.id]?.trim();
+  const senderUid = auth.currentUser?.uid;
+  if (!text || !senderUid) {
+    quickReplyStatus[notification.id] = "error";
+    console.error(
+      "No se puede enviar: UID de usuario no definido o mensaje vacío"
+    );
+    setTimeout(() => (quickReplyStatus[notification.id] = null), 2000);
+    return;
+  }
+  try {
+    // Mensaje pending local
+    const tempId = `pending-${Date.now()}-${Math.random()}`;
+    const pendingMsg = {
+      id: tempId,
+      text,
+      author: user.name,
+      senderId: senderUid,
+      receiverId: notification.fromUserId,
+      pending: true,
+    };
+    if (typeof window !== "undefined" && window.localPendingMessages) {
+      window.localPendingMessages.push(pendingMsg);
+    }
+    // Guardar mensaje en la colección de mensajes
+    const messageData = {
+      text,
+      author: user.name,
+      timestamp: serverTimestamp(),
+      senderId: senderUid,
+      receiverId: notification.fromUserId,
+      read: false,
+    };
+    await addDoc(collection(db, "messages"), messageData);
+    // Notificar al amigo
+    const senderDoc = await getDoc(doc(db, "users", senderUid));
+    const senderData = senderDoc.exists() ? senderDoc.data() : {};
+    const notificationData = {
+      toUserId: notification.fromUserId,
+      fromUserId: senderUid,
+      fromUserName: senderData.name || user.name || "Usuario",
+      fromUserPhoto: senderData.photo || user.photo || null,
+      type: "dm_message",
+      title: "Nuevo mensaje de tu amigo",
+      message: text,
+      chatUserId: senderUid,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+    await addDoc(collection(db, "notifications"), notificationData);
+    quickReplyStatus[notification.id] = "enviado";
+    quickReply[notification.id] = "";
+    quickReplyVisible[notification.id] = false;
+    setTimeout(() => (quickReplyStatus[notification.id] = null), 2000);
+  } catch (error) {
+    console.error("Error al enviar respuesta rápida:", error);
+    quickReplyStatus[notification.id] = "error";
+    setTimeout(() => (quickReplyStatus[notification.id] = null), 2000);
+  }
+};
 </script>
 
 <style scoped>
@@ -751,11 +1194,12 @@ function onPhotoError(e) {
 .notification-item {
   display: flex;
   gap: 12px;
-  padding: 12px;
+  padding: 12px 40px 12px 12px;
   border-radius: 8px;
   margin-bottom: 8px;
   transition: background 0.2s;
   border: 1px solid var(--border-color, #e2e8f0);
+  position: relative;
 }
 
 .notification-item:hover {
@@ -880,6 +1324,107 @@ function onPhotoError(e) {
 #theme-dark .notification-actions .button.is-danger.is-small {
   background: #ef4444;
   color: white;
+}
+
+/* Estilos para estados de notificación */
+.notification-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.notification-status.accepted {
+  color: #059669;
+}
+
+.notification-status.accepted i {
+  color: #06d6a0;
+}
+
+.notification-status.rejected {
+  color: #dc2626;
+}
+
+.notification-status.rejected i {
+  color: #ef4444;
+}
+
+.notification-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notification-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.notification-item:hover .notification-delete {
+  opacity: 1;
+}
+
+.notification-delete .button {
+  padding: 3px;
+  min-width: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.8rem;
+}
+
+.notification-delete .button:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Modo oscuro para nuevos elementos */
+#theme-dark .notification-status.accepted {
+  color: #06d6a0;
+}
+
+#theme-dark .notification-status.rejected {
+  color: #f87171;
+}
+
+#theme-dark .notification-delete .button {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+#theme-dark .notification-delete .button:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Estilos para notificaciones de tareas */
+.task-notification-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.task-notification-info i {
+  font-size: 1.1rem;
+}
+
+/* Modo oscuro para notificaciones de tareas */
+#theme-dark .task-notification-info {
+  color: #f1f1f1;
 }
 
 .search-result-item {

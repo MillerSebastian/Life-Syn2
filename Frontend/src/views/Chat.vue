@@ -132,6 +132,9 @@
                       v-if="message.text"
                       v-html="formatMessageWithEmojis(message.text)"
                     ></div>
+                    <div v-if="message.pending" class="pending-message">
+                      <i class="bx bx-loader-alt bx-spin"></i> Enviando...
+                    </div>
                   </div>
 
                   <!-- Modal de opciones del mensaje -->
@@ -300,6 +303,7 @@ interface Message {
   read?: boolean;
   edited?: boolean;
   editedAt?: any;
+  pending?: boolean; // Nuevo campo para mensajes pendientes
 }
 
 interface ReadStatus {
@@ -330,8 +334,22 @@ const editMessageText = ref<string>("");
 const onlineUsers = ref<Set<string>>(new Set());
 const userPresenceRefs = ref<Map<string, any>>(new Map());
 
+// Mensajes locales pending
+const localPendingMessages = ref<Message[]>([]);
+
 // Add this to your existing script setup
 const router = useRouter();
+
+// Variable global para saber con quién está chateando el usuario
+if (typeof window !== "undefined") {
+  window.activeChatUserId = null;
+}
+
+watch(selectedUser, (newVal) => {
+  if (typeof window !== "undefined") {
+    window.activeChatUserId = newVal ? newVal.uid : null;
+  }
+});
 
 // Function to check user online status
 const isUserOnline = (userId: string): boolean => {
@@ -596,9 +614,18 @@ const filteredUsers = computed(() => {
 
 // Computed property para ordenar los mensajes cronológicamente
 const sortedMessages = computed(() => {
-  return [...messages.value].sort((a, b) => {
-    return a.timestamp.seconds - b.timestamp.seconds;
-  });
+  const validMsgs = [...messages.value]
+    .filter((m) => m.timestamp)
+    .sort((a, b) => {
+      const getMillis = (ts) =>
+        ts.toMillis
+          ? ts.toMillis()
+          : ts.seconds
+          ? ts.seconds * 1000
+          : new Date(ts).getTime();
+      return getMillis(a.timestamp) - getMillis(b.timestamp);
+    });
+  return [...validMsgs, ...localPendingMessages.value];
 });
 
 // Función para generar un color consistente para cada usuario
@@ -826,7 +853,7 @@ const setupGlobalMessagesListener = () => {
           message.senderId !== auth.currentUser?.uid &&
           message.timestamp.toDate() > startListeningTime.toDate()
         ) {
-          playNotificationSound();
+          // playNotificationSound(); // Eliminado porque no está definido
 
           if (
             !selectedUser.value ||
@@ -938,6 +965,41 @@ const addEmoji = (emoji: string) => {
   newMessage.value += emoji;
 };
 
+// Función para enviar notificación de mensaje privado
+const sendMessageNotification = async (messageData: Message) => {
+  // No notificar si el usuario se envía mensaje a sí mismo
+  if (messageData.senderId === messageData.receiverId) return;
+
+  // Verificar si el receptor es amigo
+  if (!isUserFriend(messageData.receiverId)) return;
+
+  // NO enviar notificación si el receptor está en el chat con el emisor
+  if (
+    typeof window !== "undefined" &&
+    window.activeChatUserId === messageData.senderId
+  )
+    return;
+
+  // Obtener datos del usuario emisor
+  const senderDoc = await getDoc(doc(db, "users", messageData.senderId));
+  const senderData = senderDoc.exists() ? senderDoc.data() : {};
+
+  // Crear notificación
+  const notificationData = {
+    toUserId: messageData.receiverId,
+    fromUserId: messageData.senderId,
+    fromUserName: senderData.name || messageData.author || "Usuario",
+    fromUserPhoto: senderData.photo || null,
+    type: "dm_message",
+    title: "Nuevo mensaje de tu amigo",
+    message: messageData.text,
+    chatUserId: messageData.senderId,
+    read: false,
+    createdAt: serverTimestamp(),
+  };
+  await addDoc(collection(db, "notifications"), notificationData);
+};
+
 const sendMessage = async () => {
   if (
     !newMessage.value.trim() ||
@@ -947,8 +1009,20 @@ const sendMessage = async () => {
   )
     return;
 
-  // Crear mensaje
-  const messageData: any = {
+  // Crear mensaje local pending
+  const tempId = `pending-${Date.now()}-${Math.random()}`;
+  const pendingMsg = {
+    id: tempId,
+    text: newMessage.value,
+    author: currentUser.value.name,
+    senderId: auth.currentUser.uid,
+    receiverId: selectedUser.value.uid,
+    pending: true,
+  };
+  localPendingMessages.value.push(pendingMsg);
+
+  // Crear mensaje para Firestore
+  const messageData = {
     text: newMessage.value,
     author: currentUser.value.name,
     timestamp: Timestamp.now(),
@@ -959,6 +1033,9 @@ const sendMessage = async () => {
 
   // Agregar mensaje a Firestore
   await addDoc(messagesCollection, messageData);
+
+  // Enviar notificación de mensaje privado
+  await sendMessageNotification(messageData);
 
   // Resetear campo después de enviar
   newMessage.value = "";
@@ -982,8 +1059,20 @@ const scrollToBottom = async () => {
   }
 };
 
-watch(messages, () => {
-  scrollToBottom();
+watch(messages, (msgs) => {
+  if (!localPendingMessages.value.length) return;
+  localPendingMessages.value = localPendingMessages.value.filter((pending) => {
+    // Elimina el pending si hay un mensaje real con el mismo texto, autor, sender, receiver y timestamp válido
+    return !msgs.some(
+      (msg) =>
+        !msg.pending &&
+        msg.text === pending.text &&
+        msg.author === pending.author &&
+        msg.senderId === pending.senderId &&
+        msg.receiverId === pending.receiverId &&
+        msg.timestamp // Solo si ya tiene timestamp
+    );
+  });
 });
 
 onMounted(() => {

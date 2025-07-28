@@ -317,6 +317,8 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { alertQuestion, alertSuccess } from "@/components/alert";
 import FloatingIcons from "../components/FloatingIcons.vue";
@@ -357,9 +359,134 @@ const eventForm = reactive({
 // Eventos desde Firestore
 const events = ref([]);
 
+// Función para enviar notificaciones de eventos
+const sendEventNotification = async (type, event) => {
+  const userId = getUserId();
+  if (!userId) return;
+
+  // Validar que el evento tenga los campos necesarios
+  if (!event || !event.id || !event.title || !event.date) {
+    return;
+  }
+
+  try {
+    let title = "";
+    let message = "";
+    let notificationType = "event_update";
+
+    switch (type) {
+      case "two_days_before":
+        title = "Evento Próximo";
+        message = `El evento "${event.title}" es en 2 días (${event.date})`;
+        notificationType = "event_two_days_before";
+        break;
+      case "day_of":
+        title = "¡Evento Hoy!";
+        message = `El evento "${event.title}" es hoy (${event.date})`;
+        notificationType = "event_day_of";
+        break;
+      default:
+        return;
+    }
+
+    // Obtener datos del usuario actual para la notificación
+    const currentUserDoc = await getDoc(doc(db, "users", userId));
+    const currentUserData = currentUserDoc.data();
+
+    const notificationData = {
+      toUserId: userId,
+      fromUserId: userId, // El usuario se notifica a sí mismo
+      fromUserName: currentUserData?.name || "Usuario",
+      fromUserPhoto: currentUserData?.photo || null,
+      type: notificationType,
+      title,
+      message,
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: event.date,
+      eventTime: event.time || null,
+      read: false,
+      createdAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(db, "notifications"), notificationData);
+  } catch (error) {
+    console.error("Error enviando notificación de evento:", error);
+  }
+};
+
+// Función para verificar eventos próximos
+const checkEventDeadlines = async (events) => {
+  if (!events || events.length === 0) return;
+
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const dayAfterTomorrow = new Date(today);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+  // Obtener notificaciones ya enviadas hoy
+  const todayKey = today.toDateString();
+  const sentNotifications = JSON.parse(
+    localStorage.getItem(`eventNotifications_${todayKey}`) || "{}"
+  );
+
+  let hasChanges = false;
+
+  for (const event of events) {
+    // Validar que el evento tenga fecha
+    if (!event.date) {
+      continue;
+    }
+
+    try {
+      const eventDate = new Date(event.date);
+      if (isNaN(eventDate.getTime())) {
+        continue;
+      }
+
+      eventDate.setHours(0, 0, 0, 0);
+
+      // Verificar si es exactamente en 2 días
+      if (eventDate.getTime() === dayAfterTomorrow.getTime()) {
+        const notificationKey = `two_days_before_${event.id}`;
+        if (!sentNotifications[notificationKey]) {
+          await sendEventNotification("two_days_before", event);
+          sentNotifications[notificationKey] = true;
+          hasChanges = true;
+        }
+      }
+
+      // Verificar si es hoy
+      if (eventDate.getTime() === today.getTime()) {
+        const notificationKey = `day_of_${event.id}`;
+        if (!sentNotifications[notificationKey]) {
+          await sendEventNotification("day_of", event);
+          sentNotifications[notificationKey] = true;
+          hasChanges = true;
+        }
+      }
+    } catch (error) {
+      console.error("Error procesando fecha de evento:", event.id, error);
+    }
+  }
+
+  // Solo guardar en localStorage si hubo cambios
+  if (hasChanges) {
+    localStorage.setItem(
+      `eventNotifications_${todayKey}`,
+      JSON.stringify(sentNotifications)
+    );
+  }
+};
+
 const getUserId = () => auth.currentUser?.uid;
 
 onMounted(() => {
+  let lastCheckTime = 0;
+  const CHECK_INTERVAL = 300000; // Verificar cada 5 minutos
+
   onSnapshot(collection(db, "events"), (snapshot) => {
     const userId = getUserId();
     if (!userId) return;
@@ -369,6 +496,17 @@ onMounted(() => {
     }));
     const userEvents = allEvents.filter((e) => e.userId === userId);
     events.value = userEvents;
+
+    // Verificar eventos próximos
+    const now = Date.now();
+    if (
+      userEvents.length > 0 &&
+      userId &&
+      now - lastCheckTime > CHECK_INTERVAL
+    ) {
+      lastCheckTime = now;
+      checkEventDeadlines(userEvents);
+    }
   });
 });
 
