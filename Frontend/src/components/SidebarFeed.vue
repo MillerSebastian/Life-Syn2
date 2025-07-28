@@ -28,6 +28,20 @@
         <i class="bx bx-chat"></i>
         <span v-if="!isSidebarCollapsed">Chats</span>
       </div>
+      <div
+        class="nav-item"
+        :class="{ active: activeSection === 'friends' }"
+        @click="$emit('update:activeSection', 'friends')"
+      >
+        <i class="bx bx-user-check"></i>
+        <span v-if="!isSidebarCollapsed">Amigos</span>
+        <span
+          v-if="!isSidebarCollapsed && pendingRequestsCount > 0"
+          class="pending-badge"
+        >
+          {{ pendingRequestsCount }}
+        </span>
+      </div>
     </nav>
     <div class="user-profile">
       <div class="avatar">
@@ -46,7 +60,7 @@ const props = defineProps({
   user: { type: Object, required: true },
   isSidebarCollapsed: { type: Boolean, default: false },
   activeSection: { type: String, default: "feed" },
-  activeSection: { type: String, default: "chat" },
+  pendingRequestsCount: { type: Number, default: 0 },
 });
 </script>
 
@@ -174,6 +188,7 @@ const props = defineProps({
   color: rgba(255, 255, 255, 0.8);
   margin: 0 10px 5px 10px;
   transition: background 0.2s, color 0.2s;
+  position: relative;
 }
 .nav-item.active,
 .nav-item:hover {
@@ -183,6 +198,44 @@ const props = defineProps({
 .nav-item i {
   font-size: 20px;
 }
+
+.nav-item {
+  position: relative;
+}
+
+.pending-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.feed-sidebar.collapsed .pending-badge {
+  display: none;
+}
+
 .user-profile {
   margin-top: 24px;
   display: flex;

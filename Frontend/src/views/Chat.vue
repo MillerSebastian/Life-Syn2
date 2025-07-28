@@ -4,12 +4,24 @@
     <div class="columns">
       <div class="column is-one-quarter">
         <div class="box">
-          <h2 class="title is-4">Usuarios</h2>
+          <h2 class="title is-4">Mis Amigos</h2>
           <div v-if="loadingUsers" class="has-text-centered py-4">
             <span class="icon is-large">
               <i class="bx bx-loader-alt bx-spin"></i>
             </span>
-            <p>Cargando usuarios...</p>
+            <p>Cargando amigos...</p>
+          </div>
+          <div
+            v-else-if="filteredUsers.length === 0"
+            class="has-text-centered py-4"
+          >
+            <span class="icon is-large">
+              <i class="bx bx-user-plus"></i>
+            </span>
+            <p class="mt-2">No tienes amigos aún</p>
+            <p class="is-size-7 has-text-grey">
+              Agrega amigos desde el feed para poder chatear
+            </p>
           </div>
           <ul v-else>
             <li
@@ -153,68 +165,70 @@
               </div>
             </div>
           </div>
-        </div>
-        <form
-          @submit.prevent="sendMessage"
-          v-if="selectedUser"
-          class="message-form"
-        >
-          <!-- Interfaz de edición de mensaje -->
-          <div v-if="editingMessage" class="edit-message-container">
-            <div class="edit-message-header">
-              <span class="edit-label">Editando mensaje:</span>
-              <button @click="cancelMessageEdit" class="cancel-edit-button">
-                <span class="icon is-small">
-                  <i class="bx bx-x"></i>
-                </span>
-              </button>
+
+          <!-- Input de mensaje dentro del contenedor de mensajes -->
+          <form
+            @submit.prevent="sendMessage"
+            v-if="selectedUser"
+            class="message-form"
+          >
+            <!-- Interfaz de edición de mensaje -->
+            <div v-if="editingMessage" class="edit-message-container">
+              <div class="edit-message-header">
+                <span class="edit-label">Editando mensaje:</span>
+                <button @click="cancelMessageEdit" class="cancel-edit-button">
+                  <span class="icon is-small">
+                    <i class="bx bx-x"></i>
+                  </span>
+                </button>
+              </div>
+              <div class="edit-message-input-container">
+                <input
+                  v-model="editMessageText"
+                  placeholder="Editar mensaje..."
+                  class="input edit-input"
+                />
+                <button
+                  @click="saveMessageEdit"
+                  class="button is-success is-small"
+                  :disabled="!editMessageText.trim()"
+                >
+                  <span class="icon is-small">
+                    <i class="bx bx-check"></i>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div class="edit-message-input-container">
+
+            <!-- Formulario normal de envío de mensajes -->
+            <div v-else class="message-input-container">
               <input
-                v-model="editMessageText"
-                placeholder="Editar mensaje..."
-                class="input edit-input"
+                v-model="newMessage"
+                placeholder="Escribe un mensaje..."
+                class="input"
               />
               <button
-                @click="saveMessageEdit"
-                class="button is-success is-small"
-                :disabled="!editMessageText.trim()"
+                type="button"
+                @click="toggleEmojiPicker"
+                class="emoji-button"
+                title="Emojis"
               >
-                <span class="icon is-small">
-                  <i class="bx bx-check"></i>
+                <span class="icon">
+                  <i class="bx bx-smile"></i>
                 </span>
               </button>
             </div>
-          </div>
-
-          <!-- Formulario normal de envío de mensajes -->
-          <div v-else class="message-input-container">
-            <input
-              v-model="newMessage"
-              placeholder="Escribe un mensaje..."
-              class="input"
-            />
             <button
-              type="button"
-              @click="toggleEmojiPicker"
-              class="emoji-button"
-              title="Emojis"
+              type="submit"
+              class="button is-primary"
+              v-if="!editingMessage"
             >
               <span class="icon">
-                <i class="bx bx-smile"></i>
+                <i class="bx bx-send"></i>
               </span>
             </button>
-          </div>
-          <button
-            type="submit"
-            class="button is-primary"
-            v-if="!editingMessage"
-          >
-            <span class="icon">
-              <i class="bx bx-send"></i>
-            </span>
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
 
       <!-- Selector de emojis -->
@@ -548,9 +562,36 @@ const colorPalette = [
 // Computed property para filtrar al usuario actual y verificar existencia
 const filteredUsers = computed(() => {
   if (!auth.currentUser) return [];
-  return users.value.filter(
-    (user) => user.uid !== auth.currentUser?.uid && user.name && user.email
-  );
+
+  console.log("=== FILTRANDO USUARIOS ===");
+  console.log("Total de usuarios:", users.value.length);
+  console.log("Usuario actual:", auth.currentUser.uid);
+
+  // Filtrar solo amigos del usuario actual
+  const filtered = users.value.filter((user) => {
+    // Excluir al usuario actual
+    if (user.uid === auth.currentUser?.uid) {
+      console.log(`Excluyendo usuario actual: ${user.name}`);
+      return false;
+    }
+
+    // Verificar si el usuario tiene nombre y email
+    if (!user.name || !user.email) {
+      console.log(`Usuario sin nombre o email: ${user.uid}`);
+      return false;
+    }
+
+    // Verificar si es amigo
+    const isFriend = isUserFriend(user.uid);
+    console.log(`Usuario ${user.name} (${user.uid}): ¿Es amigo? ${isFriend}`);
+
+    return isFriend;
+  });
+
+  console.log("Usuarios filtrados (amigos):", filtered);
+  console.log("Total de amigos en la lista:", filtered.length);
+  console.log("=== FIN FILTRADO ===");
+  return filtered;
 });
 
 // Computed property para ordenar los mensajes cronológicamente
@@ -598,8 +639,24 @@ const formatMessageWithEmojis = (text: string): string => {
 };
 
 const loadUsers = async () => {
+  console.log("=== INICIANDO LOADUSERS ===");
   loadingUsers.value = true;
   try {
+    // Primero cargar amigos
+    console.log("Cargando amigos...");
+    await loadFriends();
+
+    // Configurar listener en tiempo real para friendships
+    console.log("Configurando listener de friendships...");
+    const unsubscribe = listenToFriendships();
+    if (unsubscribe) {
+      friendshipsListeners.value.push(unsubscribe);
+      console.log("Listener de friendships configurado correctamente");
+    } else {
+      console.log("ERROR: No se pudo configurar el listener de friendships");
+    }
+
+    console.log("Cargando usuarios...");
     const usersSnapshot = await getDocs(usersCollection);
     const loadedUsers: User[] = [];
 
@@ -612,6 +669,7 @@ const loadUsers = async () => {
     }
 
     users.value = loadedUsers;
+    console.log("Usuarios cargados:", loadedUsers.length);
 
     if (auth.currentUser) {
       const currentUserDoc = usersSnapshot.docs.find(
@@ -637,6 +695,7 @@ const loadUsers = async () => {
     });
 
     setupGlobalMessagesListener();
+    console.log("=== LOADUSERS COMPLETADO ===");
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   } finally {
@@ -928,6 +987,9 @@ watch(messages, () => {
 });
 
 onMounted(() => {
+  console.log("=== COMPONENTE CHAT MONTADO ===");
+  console.log("Usuario autenticado:", auth.currentUser?.uid);
+
   loadUsers();
 
   // Event listener para cerrar el modal cuando se hace clic fuera
@@ -947,13 +1009,231 @@ onMounted(() => {
 // Limpiar listeners cuando el componente se desmonte
 onUnmounted(() => {
   cleanupPresenceListeners();
+  friendshipsListeners.value.forEach((unsubscribe) => {
+    if (unsubscribe) unsubscribe();
+  });
+  friendshipsListeners.value = [];
 });
+
+// Función para verificar si un usuario es amigo del usuario actual
+const isUserFriend = (friendUid: string): boolean => {
+  if (!auth.currentUser) return false;
+
+  // Debug: mostrar información
+  console.log("=== VERIFICANDO AMISTAD ===");
+  console.log("Usuario actual:", auth.currentUser.uid);
+  console.log("Amigo a verificar:", friendUid);
+  console.log("Total de friendships cargadas:", friends.value.length);
+  console.log("Friendships:", friends.value);
+
+  // Buscar en la colección de friendships
+  // Un usuario es amigo si existe un documento en friendships donde:
+  // - userId es el usuario actual Y friendId es el amigo, O
+  // - userId es el amigo Y friendId es el usuario actual
+  const isFriend = friends.value.some((friendship) => {
+    const condition1 =
+      friendship.userId === auth.currentUser?.uid &&
+      friendship.friendId === friendUid;
+    const condition2 =
+      friendship.userId === friendUid &&
+      friendship.friendId === auth.currentUser?.uid;
+
+    console.log(`Friendship ${friendship.id}:`, {
+      friendship,
+      condition1,
+      condition2,
+      matches: condition1 || condition2,
+    });
+
+    return condition1 || condition2;
+  });
+
+  console.log("¿Es amigo?", isFriend);
+  console.log("=== FIN VERIFICACIÓN ===");
+  return isFriend;
+};
+
+// Agregar estado para amigos
+const friends = ref<any[]>([]);
+const friendshipsListeners = ref<any[]>([]);
+
+// Función para cargar amigos del usuario actual
+const loadFriends = async () => {
+  if (!auth.currentUser) return;
+
+  console.log("=== INICIANDO CARGA DE AMIGOS ===");
+  console.log("Usuario actual:", auth.currentUser.uid);
+
+  try {
+    // Cargar friendships donde el usuario actual es userId
+    const friendshipsQuery1 = query(
+      collection(db, "friendships"),
+      where("userId", "==", auth.currentUser.uid)
+    );
+    console.log("Query 1 (userId):", friendshipsQuery1);
+    const snapshot1 = await getDocs(friendshipsQuery1);
+    console.log("Snapshot 1 docs:", snapshot1.docs.length);
+
+    // Cargar friendships donde el usuario actual es friendId
+    const friendshipsQuery2 = query(
+      collection(db, "friendships"),
+      where("friendId", "==", auth.currentUser.uid)
+    );
+    console.log("Query 2 (friendId):", friendshipsQuery2);
+    const snapshot2 = await getDocs(friendshipsQuery2);
+    console.log("Snapshot 2 docs:", snapshot2.docs.length);
+
+    const friendsData: any[] = [];
+    const processedFriendIds = new Set(); // Para evitar duplicados
+
+    // Procesar friendships donde el usuario actual es userId
+    snapshot1.forEach((doc) => {
+      const friendship = doc.data();
+      console.log("Friendship 1:", friendship);
+
+      // Solo agregar si no hemos procesado este friendId antes
+      if (!processedFriendIds.has(friendship.friendId)) {
+        friendsData.push({
+          id: doc.id,
+          userId: friendship.userId,
+          friendId: friendship.friendId,
+          createdAt: friendship.createdAt,
+        });
+        processedFriendIds.add(friendship.friendId);
+      }
+    });
+
+    // Procesar friendships donde el usuario actual es friendId
+    snapshot2.forEach((doc) => {
+      const friendship = doc.data();
+      console.log("Friendship 2:", friendship);
+
+      // Solo agregar si no hemos procesado este userId antes
+      if (!processedFriendIds.has(friendship.userId)) {
+        friendsData.push({
+          id: doc.id,
+          userId: friendship.userId,
+          friendId: friendship.friendId,
+          createdAt: friendship.createdAt,
+        });
+        processedFriendIds.add(friendship.userId);
+      }
+    });
+
+    friends.value = friendsData;
+    console.log("Amigos cargados:", friendsData);
+    console.log("Total de amigos únicos:", friendsData.length);
+  } catch (error) {
+    console.error("Error al cargar amigos:", error);
+  }
+};
+
+// Función para escuchar cambios en friendships en tiempo real
+const listenToFriendships = () => {
+  if (!auth.currentUser) {
+    console.log("No hay usuario autenticado para configurar listener");
+    return;
+  }
+
+  console.log("=== CONFIGURANDO LISTENER DE FRIENDSHIPS ===");
+  console.log("Usuario actual:", auth.currentUser.uid);
+
+  // Crear una función que combine ambas queries
+  const updateFriendships = async () => {
+    try {
+      // Query 1: friendships donde el usuario actual es userId
+      const friendshipsQuery1 = query(
+        collection(db, "friendships"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+
+      // Query 2: friendships donde el usuario actual es friendId
+      const friendshipsQuery2 = query(
+        collection(db, "friendships"),
+        where("friendId", "==", auth.currentUser.uid)
+      );
+
+      // Ejecutar ambas queries
+      const [snapshot1, snapshot2] = await Promise.all([
+        getDocs(friendshipsQuery1),
+        getDocs(friendshipsQuery2),
+      ]);
+
+      console.log("Snapshot 1 docs:", snapshot1.docs.length);
+      console.log("Snapshot 2 docs:", snapshot2.docs.length);
+
+      const allFriendsData: any[] = [];
+      const processedFriendIds = new Set(); // Para evitar duplicados
+
+      // Procesar friendships donde el usuario actual es userId
+      snapshot1.forEach((doc) => {
+        const friendship = doc.data();
+        console.log("Friendship 1:", friendship);
+
+        // Solo agregar si no hemos procesado este friendId antes
+        if (!processedFriendIds.has(friendship.friendId)) {
+          allFriendsData.push({
+            id: doc.id,
+            userId: friendship.userId,
+            friendId: friendship.friendId,
+            createdAt: friendship.createdAt,
+          });
+          processedFriendIds.add(friendship.friendId);
+        }
+      });
+
+      // Procesar friendships donde el usuario actual es friendId
+      snapshot2.forEach((doc) => {
+        const friendship = doc.data();
+        console.log("Friendship 2:", friendship);
+
+        // Solo agregar si no hemos procesado este userId antes
+        if (!processedFriendIds.has(friendship.userId)) {
+          allFriendsData.push({
+            id: doc.id,
+            userId: friendship.userId,
+            friendId: friendship.friendId,
+            createdAt: friendship.createdAt,
+          });
+          processedFriendIds.add(friendship.userId);
+        }
+      });
+
+      friends.value = allFriendsData;
+      console.log("Amigos actualizados en tiempo real:", allFriendsData);
+      console.log("Total de amigos únicos:", allFriendsData.length);
+    } catch (error) {
+      console.error("Error actualizando friendships:", error);
+    }
+  };
+
+  // Configurar listener para la colección friendships completa
+  const friendshipsCollectionRef = collection(db, "friendships");
+  const unsubscribe = onSnapshot(friendshipsCollectionRef, (snapshot) => {
+    console.log("=== CAMBIO DETECTADO EN FRIENDSHIPS ===");
+    console.log("Cambios:", snapshot.docChanges().length);
+
+    snapshot.docChanges().forEach((change) => {
+      console.log("Tipo de cambio:", change.type);
+      console.log("Documento:", change.doc.data());
+    });
+
+    // Actualizar friendships cuando hay cambios
+    updateFriendships();
+  });
+
+  // Ejecutar la primera vez
+  updateFriendships();
+
+  return unsubscribe;
+};
 </script>
 
 <style scoped>
 .columns {
   height: 85vh;
   margin-top: 20px;
+  align-items: stretch;
 }
 
 .box {
@@ -961,12 +1241,36 @@ onUnmounted(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding-bottom: 10px;
+}
+
+/* Estilo específico para el sidebar de amigos */
+.column.is-one-quarter .box {
+  height: calc(100% - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.column.is-one-quarter .box ul {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Estilo específico para el área de chat */
+.column:not(.is-one-quarter) .box {
+  height: calc(100% - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.column:not(.is-one-quarter) .messages {
+  flex: 1;
+  overflow-y: auto;
 }
 
 ul {
   list-style-type: none;
   padding: 0;
+  margin: 0;
 }
 
 li {
@@ -978,6 +1282,7 @@ li {
   transition: background-color 0.2s;
   border-radius: 4px;
   margin-bottom: 5px;
+  flex-shrink: 0;
 }
 
 li:hover {
@@ -991,6 +1296,11 @@ li.is-active {
 
 .user-name {
   font-weight: 500;
+}
+
+.title.is-4 {
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .notification-badge {
@@ -1009,9 +1319,10 @@ li.is-active {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  background-color: hsl(220, 74%, 63%);
+  /* background-color: hsl(220, 74%, 63%); */
   border-radius: 8px;
   min-height: 300px;
+  position: relative;
 }
 
 .messages-list {
@@ -1249,19 +1560,25 @@ li.is-active {
   padding: 10px;
   background-color: transparent;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  border-radius: 0 0 8px 8px;
 }
 
 .message-input-container {
   display: flex;
   flex: 1;
   position: relative;
-  margin-right: 10px;
   align-items: center;
   background-color: white;
   border-radius: 20px;
   padding: 5px 15px;
   border: 2px solid #3273dc;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  min-width: 0;
 }
 
 .message-input-container:hover {
@@ -1295,6 +1612,7 @@ li.is-active {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .emoji-button:hover,
@@ -1311,6 +1629,7 @@ button.is-primary {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .emoji-picker {
@@ -1436,6 +1755,20 @@ button.is-primary {
   }
 }
 
+/* Estilos para el mensaje de no amigos */
+.has-text-centered .icon.is-large {
+  color: #00d1b2;
+  margin-bottom: 1rem;
+}
+
+.has-text-centred p {
+  margin-bottom: 0.5rem;
+}
+
+.has-text-grey {
+  color: #888 !important;
+}
+
 /* ===== MODO OSCURO PARA CHAT ===== */
 #theme-dark .columns {
   background: linear-gradient(135deg, #181a20 0%, #23262f 100%);
@@ -1453,7 +1786,7 @@ button.is-primary {
 }
 
 #theme-dark .messages {
-  background: #181a20;
+  /* background: #181a20; */
   border: 1px solid #26334d;
 }
 
@@ -1715,4 +2048,15 @@ button.is-primary {
     box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
   }
 }
+
+/* Estilos para el mensaje de no amigos en modo oscuro */
+#theme-dark .has-text-centered .icon.is-large {
+  color: #4f8cff;
+}
+
+#theme-dark .has-text-grey {
+  color: #85c1e9 !important;
+}
+
+/* Estilos del modal de opciones del mensaje en modo oscuro */
 </style>

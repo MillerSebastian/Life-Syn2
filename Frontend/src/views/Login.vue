@@ -115,6 +115,9 @@ import {
   GithubAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  signInWithCredential,
 } from "firebase/auth";
 import { db } from "../../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -124,6 +127,61 @@ import FloatingIcons from "../components/FloatingIcons.vue";
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
 const githubProvider = new GithubAuthProvider();
+
+// Función auxiliar para manejar errores de cuentas existentes con diferentes credenciales
+const handleAccountExistsWithDifferentCredential = async (error, provider) => {
+  console.log("=== MANEJANDO CUENTA EXISTENTE CON DIFERENTE CREDENCIAL ===");
+  console.log("Error:", error);
+  console.log("Proveedor:", provider);
+
+  const email = error.customData?.email;
+  if (!email) {
+    alertError("No se pudo obtener el correo electrónico del error");
+    return;
+  }
+
+  try {
+    // Buscar los métodos de inicio de sesión disponibles para ese email
+    const methods = await fetchSignInMethodsForEmail(auth, email);
+    console.log("Métodos disponibles para", email, ":", methods);
+
+    let message = "";
+    let action = "";
+
+    if (methods.includes("password")) {
+      message = `El correo ${email} ya está registrado con email y contraseña.`;
+      action =
+        "Por favor, inicia sesión usando tu correo y contraseña en la sección de Login.";
+    } else if (methods.includes("google.com")) {
+      message = `El correo ${email} ya está registrado con Google.`;
+      action = "Por favor, inicia sesión usando el botón de Google.";
+    } else if (methods.includes("github.com")) {
+      message = `El correo ${email} ya está registrado con GitHub.`;
+      action = "Por favor, inicia sesión usando el botón de GitHub.";
+    } else if (methods.includes("facebook.com")) {
+      message = `El correo ${email} ya está registrado con Facebook.`;
+      action = "Por favor, inicia sesión usando el botón de Facebook.";
+    } else {
+      message = `El correo ${email} ya está registrado con otro método.`;
+      action =
+        "Por favor, inicia sesión usando el método original con el que te registraste.";
+    }
+
+    // Mostrar mensaje más detallado
+    alertError(`${message}\n\n${action}`);
+
+    // Si el usuario intentó registrarse con GitHub pero ya tiene cuenta con Google,
+    // sugerir que use Google
+    if (provider === "GitHub" && methods.includes("google.com")) {
+      console.log("Sugiriendo usar Google en lugar de GitHub");
+    }
+  } catch (linkError) {
+    console.error("Error al verificar métodos de inicio de sesión:", linkError);
+    alertError(
+      "Error al verificar los métodos de inicio de sesión disponibles"
+    );
+  }
+};
 
 const resetEmail = ref("");
 const modalContent = ref("");
@@ -288,8 +346,14 @@ const loginWithGoogle = async () => {
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
-    console.error("Error con Google:", error.message);
-    alertError("Error al iniciar sesión con Google");
+    console.error("Error con Google:", error);
+
+    // Manejar el error específico de cuenta existente con diferente credencial
+    if (error.code === "auth/account-exists-with-different-credential") {
+      await handleAccountExistsWithDifferentCredential(error, "Google");
+    } else {
+      alertError("Error al iniciar sesión con Google");
+    }
   }
 };
 
@@ -307,8 +371,14 @@ const loginWithFacebook = async () => {
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
-    console.error("Error con Facebook:", error.message);
-    alertError("Error al iniciar sesión con Facebook");
+    console.error("Error con Facebook:", error);
+
+    // Manejar el error específico de cuenta existente con diferente credencial
+    if (error.code === "auth/account-exists-with-different-credential") {
+      await handleAccountExistsWithDifferentCredential(error, "Facebook");
+    } else {
+      alertError("Error al iniciar sesión con Facebook");
+    }
   }
 };
 
@@ -326,8 +396,14 @@ const loginWithGitHub = async () => {
     alertSuccess(`Bienvenido ${result.user.displayName || "Usuario"}`);
     router.push("/dashboard");
   } catch (error) {
-    console.error("Error con GitHub:", error.message);
-    alertError("Error al iniciar sesión con GitHub");
+    console.error("Error con GitHub:", error);
+
+    // Manejar el error específico de cuenta existente con diferente credencial
+    if (error.code === "auth/account-exists-with-different-credential") {
+      await handleAccountExistsWithDifferentCredential(error, "GitHub");
+    } else {
+      alertError("Error al iniciar sesión con GitHub");
+    }
   }
 };
 async function registerUserIfNotExists(user) {
