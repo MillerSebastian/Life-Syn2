@@ -1,27 +1,51 @@
 <template>
-  <nav class="navbar top-navbar" role="navigation" aria-label="main navigation" :style="navbarStyle">
+  <nav
+    class="navbar top-navbar"
+    role="navigation"
+    aria-label="main navigation"
+    :style="navbarStyle"
+  >
     <div class="navbar-brand">
       <div class="navbar-item is-hidden-desktop">
         <span class="icon">
           <i class="bx bx-search"></i>
         </span>
       </div>
-      <div class="navbar-item is-hidden-mobile" style="width: 350px; position: relative">
+      <div
+        class="navbar-item is-hidden-mobile"
+        style="width: 350px; position: relative"
+      >
         <div class="control has-icons-left is-expanded">
-          <input class="input" type="text" placeholder="Buscar..." v-model="searchQuery" @focus="showResults = true"
-            @input="showResults = true" @blur="handleBlur" />
+          <input
+            class="input"
+            type="text"
+            placeholder="Buscar..."
+            v-model="searchQuery"
+            @focus="showResults = true"
+            @input="showResults = true"
+            @blur="handleBlur"
+          />
           <span class="icon is-left">
             <i class="bx bx-search"></i>
           </span>
         </div>
         <div v-if="showResults && results.length" class="search-dropdown">
-          <div v-for="(result, idx) in results" :key="result.type + result.id + idx" class="search-result-item"
-            @mousedown.prevent="goToResult(result)">
+          <div
+            v-for="(result, idx) in results"
+            :key="result.type + result.id + idx"
+            class="search-result-item"
+            @mousedown.prevent="goToResult(result)"
+          >
             <span class="tag">{{ result.type }}</span>
-            <span v-html="highlightMatch(result.label, result.highlight)"></span>
+            <span
+              v-html="highlightMatch(result.label, result.highlight)"
+            ></span>
             <small v-if="result.extra">
               -
-              <span v-html="highlightMatch(result.extra, result.highlight)"></span></small>
+              <span
+                v-html="highlightMatch(result.extra, result.highlight)"
+              ></span
+            ></small>
           </div>
         </div>
       </div>
@@ -32,6 +56,14 @@
           <button class="button nav-button" @click="showNotifications = true">
             <span class="icon">
               <i class="bx bx-bell"></i>
+            </span>
+            <span
+              v-if="unreadNotificationsCount > 0"
+              class="notification-badge"
+            >
+              {{
+                unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount
+              }}
             </span>
           </button>
         </div>
@@ -52,12 +84,18 @@
         <div class="navbar-item has-dropdown is-hoverable">
           <a class="navbar-link">
             <figure class="image is-32x32 is-rounded">
-              <img class="is-rounded" :src="user.photo
-                  ? user.photo
-                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user.name || 'U'
-                  )}&size=64`
-                " :alt="`Foto de ${user.name}`" @error="onPhotoError" />
+              <img
+                class="is-rounded"
+                :src="
+                  user.photo
+                    ? user.photo
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        user.name || 'U'
+                      )}&size=64`
+                "
+                :alt="`Foto de ${user.name}`"
+                @error="onPhotoError"
+              />
             </figure>
           </a>
           <div class="navbar-dropdown is-right">
@@ -81,14 +119,78 @@
       <div class="modal-card">
         <header class="modal-card-head">
           <p class="modal-card-title">Notificaciones</p>
-          <button class="delete" aria-label="close" @click="showNotifications = false"></button>
+          <button
+            class="delete"
+            aria-label="close"
+            @click="showNotifications = false"
+          ></button>
         </header>
         <section class="modal-card-body">
-          <div class="content has-text-centered">
+          <div
+            v-if="notifications.length === 0"
+            class="content has-text-centered"
+          >
             <span class="icon is-large mb-2">
               <i class="bx bx-bell is-size-2"></i>
             </span>
             <p>No hay notificaciones nuevas.</p>
+          </div>
+          <div v-else class="notifications-list">
+            <div
+              v-for="notification in notifications"
+              :key="notification.id"
+              class="notification-item"
+              :class="{ unread: !notification.read }"
+            >
+              <div class="notification-avatar">
+                <img
+                  :src="
+                    notification.fromUserPhoto ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      notification.fromUserName || 'U'
+                    )}&size=64`
+                  "
+                  :alt="notification.fromUserName"
+                  @error="onNotificationPhotoError"
+                />
+              </div>
+              <div class="notification-content">
+                <div class="notification-header">
+                  <strong>{{ notification.title }}</strong>
+                  <small class="notification-time">{{
+                    formatTime(notification.createdAt)
+                  }}</small>
+                </div>
+                <p class="notification-message">{{ notification.message }}</p>
+                <div
+                  v-if="notification.type === 'friend_request'"
+                  class="notification-actions"
+                >
+                  <button
+                    class="button is-success is-small"
+                    @click="acceptFriendRequest(notification)"
+                    :disabled="processingNotification === notification.id"
+                  >
+                    <i
+                      v-if="processingNotification === notification.id"
+                      class="bx bx-loader-alt bx-spin"
+                    ></i>
+                    <span v-else>Aceptar</span>
+                  </button>
+                  <button
+                    class="button is-danger is-small"
+                    @click="rejectFriendRequest(notification)"
+                    :disabled="processingNotification === notification.id"
+                  >
+                    <i
+                      v-if="processingNotification === notification.id"
+                      class="bx bx-loader-alt bx-spin"
+                    ></i>
+                    <span v-else>Rechazar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
         <footer class="modal-card-foot is-justify-content-flex-end">
@@ -108,15 +210,30 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useSearchStore } from "@/stores/search";
 import { auth, db } from "@/../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+  serverTimestamp,
+  addDoc,
+} from "firebase/firestore";
 import { reactive } from "vue";
 import { alertError, alertSuccess } from "./alert";
 
 // Boton para Modo dark y light
-const btnTheme = document.getElementById('btnTheme');
+const btnTheme = document.getElementById("btnTheme");
 
 const showNotifications = ref(false);
 const router = useRouter();
+const notifications = ref([]);
+const processingNotification = ref(null);
 
 // Búsqueda global
 const searchStore = useSearchStore();
@@ -142,10 +259,166 @@ watch(
   (user) => {
     if (user) {
       searchStore.syncAll();
+      loadNotifications();
     }
   },
   { immediate: true }
 );
+
+// Cargar notificaciones del usuario
+function loadNotifications() {
+  if (!auth.currentUser) return;
+
+  const notificationsQuery = query(
+    collection(db, "notifications"),
+    where("userId", "==", auth.currentUser.uid),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(notificationsQuery, (snapshot) => {
+    notifications.value = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  });
+}
+
+// Aceptar solicitud de amistad desde notificación
+async function acceptFriendRequest(notification) {
+  if (!auth.currentUser) return;
+
+  processingNotification.value = notification.id;
+
+  try {
+    console.log("=== ACEPTANDO SOLICITUD DESDE NOTIFICACIÓN ===");
+    console.log("Notificación:", notification);
+
+    // Buscar la solicitud de amistad
+    const requestQuery = query(
+      collection(db, "friend_requests"),
+      where("fromUserId", "==", notification.fromUserId),
+      where("toUserId", "==", auth.currentUser.uid),
+      where("status", "==", "pending")
+    );
+
+    const requestSnapshot = await getDocs(requestQuery);
+
+    if (!requestSnapshot.empty) {
+      const requestDoc = requestSnapshot.docs[0];
+      console.log("Solicitud encontrada:", requestDoc.data());
+
+      // Actualizar estado de la solicitud
+      await updateDoc(doc(db, "friend_requests", requestDoc.id), {
+        status: "accepted",
+        updatedAt: serverTimestamp(),
+      });
+
+      // Crear relación de amistad (estructura correcta)
+      await addDoc(collection(db, "friendships"), {
+        userId: auth.currentUser.uid,
+        friendId: notification.fromUserId,
+        createdAt: serverTimestamp(),
+      });
+
+      // Crear amistad recíproca
+      await addDoc(collection(db, "friendships"), {
+        userId: notification.fromUserId,
+        friendId: auth.currentUser.uid,
+        createdAt: serverTimestamp(),
+      });
+
+      // Crear notificación para el usuario que envió la solicitud
+      await addDoc(collection(db, "notifications"), {
+        toUserId: notification.fromUserId,
+        fromUserId: auth.currentUser.uid,
+        type: "friend_request_accepted",
+        title: "Solicitud de amistad aceptada",
+        message: `${
+          user.value.name || "Alguien"
+        } aceptó tu solicitud de amistad`,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+
+      // Marcar notificación como leída
+      await updateDoc(doc(db, "notifications", notification.id), {
+        read: true,
+      });
+
+      console.log("Solicitud aceptada correctamente");
+      alertSuccess("Solicitud de amistad aceptada");
+    } else {
+      console.log("No se encontró la solicitud");
+    }
+  } catch (error) {
+    console.error("Error aceptando solicitud:", error);
+    alertError("Error al aceptar la solicitud");
+  } finally {
+    processingNotification.value = null;
+  }
+}
+
+// Rechazar solicitud de amistad desde notificación
+async function rejectFriendRequest(notification) {
+  if (!auth.currentUser) return;
+
+  processingNotification.value = notification.id;
+
+  try {
+    // Buscar la solicitud de amistad
+    const requestQuery = query(
+      collection(db, "friend_requests"),
+      where("fromUserId", "==", notification.fromUserId),
+      where("toUserId", "==", auth.currentUser.uid),
+      where("status", "==", "pending")
+    );
+
+    const requestSnapshot = await getDocs(requestQuery);
+
+    if (!requestSnapshot.empty) {
+      // Eliminar la solicitud
+      await deleteDoc(doc(db, "friend_requests", requestSnapshot.docs[0].id));
+
+      // Marcar notificación como leída
+      await updateDoc(doc(db, "notifications", notification.id), {
+        read: true,
+      });
+
+      alertSuccess("Solicitud de amistad rechazada");
+    }
+  } catch (error) {
+    console.error("Error rechazando solicitud:", error);
+    alertError("Error al rechazar la solicitud");
+  } finally {
+    processingNotification.value = null;
+  }
+}
+
+// Formatear tiempo de notificación
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+  if (diffInMinutes < 1) return "Ahora";
+  if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
+  if (diffInMinutes < 1440) return `Hace ${Math.floor(diffInMinutes / 60)}h`;
+  return `Hace ${Math.floor(diffInMinutes / 1440)}d`;
+}
+
+// Manejar error en foto de notificación
+function onNotificationPhotoError(e) {
+  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    "U"
+  )}&size=64`;
+}
+
+// Contar notificaciones no leídas
+const unreadNotificationsCount = computed(() => {
+  return notifications.value.filter((n) => !n.read).length;
+});
 
 const results = computed(() => {
   if (!searchQuery.value.trim()) return [];
@@ -282,14 +555,15 @@ const profile = () => {
 
 const logout = async () => {
   const auth = getAuth();
-  signOut(auth).then(() => {
-    localStorage.setItem('isLoggedIn', 'false')
-    alertSuccess("sesion finalizada")
-    router.push('/login')
-  }).catch((error) => {
-    console.log(`Error al cerrar la sesion: ${error.message}`)
-  });
-
+  signOut(auth)
+    .then(() => {
+      localStorage.setItem("isLoggedIn", "false");
+      alertSuccess("sesion finalizada");
+      router.push("/login");
+    })
+    .catch((error) => {
+      console.log(`Error al cerrar la sesion: ${error.message}`);
+    });
 };
 
 const user = reactive({
@@ -303,8 +577,8 @@ async function fetchUserProfile() {
   const userDoc = await getDoc(doc(db, "users", currentUser.uid));
   if (userDoc.exists()) {
     const data = userDoc.data();
-    user.name = data.name ;
-    user.photo = data.photo ;
+    user.name = data.name;
+    user.photo = data.photo;
   }
 }
 
@@ -334,6 +608,7 @@ function onPhotoError(e) {
   padding: 0.5rem;
   border-radius: 8px;
   transition: background 0.2s, color 0.2s, transform 0.2s;
+  position: relative;
 }
 
 .nav-button:hover,
@@ -342,6 +617,39 @@ function onPhotoError(e) {
   color: var(--primary-dark);
   transform: translateY(-2px) scale(1.08);
   box-shadow: 0 2px 8px var(--shadow-hover);
+}
+
+.nav-button {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .navbar-item .icon {
@@ -415,23 +723,163 @@ function onPhotoError(e) {
 
 /* DARK MODE SOLO PARA EL INPUT Y DROPDOWN DE BÚSQUEDA */
 #theme-dark .top-navbar .input {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
 }
 #theme-dark .top-navbar .input::placeholder {
-  color: #85C1E9;
+  color: #85c1e9;
   opacity: 1;
 }
 #theme-dark .top-navbar .search-dropdown {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 16px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 16px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .top-navbar .search-result-item:hover {
-  background: #1A4D99;
-  color: #A3C8FF;
+  background: #1a4d99;
+  color: #a3c8ff;
+}
+
+/* Estilos para notificaciones */
+.notifications-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.notification-item:hover {
+  background: var(--primary-light, #f1f5f9);
+}
+
+.notification-item.unread {
+  background: rgba(99, 102, 241, 0.05);
+  border-left: 3px solid var(--primary, #6366f1);
+}
+
+.notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.notification-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  color: var(--secondary, #64748b);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.notification-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text, #1e293b);
+  line-height: 1.4;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notification-actions .button {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  height: auto;
+}
+
+.button.is-danger.is-small {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.button.is-danger.is-small:hover {
+  background: #dc2626;
+}
+
+.button.is-success.is-small {
+  background: #06d6a0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.button.is-success.is-small:hover {
+  background: #059669;
+}
+
+/* Modo oscuro para notificaciones */
+#theme-dark .notification-item {
+  background: #23262f;
+  border-color: #26334d;
+}
+
+#theme-dark .notification-item:hover {
+  background: #1a4d99;
+}
+
+#theme-dark .notification-item.unread {
+  background: rgba(79, 140, 255, 0.1);
+  border-left-color: #4f8cff;
+}
+
+#theme-dark .notification-time {
+  color: #85c1e9;
+}
+
+#theme-dark .notification-message {
+  color: #f1f1f1;
+}
+
+#theme-dark .notification-actions .button.is-success.is-small {
+  background: #06d6a0;
+  color: #181a20;
+}
+
+#theme-dark .notification-actions .button.is-danger.is-small {
+  background: #ef4444;
+  color: white;
 }
 
 .search-result-item {
@@ -499,26 +947,26 @@ function onPhotoError(e) {
   }
 }
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;

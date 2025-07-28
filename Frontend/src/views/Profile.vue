@@ -31,7 +31,13 @@
                 </div>
               </div>
               <h2 class="title is-3 mb-1">{{ user.name }}</h2>
-              <button v-if="!isOwnProfile" class="button is-success mt-2" @click="addFriend">Agregar como amigo</button>
+              <button
+                v-if="!isOwnProfile"
+                class="button is-success mt-2"
+                @click="addFriend"
+              >
+                Agregar como amigo
+              </button>
             </div>
 
             <!-- Datos básicos -->
@@ -121,10 +127,20 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
-import { useRoute } from 'vue-router';
+import { useRoute } from "vue-router";
 import { auth, db } from "../../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import Swal from 'sweetalert2';
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
+import Swal from "sweetalert2";
 
 const route = useRoute();
 const user = reactive({
@@ -132,7 +148,7 @@ const user = reactive({
   email: "",
   bio: "",
   photo: "",
-  uid: ""
+  uid: "",
 });
 const form = reactive({
   name: "",
@@ -166,11 +182,11 @@ async function fetchUserProfile() {
 }
 
 onMounted(() => {
-   const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+  const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
     if (firebaseUser) {
       fetchUserProfile();
     }
-    unsubscribe(); 
+    unsubscribe();
   });
 });
 
@@ -201,9 +217,7 @@ function cancelEdit() {
   editing.value = false;
 }
 
-function logout() {
-  
-}
+function logout() {}
 
 function onPhotoError(e) {
   e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -221,13 +235,119 @@ function onNameInput() {
   }
 }
 
-function addFriend() {
-  Swal.fire({
-    icon: 'success',
-    title: 'Solicitud enviada con satisfacción',
-    showConfirmButton: false,
-    timer: 2000
-  });
+async function addFriend() {
+  if (!auth.currentUser || !route.params.uid) return;
+
+  try {
+    console.log("=== AGREGANDO AMIGO DESDE PROFILE ===");
+    console.log("Usuario actual:", auth.currentUser.uid);
+    console.log("Usuario objetivo:", route.params.uid);
+
+    const currentUserId = auth.currentUser.uid;
+    const targetUserId = route.params.uid;
+
+    // Verificar primero si ya son amigos
+    const friendsQuery1 = query(
+      collection(db, "friendships"),
+      where("userId", "==", currentUserId),
+      where("friendId", "==", targetUserId)
+    );
+
+    const friendsQuery2 = query(
+      collection(db, "friendships"),
+      where("userId", "==", targetUserId),
+      where("friendId", "==", currentUserId)
+    );
+
+    const [friendsSnapshot1, friendsSnapshot2] = await Promise.all([
+      getDocs(friendsQuery1),
+      getDocs(friendsQuery2),
+    ]);
+
+    const isAlreadyFriend = !friendsSnapshot1.empty || !friendsSnapshot2.empty;
+
+    if (isAlreadyFriend) {
+      console.log("Ya son amigos");
+      Swal.fire({
+        icon: "warning",
+        title: "Ya son amigos",
+        text: "No puedes enviar una solicitud a alguien que ya es tu amigo",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    // Verificar si ya hay una solicitud pendiente
+    const existingRequestQuery = query(
+      collection(db, "friend_requests"),
+      where("fromUserId", "==", currentUserId),
+      where("toUserId", "==", targetUserId),
+      where("status", "==", "pending")
+    );
+
+    const existingRequestSnapshot = await getDocs(existingRequestQuery);
+    if (!existingRequestSnapshot.empty) {
+      console.log("Ya existe una solicitud pendiente");
+      Swal.fire({
+        icon: "warning",
+        title: "Solicitud ya enviada",
+        text: "Ya has enviado una solicitud de amistad a este usuario",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    // Obtener datos del usuario actual
+    const currentUserDoc = await getDoc(doc(db, "users", currentUserId));
+    const currentUserData = currentUserDoc.exists()
+      ? currentUserDoc.data()
+      : {};
+
+    // Crear solicitud de amistad
+    await addDoc(collection(db, "friend_requests"), {
+      fromUserId: currentUserId,
+      toUserId: targetUserId,
+      fromUserName: currentUserData.name || "Usuario",
+      fromUserEmail: auth.currentUser.email || "",
+      fromUserPhoto: currentUserData.photo || "",
+      status: "pending",
+      createdAt: serverTimestamp(),
+      message: `${
+        currentUserData.name || "Usuario"
+      } te envió una solicitud de amistad`,
+    });
+
+    // Crear notificación para el usuario destinatario
+    await addDoc(collection(db, "notifications"), {
+      toUserId: targetUserId,
+      fromUserId: currentUserId,
+      type: "friend_request",
+      title: "Nueva solicitud de amistad",
+      message: `${
+        currentUserData.name || "Usuario"
+      } te envió una solicitud de amistad`,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+
+    console.log("Solicitud enviada correctamente desde Profile");
+
+    Swal.fire({
+      icon: "success",
+      title: "Solicitud enviada",
+      text: "Se ha enviado la solicitud de amistad",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+  } catch (error) {
+    console.error("Error enviando solicitud desde Profile:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo enviar la solicitud",
+      confirmButtonText: "OK",
+    });
+  }
 }
 </script>
 

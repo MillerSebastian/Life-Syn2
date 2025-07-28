@@ -4,11 +4,13 @@
       :user="user"
       :isSidebarCollapsed="isSidebarCollapsed"
       :activeSection="activeSection"
+      :pendingRequestsCount="pendingRequestsCount"
       @toggle-sidebar="toggleSidebar"
       @update:activeSection="(val) => (activeSection = val)"
     />
     <div class="feed-main">
       <Chat v-if="activeSection === 'chat'" />
+      <Friends v-else-if="activeSection === 'friends'" :user="user" />
       <template v-else>
         <div class="feed-header">
           <button class="btn btn-primary" @click="showPostModal = true">
@@ -424,6 +426,8 @@ import {
   arrayUnion,
   arrayRemove,
   getDoc,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import {
   ref as storageRef,
@@ -433,6 +437,7 @@ import {
 import Swal from "sweetalert2";
 import UserProfile from "./UserProfile.vue";
 import Chat from "./Chat.vue";
+import Friends from "./Friends.vue";
 
 const router = useRouter();
 const user = ref({
@@ -454,8 +459,43 @@ const editCommentContent = ref("");
 const bounceReactionId = ref("");
 const isSidebarCollapsed = ref(false);
 const activeSection = ref("feed");
+const pendingRequestsCount = ref(0);
+
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
+}
+
+// Cargar solicitudes de amistad pendientes
+async function loadPendingFriendRequests() {
+  if (!user.value.uid) return;
+
+  try {
+    const requestsQuery = query(
+      collection(db, "friend_requests"),
+      where("toUserId", "==", user.value.uid),
+      where("status", "==", "pending")
+    );
+
+    const snapshot = await getDocs(requestsQuery);
+    pendingRequestsCount.value = snapshot.size;
+  } catch (error) {
+    console.error("Error cargando solicitudes pendientes:", error);
+  }
+}
+
+// Escuchar cambios en las solicitudes de amistad
+function listenToFriendRequests() {
+  if (!user.value.uid) return;
+
+  const requestsQuery = query(
+    collection(db, "friend_requests"),
+    where("toUserId", "==", user.value.uid),
+    where("status", "==", "pending")
+  );
+
+  onSnapshot(requestsQuery, (snapshot) => {
+    pendingRequestsCount.value = snapshot.size;
+  });
 }
 
 const reactions = [
@@ -618,6 +658,8 @@ onMounted(async () => {
       });
     });
   });
+  loadPendingFriendRequests();
+  listenToFriendRequests();
 });
 
 function onImageChange(e) {
