@@ -5,7 +5,8 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      redirect: "/login",
+      name: "landing",
+      component: () => import("../views/Landing.vue"),
     },
     {
       path: "/login",
@@ -80,15 +81,19 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   // Rutas públicas
-  const publicPages = ["/login", "/register"];
+  const publicPages = ["/", "/login", "/register"];
   const authRequired = !publicPages.includes(to.path);
 
   if (!isLoggedIn && authRequired) {
     // No logueado, intenta acceder a ruta protegida
     return next("/login");
   }
-  if (isLoggedIn && publicPages.includes(to.path)) {
-    // Logueado, intenta ir a login/register
+  if (
+    isLoggedIn &&
+    (to.path === "/" ||
+      (publicPages.includes(to.path) && to.path !== "/register"))
+  ) {
+    // Logueado, intenta ir a landing o login
     return next("/dashboard");
   }
   return next();
