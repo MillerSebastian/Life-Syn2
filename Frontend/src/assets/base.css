@@ -1,3 +1,16 @@
+html,
+body,
+#app {
+  min-height: 100vh !important;
+  height: auto !important;
+  width: 100vw !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: #f8fafc !important;
+  position: static !important;
+  display: block !important;
+}
+
 :root {
   --primary: #6366f1;
   --primary-light: #e0e7ff;
@@ -21,7 +34,8 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   background-color: var(--background-secondary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -35,7 +49,9 @@ button {
   font-family: inherit;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
   outline: none;
 }
@@ -53,25 +69,57 @@ input, textarea, select {
   text-align: right;
 }
 
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 0.75rem; }
-.mb-4 { margin-bottom: 1rem; }
+.mb-0 {
+  margin-bottom: 0;
+}
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mb-4 {
+  margin-bottom: 1rem;
+}
 
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 0.75rem; }
-.mt-4 { margin-top: 1rem; }
+.mt-0 {
+  margin-top: 0;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.mt-3 {
+  margin-top: 0.75rem;
+}
+.mt-4 {
+  margin-top: 1rem;
+}
 
-.mr-1 { margin-right: 0.25rem; }
-.mr-2 { margin-right: 0.5rem; }
-.mr-3 { margin-right: 0.75rem; }
+.mr-1 {
+  margin-right: 0.25rem;
+}
+.mr-2 {
+  margin-right: 0.5rem;
+}
+.mr-3 {
+  margin-right: 0.75rem;
+}
 
-.ml-1 { margin-left: 0.25rem; }
-.ml-2 { margin-left: 0.5rem; }
-.ml-3 { margin-left: 0.75rem; }
+.ml-1 {
+  margin-left: 0.25rem;
+}
+.ml-2 {
+  margin-left: 0.5rem;
+}
+.ml-3 {
+  margin-left: 0.75rem;
+}
 
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
@@ -117,26 +165,26 @@ input, textarea, select {
 }
 
 #theme-dark .modal-card {
-  background: #23262F;
-  color: #F1F1F1;
-  border: 1.5px solid #4F8CFF;
-  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.10);
+  background: #23262f;
+  color: #f1f1f1;
+  border: 1.5px solid #4f8cff;
+  box-shadow: 0 4px 24px rgba(79, 140, 255, 0.1);
 }
 #theme-dark .modal-card-head {
-  background: #1A4D99;
-  color: #F1F1F1;
-  border-bottom: 1px solid #4F8CFF;
+  background: #1a4d99;
+  color: #f1f1f1;
+  border-bottom: 1px solid #4f8cff;
 }
 #theme-dark .modal-card-title {
-  color: #A3C8FF;
+  color: #a3c8ff;
 }
 #theme-dark .modal-card-body {
-  background: #23262F;
-  color: #F1F1F1;
+  background: #23262f;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card-foot {
-  background: #23262F;
-  border-top: 1px solid #4F8CFF;
+  background: #23262f;
+  border-top: 1px solid #4f8cff;
 }
 #theme-dark .modal-background {
   background: rgba(24, 26, 32, 0.85) !important;
@@ -147,7 +195,7 @@ input, textarea, select {
 #theme-dark .modal-card textarea,
 #theme-dark .modal-card select {
   background: #1a2332;
-  color: #F1F1F1;
+  color: #f1f1f1;
   border: 1.5px solid #4a90e2;
 }
 #theme-dark .modal-card input::placeholder,
@@ -156,7 +204,7 @@ input, textarea, select {
   opacity: 1;
 }
 #theme-dark .modal-card select {
-  color: #F1F1F1;
+  color: #f1f1f1;
 }
 #theme-dark .modal-card input:focus,
 #theme-dark .modal-card textarea:focus,
