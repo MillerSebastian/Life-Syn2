@@ -627,18 +627,11 @@ function calcularWalletData() {
         expenses += Number(t.amount);
         // Sumar a la categoría
         const categoryName = getCategoryName(t.category);
-        console.log(
-          "Transaction category:",
-          t.category,
-          "Mapped to:",
-          categoryName
-        );
+
         const cat = budgetCategories.value.find((c) => c.name === categoryName);
         if (cat) {
           cat.spent += Number(t.amount);
-          console.log("Added to category:", cat.name, "New spent:", cat.spent);
         } else {
-          console.log("Category not found:", categoryName);
         }
       }
     }
@@ -742,10 +735,6 @@ function renderExpenseChart() {
   if (chartInstance) chartInstance.destroy();
   const data = budgetCategories.value.map((cat) => cat.spent);
   const labels = budgetCategories.value.map((cat) => cat.name);
-
-  console.log("Chart data:", data);
-  console.log("Chart labels:", labels);
-  console.log("Budget categories:", budgetCategories.value);
 
   const ctx = expenseChart.value.getContext("2d");
   chartInstance = new Chart(ctx, {

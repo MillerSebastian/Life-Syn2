@@ -385,9 +385,6 @@ watch(
     } else {
       // Limpiar listener si el usuario se desautentica
       if (notificationsUnsubscribe) {
-        console.log(
-          "Usuario desautenticado, limpiando listener de notificaciones"
-        );
         notificationsUnsubscribe();
         notificationsUnsubscribe = null;
         notifications.value = [];
@@ -493,9 +490,6 @@ async function acceptFriendRequest(notification) {
   processingNotification.value = notification.id;
 
   try {
-    console.log("=== ACEPTANDO SOLICITUD DESDE NOTIFICACIÓN ===");
-    console.log("Notificación:", notification);
-
     // Buscar la solicitud de amistad
     const requestQuery = query(
       collection(db, "friend_requests"),
@@ -508,7 +502,6 @@ async function acceptFriendRequest(notification) {
 
     if (!requestSnapshot.empty) {
       const requestDoc = requestSnapshot.docs[0];
-      console.log("Solicitud encontrada:", requestDoc.data());
 
       // Actualizar estado de la solicitud
       await updateDoc(doc(db, "friend_requests", requestDoc.id), {
@@ -551,10 +544,8 @@ async function acceptFriendRequest(notification) {
         updatedAt: serverTimestamp(),
       });
 
-      console.log("Solicitud aceptada correctamente");
       alertSuccess("Solicitud de amistad aceptada");
     } else {
-      console.log("No se encontró la solicitud");
     }
   } catch (error) {
     console.error("Error aceptando solicitud:", error);
@@ -620,15 +611,6 @@ function formatTime(timestamp) {
 // Contar notificaciones no leídas
 const unreadNotificationsCount = computed(() => {
   const count = notifications.value.filter((n) => !n.read).length;
-  console.log(
-    "=== COMPUTED UNREAD NOTIFICATIONS ===",
-    "No leídas:",
-    count,
-    "Total:",
-    notifications.value.length,
-    "Notifications array:",
-    notifications.value
-  );
   return count;
 });
 
@@ -929,9 +911,7 @@ const logout = async () => {
       alertSuccess("sesion finalizada");
       router.push("/login");
     })
-    .catch((error) => {
-      console.log(`Error al cerrar la sesion: ${error.message}`);
-    });
+    .catch((error) => {});
 };
 
 const user = reactive({

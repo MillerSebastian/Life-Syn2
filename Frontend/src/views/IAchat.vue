@@ -969,7 +969,7 @@ const sendMessage = async () => {
     return;
   }
   // Log para depuración
-  console.log("Respuesta IA parseada:", parsed);
+
   let botMsg = null;
   if (parsed.intencion === "crear_tarea") {
     // Validar que haya título

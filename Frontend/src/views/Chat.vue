@@ -581,34 +581,24 @@ const colorPalette = [
 const filteredUsers = computed(() => {
   if (!auth.currentUser) return [];
 
-  console.log("=== FILTRANDO USUARIOS ===");
-  console.log("Total de usuarios:", users.value.length);
-  console.log("Usuario actual:", auth.currentUser.uid);
-
   // Filtrar solo amigos del usuario actual
   const filtered = users.value.filter((user) => {
     // Excluir al usuario actual
     if (user.uid === auth.currentUser?.uid) {
-      console.log(`Excluyendo usuario actual: ${user.name}`);
       return false;
     }
 
     // Verificar si el usuario tiene nombre y email
     if (!user.name || !user.email) {
-      console.log(`Usuario sin nombre o email: ${user.uid}`);
       return false;
     }
 
     // Verificar si es amigo
     const isFriend = isUserFriend(user.uid);
-    console.log(`Usuario ${user.name} (${user.uid}): ¿Es amigo? ${isFriend}`);
 
     return isFriend;
   });
 
-  console.log("Usuarios filtrados (amigos):", filtered);
-  console.log("Total de amigos en la lista:", filtered.length);
-  console.log("=== FIN FILTRADO ===");
   return filtered;
 });
 
@@ -666,24 +656,20 @@ const formatMessageWithEmojis = (text: string): string => {
 };
 
 const loadUsers = async () => {
-  console.log("=== INICIANDO LOADUSERS ===");
   loadingUsers.value = true;
   try {
     // Primero cargar amigos
-    console.log("Cargando amigos...");
+
     await loadFriends();
 
     // Configurar listener en tiempo real para friendships
-    console.log("Configurando listener de friendships...");
+
     const unsubscribe = listenToFriendships();
     if (unsubscribe) {
       friendshipsListeners.value.push(unsubscribe);
-      console.log("Listener de friendships configurado correctamente");
     } else {
-      console.log("ERROR: No se pudo configurar el listener de friendships");
     }
 
-    console.log("Cargando usuarios...");
     const usersSnapshot = await getDocs(usersCollection);
     const loadedUsers: User[] = [];
 
@@ -696,7 +682,6 @@ const loadUsers = async () => {
     }
 
     users.value = loadedUsers;
-    console.log("Usuarios cargados:", loadedUsers.length);
 
     if (auth.currentUser) {
       const currentUserDoc = usersSnapshot.docs.find(
@@ -722,7 +707,6 @@ const loadUsers = async () => {
     });
 
     setupGlobalMessagesListener();
-    console.log("=== LOADUSERS COMPLETADO ===");
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   } finally {
@@ -1046,7 +1030,6 @@ const sendMessage = async () => {
 const deleteMessage = async (messageId: string) => {
   try {
     await deleteDoc(doc(db, "messages", messageId));
-    console.log("Mensaje eliminado correctamente");
   } catch (error) {
     console.error("Error al eliminar el mensaje:", error);
   }
@@ -1076,9 +1059,6 @@ watch(messages, (msgs) => {
 });
 
 onMounted(() => {
-  console.log("=== COMPONENTE CHAT MONTADO ===");
-  console.log("Usuario autenticado:", auth.currentUser?.uid);
-
   loadUsers();
 
   // Event listener para cerrar el modal cuando se hace clic fuera
@@ -1109,11 +1089,6 @@ const isUserFriend = (friendUid: string): boolean => {
   if (!auth.currentUser) return false;
 
   // Debug: mostrar información
-  console.log("=== VERIFICANDO AMISTAD ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
-  console.log("Amigo a verificar:", friendUid);
-  console.log("Total de friendships cargadas:", friends.value.length);
-  console.log("Friendships:", friends.value);
 
   // Buscar en la colección de friendships
   // Un usuario es amigo si existe un documento en friendships donde:
@@ -1127,18 +1102,9 @@ const isUserFriend = (friendUid: string): boolean => {
       friendship.userId === friendUid &&
       friendship.friendId === auth.currentUser?.uid;
 
-    console.log(`Friendship ${friendship.id}:`, {
-      friendship,
-      condition1,
-      condition2,
-      matches: condition1 || condition2,
-    });
-
     return condition1 || condition2;
   });
 
-  console.log("¿Es amigo?", isFriend);
-  console.log("=== FIN VERIFICACIÓN ===");
   return isFriend;
 };
 
@@ -1150,27 +1116,20 @@ const friendshipsListeners = ref<any[]>([]);
 const loadFriends = async () => {
   if (!auth.currentUser) return;
 
-  console.log("=== INICIANDO CARGA DE AMIGOS ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
-
   try {
     // Cargar friendships donde el usuario actual es userId
     const friendshipsQuery1 = query(
       collection(db, "friendships"),
       where("userId", "==", auth.currentUser.uid)
     );
-    console.log("Query 1 (userId):", friendshipsQuery1);
     const snapshot1 = await getDocs(friendshipsQuery1);
-    console.log("Snapshot 1 docs:", snapshot1.docs.length);
 
     // Cargar friendships donde el usuario actual es friendId
     const friendshipsQuery2 = query(
       collection(db, "friendships"),
       where("friendId", "==", auth.currentUser.uid)
     );
-    console.log("Query 2 (friendId):", friendshipsQuery2);
     const snapshot2 = await getDocs(friendshipsQuery2);
-    console.log("Snapshot 2 docs:", snapshot2.docs.length);
 
     const friendsData: any[] = [];
     const processedFriendIds = new Set(); // Para evitar duplicados
@@ -1178,7 +1137,6 @@ const loadFriends = async () => {
     // Procesar friendships donde el usuario actual es userId
     snapshot1.forEach((doc) => {
       const friendship = doc.data();
-      console.log("Friendship 1:", friendship);
 
       // Solo agregar si no hemos procesado este friendId antes
       if (!processedFriendIds.has(friendship.friendId)) {
@@ -1195,7 +1153,6 @@ const loadFriends = async () => {
     // Procesar friendships donde el usuario actual es friendId
     snapshot2.forEach((doc) => {
       const friendship = doc.data();
-      console.log("Friendship 2:", friendship);
 
       // Solo agregar si no hemos procesado este userId antes
       if (!processedFriendIds.has(friendship.userId)) {
@@ -1210,8 +1167,6 @@ const loadFriends = async () => {
     });
 
     friends.value = friendsData;
-    console.log("Amigos cargados:", friendsData);
-    console.log("Total de amigos únicos:", friendsData.length);
   } catch (error) {
     console.error("Error al cargar amigos:", error);
   }
@@ -1220,12 +1175,8 @@ const loadFriends = async () => {
 // Función para escuchar cambios en friendships en tiempo real
 const listenToFriendships = () => {
   if (!auth.currentUser) {
-    console.log("No hay usuario autenticado para configurar listener");
     return;
   }
-
-  console.log("=== CONFIGURANDO LISTENER DE FRIENDSHIPS ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
 
   // Crear una función que combine ambas queries
   const updateFriendships = async () => {
@@ -1248,16 +1199,12 @@ const listenToFriendships = () => {
         getDocs(friendshipsQuery2),
       ]);
 
-      console.log("Snapshot 1 docs:", snapshot1.docs.length);
-      console.log("Snapshot 2 docs:", snapshot2.docs.length);
-
       const allFriendsData: any[] = [];
       const processedFriendIds = new Set(); // Para evitar duplicados
 
       // Procesar friendships donde el usuario actual es userId
       snapshot1.forEach((doc) => {
         const friendship = doc.data();
-        console.log("Friendship 1:", friendship);
 
         // Solo agregar si no hemos procesado este friendId antes
         if (!processedFriendIds.has(friendship.friendId)) {
@@ -1274,7 +1221,6 @@ const listenToFriendships = () => {
       // Procesar friendships donde el usuario actual es friendId
       snapshot2.forEach((doc) => {
         const friendship = doc.data();
-        console.log("Friendship 2:", friendship);
 
         // Solo agregar si no hemos procesado este userId antes
         if (!processedFriendIds.has(friendship.userId)) {
@@ -1289,8 +1235,6 @@ const listenToFriendships = () => {
       });
 
       friends.value = allFriendsData;
-      console.log("Amigos actualizados en tiempo real:", allFriendsData);
-      console.log("Total de amigos únicos:", allFriendsData.length);
     } catch (error) {
       console.error("Error actualizando friendships:", error);
     }
@@ -1299,13 +1243,7 @@ const listenToFriendships = () => {
   // Configurar listener para la colección friendships completa
   const friendshipsCollectionRef = collection(db, "friendships");
   const unsubscribe = onSnapshot(friendshipsCollectionRef, (snapshot) => {
-    console.log("=== CAMBIO DETECTADO EN FRIENDSHIPS ===");
-    console.log("Cambios:", snapshot.docChanges().length);
-
-    snapshot.docChanges().forEach((change) => {
-      console.log("Tipo de cambio:", change.type);
-      console.log("Documento:", change.doc.data());
-    });
+    snapshot.docChanges().forEach((change) => {});
 
     // Actualizar friendships cuando hay cambios
     updateFriendships();

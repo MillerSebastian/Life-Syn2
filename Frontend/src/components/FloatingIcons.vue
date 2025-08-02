@@ -73,7 +73,6 @@ const props = defineProps({
 });
 
 // Debug: ver qué viewType se está recibiendo
-console.log("FloatingIcons - ViewType recibido:", props.viewType);
 </script>
 
 <style scoped>
