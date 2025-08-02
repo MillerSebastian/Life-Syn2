@@ -239,9 +239,6 @@ async function addFriend() {
   if (!auth.currentUser || !route.params.uid) return;
 
   try {
-    console.log("=== AGREGANDO AMIGO DESDE PROFILE ===");
-    console.log("Usuario actual:", auth.currentUser.uid);
-    console.log("Usuario objetivo:", route.params.uid);
 
     const currentUserId = auth.currentUser.uid;
     const targetUserId = route.params.uid;
@@ -267,7 +264,6 @@ async function addFriend() {
     const isAlreadyFriend = !friendsSnapshot1.empty || !friendsSnapshot2.empty;
 
     if (isAlreadyFriend) {
-      console.log("Ya son amigos");
       Swal.fire({
         icon: "warning",
         title: "Ya son amigos",
@@ -287,7 +283,6 @@ async function addFriend() {
 
     const existingRequestSnapshot = await getDocs(existingRequestQuery);
     if (!existingRequestSnapshot.empty) {
-      console.log("Ya existe una solicitud pendiente");
       Swal.fire({
         icon: "warning",
         title: "Solicitud ya enviada",
@@ -330,7 +325,6 @@ async function addFriend() {
       createdAt: serverTimestamp(),
     });
 
-    console.log("Solicitud enviada correctamente desde Profile");
 
     Swal.fire({
       icon: "success",

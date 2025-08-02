@@ -130,9 +130,6 @@ const githubProvider = new GithubAuthProvider();
 
 // Función auxiliar para manejar errores de cuentas existentes con diferentes credenciales
 const handleAccountExistsWithDifferentCredential = async (error, provider) => {
-  console.log("=== MANEJANDO CUENTA EXISTENTE CON DIFERENTE CREDENCIAL ===");
-  console.log("Error:", error);
-  console.log("Proveedor:", provider);
 
   const email = error.customData?.email;
   if (!email) {
@@ -143,7 +140,6 @@ const handleAccountExistsWithDifferentCredential = async (error, provider) => {
   try {
     // Buscar los métodos de inicio de sesión disponibles para ese email
     const methods = await fetchSignInMethodsForEmail(auth, email);
-    console.log("Métodos disponibles para", email, ":", methods);
 
     let message = "";
     let action = "";
@@ -173,7 +169,6 @@ const handleAccountExistsWithDifferentCredential = async (error, provider) => {
     // Si el usuario intentó registrarse con GitHub pero ya tiene cuenta con Google,
     // sugerir que use Google
     if (provider === "GitHub" && methods.includes("google.com")) {
-      console.log("Sugiriendo usar Google en lugar de GitHub");
     }
   } catch (linkError) {
     console.error("Error al verificar métodos de inicio de sesión:", linkError);
@@ -206,7 +201,6 @@ const sendResetEmail = async () => {
 };
 
 const openForgotModal = () => {
-  console.log("Abriendo modal de recuperación");
   modalContent.value = `
     <div style="z-index:9999999; background:rgba(0,0,0,0.8); position:fixed; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center;">
       <div style="background:#fff; border:5px solid #f00; color:#000; z-index:10000001; padding:2rem; border-radius:10px; width:90%; max-width:400px; box-shadow:0 2px 10px rgba(0,0,0,0.3); text-align:center;">
@@ -333,11 +327,9 @@ const handleRegister = async () => {
 function logout() {}
 const loginWithGoogle = async () => {
   try {
-    console.log("Google clicked");
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
     await registerUserIfNotExists(user);
-    console.log("Login exitoso con Google", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
     localStorage.setItem("displayName", user.displayName || "");
@@ -362,7 +354,6 @@ const loginWithFacebook = async () => {
     const result = await signInWithPopup(auth, facebookProvider);
     const user = result.user;
     await registerUserIfNotExists(user);
-    console.log("Login exitoso con Facebook", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
     localStorage.setItem("displayName", user.displayName || "");
@@ -387,7 +378,6 @@ const loginWithGitHub = async () => {
     const result = await signInWithPopup(auth, githubProvider);
     const user = result.user;
     await registerUserIfNotExists(user);
-    console.log("Login exitoso con GitHub", result.user);
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("uid", result.user.uid);
     localStorage.setItem("displayName", user.displayName || "");
@@ -419,7 +409,6 @@ async function registerUserIfNotExists(user) {
       provider: user.providerData[0]?.providerId || "manual",
       createdAt: new Date(),
     });
-    console.log(" Usuario registrado en Firestore");
   } else {
     const oldData = snap.data();
     if (
@@ -432,7 +421,6 @@ async function registerUserIfNotExists(user) {
         { ...oldData, name: user.displayName },
         { merge: true }
       );
-      console.log(" Nombre actualizado en Firestore");
     }
   }
 }

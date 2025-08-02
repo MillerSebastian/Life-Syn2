@@ -223,9 +223,6 @@ const activeSection = ref("pending");
 async function loadFriends() {
   if (!auth.currentUser?.uid) return;
 
-  console.log("=== CARGANDO AMIGOS EN FRIENDS.VUE ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
-
   try {
     // Query 1: friendships donde el usuario actual es userId
     const friendshipsQuery1 = query(
@@ -233,7 +230,6 @@ async function loadFriends() {
       where("userId", "==", auth.currentUser.uid)
     );
     const snapshot1 = await getDocs(friendshipsQuery1);
-    console.log("Friendships donde soy userId:", snapshot1.docs.length);
 
     // Query 2: friendships donde el usuario actual es friendId
     const friendshipsQuery2 = query(
@@ -241,7 +237,6 @@ async function loadFriends() {
       where("friendId", "==", auth.currentUser.uid)
     );
     const snapshot2 = await getDocs(friendshipsQuery2);
-    console.log("Friendships donde soy friendId:", snapshot2.docs.length);
 
     const friendsData = [];
     const processedFriendIds = new Set(); // Para evitar duplicados
@@ -249,7 +244,6 @@ async function loadFriends() {
     // Procesar friendships donde el usuario actual es userId
     for (const docSnap of snapshot1.docs) {
       const friendship = docSnap.data();
-      console.log("Friendship 1:", friendship);
 
       // Solo procesar si no hemos procesado este friendId antes
       if (!processedFriendIds.has(friendship.friendId)) {
@@ -260,7 +254,6 @@ async function loadFriends() {
 
           if (friendDocSnap.exists()) {
             const friendData = friendDocSnap.data();
-            console.log("Datos del amigo 1:", friendData);
             friendsData.push({
               id: docSnap.id,
               uid: friendship.friendId,
@@ -271,10 +264,7 @@ async function loadFriends() {
             });
             processedFriendIds.add(friendship.friendId);
           } else {
-            console.log(
-              "No se encontró el usuario con ID:",
-              friendship.friendId
-            );
+            // No se encontró el usuario con ese ID
           }
         } catch (error) {
           console.error("Error obteniendo datos del amigo 1:", error);
@@ -285,7 +275,6 @@ async function loadFriends() {
     // Procesar friendships donde el usuario actual es friendId
     for (const docSnap of snapshot2.docs) {
       const friendship = docSnap.data();
-      console.log("Friendship 2:", friendship);
 
       // Solo procesar si no hemos procesado este userId antes
       if (!processedFriendIds.has(friendship.userId)) {
@@ -296,7 +285,6 @@ async function loadFriends() {
 
           if (friendDocSnap.exists()) {
             const friendData = friendDocSnap.data();
-            console.log("Datos del amigo 2:", friendData);
             friendsData.push({
               id: docSnap.id,
               uid: friendship.userId,
@@ -307,7 +295,6 @@ async function loadFriends() {
             });
             processedFriendIds.add(friendship.userId);
           } else {
-            console.log("No se encontró el usuario con ID:", friendship.userId);
           }
         } catch (error) {
           console.error("Error obteniendo datos del amigo 2:", error);
@@ -316,8 +303,6 @@ async function loadFriends() {
     }
 
     friends.value = friendsData;
-    console.log("Amigos cargados:", friendsData);
-    console.log("Total de amigos únicos:", friendsData.length);
   } catch (error) {
     console.error("Error cargando amigos:", error);
   }
@@ -327,9 +312,6 @@ async function loadFriends() {
 async function loadPendingRequests() {
   if (!auth.currentUser?.uid) return;
 
-  console.log("=== CARGANDO SOLICITUDES PENDIENTES ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
-
   try {
     const requestsQuery = query(
       collection(db, "friend_requests"),
@@ -337,13 +319,11 @@ async function loadPendingRequests() {
       where("status", "==", "pending")
     );
     const snapshot = await getDocs(requestsQuery);
-    console.log("Solicitudes pendientes encontradas:", snapshot.docs.length);
 
     const requestsData = [];
 
     snapshot.forEach((docSnap) => {
       const request = docSnap.data();
-      console.log("Solicitud pendiente:", request);
       requestsData.push({
         id: docSnap.id,
         fromUserId: request.fromUserId,
@@ -355,7 +335,6 @@ async function loadPendingRequests() {
     });
 
     pendingRequests.value = requestsData;
-    console.log("Solicitudes pendientes cargadas:", requestsData);
   } catch (error) {
     console.error("Error cargando solicitudes pendientes:", error);
   }
@@ -365,9 +344,6 @@ async function loadPendingRequests() {
 async function loadSentRequests() {
   if (!auth.currentUser?.uid) return;
 
-  console.log("=== CARGANDO SOLICITUDES ENVIADAS ===");
-  console.log("Usuario actual:", auth.currentUser.uid);
-
   try {
     const requestsQuery = query(
       collection(db, "friend_requests"),
@@ -375,13 +351,11 @@ async function loadSentRequests() {
       where("status", "==", "pending")
     );
     const snapshot = await getDocs(requestsQuery);
-    console.log("Solicitudes enviadas encontradas:", snapshot.docs.length);
 
     const requestsData = [];
 
     for (const docSnap of snapshot.docs) {
       const request = docSnap.data();
-      console.log("Solicitud enviada:", request);
 
       // Obtener información del usuario que recibió la solicitud usando el ID del documento
       try {
@@ -390,7 +364,6 @@ async function loadSentRequests() {
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          console.log("Datos del usuario que recibió la solicitud:", userData);
           requestsData.push({
             id: docSnap.id,
             toUserId: request.toUserId,
@@ -400,7 +373,7 @@ async function loadSentRequests() {
             createdAt: request.createdAt,
           });
         } else {
-          console.log("No se encontró el usuario con ID:", request.toUserId);
+          // No se encontró el usuario con ese ID
         }
       } catch (error) {
         console.error("Error obteniendo datos del usuario:", error);
@@ -408,7 +381,6 @@ async function loadSentRequests() {
     }
 
     sentRequests.value = requestsData;
-    console.log("Solicitudes enviadas cargadas:", requestsData);
   } catch (error) {
     console.error("Error cargando solicitudes enviadas:", error);
   }
@@ -417,8 +389,6 @@ async function loadSentRequests() {
 // Escuchar cambios en tiempo real
 function listenToChanges() {
   if (!auth.currentUser?.uid) return;
-
-  console.log("=== CONFIGURANDO LISTENERS EN FRIENDS.VUE ===");
 
   // Escuchar cambios en friendships (ambas direcciones)
   const friendshipsQuery1 = query(
@@ -433,19 +403,11 @@ function listenToChanges() {
 
   // Listener para friendships donde soy userId
   onSnapshot(friendshipsQuery1, (snapshot) => {
-    console.log(
-      "Cambio detectado en friendships (userId):",
-      snapshot.docChanges().length
-    );
     loadFriends();
   });
 
   // Listener para friendships donde soy friendId
   onSnapshot(friendshipsQuery2, (snapshot) => {
-    console.log(
-      "Cambio detectado en friendships (friendId):",
-      snapshot.docChanges().length
-    );
     loadFriends();
   });
 
@@ -457,10 +419,6 @@ function listenToChanges() {
   );
 
   onSnapshot(pendingRequestsQuery, (snapshot) => {
-    console.log(
-      "Cambio detectado en solicitudes pendientes:",
-      snapshot.docChanges().length
-    );
     loadPendingRequests();
   });
 
@@ -472,10 +430,6 @@ function listenToChanges() {
   );
 
   onSnapshot(sentRequestsQuery, (snapshot) => {
-    console.log(
-      "Cambio detectado en solicitudes enviadas:",
-      snapshot.docChanges().length
-    );
     loadSentRequests();
   });
 }
@@ -483,10 +437,6 @@ function listenToChanges() {
 // Aceptar solicitud
 async function acceptRequest(request) {
   try {
-    console.log("=== ACEPTANDO SOLICITUD DESDE FRIENDS ===");
-    console.log("Solicitud:", request);
-    console.log("Usuario actual:", auth.currentUser.uid);
-
     // Actualizar el estado de la solicitud
     await updateDoc(doc(db, "friend_requests", request.id), {
       status: "accepted",
@@ -519,8 +469,6 @@ async function acceptRequest(request) {
       read: false,
       createdAt: serverTimestamp(),
     });
-
-    console.log("Solicitud aceptada correctamente desde Friends");
   } catch (error) {
     console.error("Error aceptando solicitud:", error);
   }
@@ -547,13 +495,11 @@ async function cancelRequest(request) {
 // Abrir perfil de usuario
 function openUserProfile(uid) {
   // Implementar navegación al perfil
-  console.log("Abrir perfil de:", uid);
 }
 
 // Enviar mensaje
 function sendMessage(friend) {
   // Implementar navegación al chat
-  console.log("Enviar mensaje a:", friend.name);
 }
 
 // Formatear tiempo

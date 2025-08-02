@@ -552,8 +552,8 @@ let monthlyChartInstance = null;
 
 function getTextColor() {
   // Lógica correcta: blanco en modo dark, negro en modo light
-  const isDark = document.body.id === 'theme-dark';
-  return isDark ? '#F1F1F1' : '#0f172a';
+  const isDark = document.body.id === "theme-dark";
+  return isDark ? "#F1F1F1" : "#0f172a";
 }
 
 async function renderCharts() {
@@ -568,7 +568,7 @@ async function renderCharts() {
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
   }
@@ -578,20 +578,12 @@ async function renderCharts() {
   if (pieChart.value) fixCanvasDPI(pieChart.value);
   if (monthlyChart.value) fixCanvasDPI(monthlyChart.value);
 
-  // Verificar que Chart.js esté disponible
-  console.log("Chart.js disponible:", typeof Chart);
-  
-  // Verificar si los elementos canvas existen
-  console.log("lineChart element:", lineChart.value);
-  console.log("pieChart element:", pieChart.value);
-  console.log("monthlyChart element:", monthlyChart.value);
-
   if (!lineChart.value || !pieChart.value || !monthlyChart.value) {
     console.error("Algunos elementos canvas no se encontraron");
     return;
   }
 
-  if (typeof Chart === 'undefined') {
+  if (typeof Chart === "undefined") {
     console.error("Chart.js no está disponible");
     return;
   }
@@ -613,13 +605,9 @@ async function renderCharts() {
       const dayIndex = taskDate.getDay();
       if (dayIndex >= 0 && dayIndex < 7) {
         weekData[dayIndex]++;
-        console.log(`Tarea completada el día ${dayIndex}: ${task.title}`);
       }
     }
   });
-
-  console.log("Tareas completadas:", completedTasks.value);
-  console.log("Datos de tareas por día:", weekData);
 
   // Calcular datos de gastos
   const allTransactions = await getDocs(collection(db, "transactions"));
@@ -943,7 +931,7 @@ onMounted(async () => {
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
   }
@@ -954,19 +942,15 @@ onMounted(async () => {
   if (monthlyChart.value) fixCanvasDPI(monthlyChart.value);
 
   // Verificar que Chart.js esté disponible
-  console.log("Chart.js disponible:", typeof Chart);
-  
+
   // Verificar si los elementos canvas existen
-  console.log("lineChart element:", lineChart.value);
-  console.log("pieChart element:", pieChart.value);
-  console.log("monthlyChart element:", monthlyChart.value);
 
   if (!lineChart.value || !pieChart.value || !monthlyChart.value) {
     console.error("Algunos elementos canvas no se encontraron");
     return;
   }
 
-  if (typeof Chart === 'undefined') {
+  if (typeof Chart === "undefined") {
     console.error("Chart.js no está disponible");
     return;
   }
@@ -977,7 +961,10 @@ onMounted(async () => {
   const observer = new MutationObserver(() => {
     renderCharts();
   });
-  observer.observe(document.body, { attributes: true, attributeFilter: ['id'] });
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["id"],
+  });
 });
 </script>
 

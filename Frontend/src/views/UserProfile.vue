@@ -117,10 +117,6 @@ async function checkFriendshipStatus() {
   if (!auth.currentUser || !props.uid) return;
 
   try {
-    console.log("=== VERIFICANDO ESTADO DE AMISTAD ===");
-    console.log("Usuario actual:", auth.currentUser.uid);
-    console.log("Usuario objetivo:", props.uid);
-
     const currentUserId = auth.currentUser.uid;
     const targetUserId = props.uid;
 
@@ -143,11 +139,10 @@ async function checkFriendshipStatus() {
     ]);
 
     const isFriend = !friendsSnapshot1.empty || !friendsSnapshot2.empty;
-    console.log("¿Son amigos?", isFriend);
 
     if (isFriend) {
       friendshipStatus.value = "friends";
-      console.log("Estado: Ya son amigos");
+
       return;
     }
 
@@ -162,7 +157,7 @@ async function checkFriendshipStatus() {
     const pendingSnapshot = await getDocs(pendingQuery);
     if (!pendingSnapshot.empty) {
       friendshipStatus.value = "pending_sent";
-      console.log("Estado: Solicitud enviada");
+
       return;
     }
 
@@ -177,12 +172,11 @@ async function checkFriendshipStatus() {
     const receivedSnapshot = await getDocs(receivedQuery);
     if (!receivedSnapshot.empty) {
       friendshipStatus.value = "pending_received";
-      console.log("Estado: Solicitud recibida");
+
       return;
     }
 
     friendshipStatus.value = "none";
-    console.log("Estado: Sin relación");
   } catch (error) {
     console.error("Error verificando estado de amistad:", error);
   }
@@ -193,10 +187,6 @@ async function sendFriendRequest() {
 
   loading.value = true;
   try {
-    console.log("=== ENVIANDO SOLICITUD DE AMISTAD ===");
-    console.log("Usuario actual:", auth.currentUser.uid);
-    console.log("Usuario objetivo:", props.uid);
-
     const currentUser = auth.currentUser;
 
     // Verificar primero si ya son amigos
@@ -223,7 +213,6 @@ async function sendFriendRequest() {
     const isAlreadyFriend = !friendsSnapshot1.empty || !friendsSnapshot2.empty;
 
     if (isAlreadyFriend) {
-      console.log("Ya son amigos, no se puede enviar solicitud");
       Swal.fire({
         icon: "warning",
         title: "Ya son amigos",
@@ -243,7 +232,6 @@ async function sendFriendRequest() {
 
     const existingRequestSnapshot = await getDocs(existingRequestQuery);
     if (!existingRequestSnapshot.empty) {
-      console.log("Ya existe una solicitud pendiente");
       Swal.fire({
         icon: "warning",
         title: "Solicitud ya enviada",
@@ -288,7 +276,6 @@ async function sendFriendRequest() {
     });
 
     friendshipStatus.value = "pending_sent";
-    console.log("Solicitud enviada correctamente");
 
     Swal.fire({
       icon: "success",
@@ -373,10 +360,6 @@ async function acceptFriendRequest() {
 
   loading.value = true;
   try {
-    console.log("=== ACEPTANDO SOLICITUD DESDE USERPROFILE ===");
-    console.log("Usuario actual:", auth.currentUser.uid);
-    console.log("Usuario a aceptar:", props.uid);
-
     // Buscar la solicitud recibida
     const receivedQuery = query(
       collection(db, "friend_requests"),
@@ -390,7 +373,6 @@ async function acceptFriendRequest() {
     if (!receivedSnapshot.empty) {
       const requestDoc = receivedSnapshot.docs[0];
       const requestData = requestDoc.data();
-      console.log("Solicitud encontrada:", requestData);
 
       // Actualizar estado de la solicitud
       await updateDoc(doc(db, "friend_requests", requestDoc.id), {
@@ -440,7 +422,6 @@ async function acceptFriendRequest() {
       }
 
       friendshipStatus.value = "friends";
-      console.log("Solicitud aceptada correctamente");
 
       Swal.fire({
         icon: "success",
@@ -450,7 +431,6 @@ async function acceptFriendRequest() {
         timer: 2000,
       });
     } else {
-      console.log("No se encontró la solicitud");
     }
   } catch (error) {
     console.error("Error aceptando solicitud:", error);

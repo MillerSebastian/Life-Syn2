@@ -1161,7 +1161,6 @@ const resetMealForm = () => {
 
 const addRecipeToMeal = (recipe) => {
   // Aquí implementarías la lógica para agregar la receta como comida
-  console.log("Agregando receta:", recipe.name);
 };
 
 const getCalorieProgress = () => {

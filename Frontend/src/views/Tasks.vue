@@ -399,10 +399,6 @@ import FloatingIcons from "../components/FloatingIcons.vue";
 
 // Función para enviar notificaciones de tareas
 const sendTaskNotification = async (type, task, oldStatus = null) => {
-  console.log("=== INICIANDO ENVÍO DE NOTIFICACIÓN ===");
-  console.log("Tipo:", type);
-  console.log("Tarea:", task);
-  console.log("Estado anterior:", oldStatus);
   const userId = getUserId();
   if (!userId) return;
 
@@ -488,16 +484,12 @@ const sendTaskNotification = async (type, task, oldStatus = null) => {
       createdAt: serverTimestamp(),
     };
 
-    console.log("Enviando notificación:", notificationData);
     const notificationRef = await addDoc(
       collection(db, "notifications"),
       notificationData
     );
-    console.log("Notificación enviada con ID:", notificationRef.id);
-    console.log("=== NOTIFICACIÓN ENVIADA EXITOSAMENTE ===");
   } catch (error) {
     console.error("Error enviando notificación:", error);
-    console.log("=== ERROR EN ENVÍO DE NOTIFICACIÓN ===");
   }
 };
 
@@ -652,10 +644,6 @@ const checkTaskDeadlines = async (tasks) => {
       if (dueDate.getTime() === tomorrow.getTime()) {
         const notificationKey = `due_soon_${task.id}`;
         if (!sentNotifications[notificationKey]) {
-          console.log(
-            "Enviando notificación de tarea que vence pronto:",
-            task.title
-          );
           await sendTaskNotification("due_soon", task);
           sentNotifications[notificationKey] = true;
           hasChanges = true;
@@ -666,7 +654,6 @@ const checkTaskDeadlines = async (tasks) => {
       if (dueDate.getTime() < today.getTime()) {
         const notificationKey = `overdue_${task.id}`;
         if (!sentNotifications[notificationKey]) {
-          console.log("Enviando notificación de tarea vencida:", task.title);
           await sendTaskNotification("overdue", task);
           sentNotifications[notificationKey] = true;
           hasChanges = true;
@@ -687,9 +674,7 @@ const checkTaskDeadlines = async (tasks) => {
 
   // Mostrar resumen de fechas inválidas
   if (invalidDateCount > 0) {
-    console.log(
-      `Se encontraron ${invalidDateCount} tareas con fechas inválidas o descriptivas`
-    );
+    // Fechas inválidas encontradas
   }
 };
 
@@ -951,8 +936,6 @@ const dropTask = async (event, newStatus) => {
         ...taskData,
         status: newStatus,
       };
-
-      console.log("Tarea obtenida para notificación:", task);
 
       if (oldStatus === "completed" && newStatus === "progress") {
         // Tarea reabierta (de completada a en progreso)
